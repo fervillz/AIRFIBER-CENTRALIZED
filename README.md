@@ -33,4 +33,4 @@ The admin application uses the free, MIT-licensed [Tabler](https://tabler.io/) d
 
 ## Status
 
-Version `0.7.0` turns the PPP browser into a Billing & PPP Operations page. It groups secondary details into hover information, adds service summaries and filters, records payments for today in both RouterOS comments and WordPress, automatically imports or updates customers, creates payment records, assigns the Expired profile without forcing an immediate disconnect, and restores/reconnects expired accounts to their saved plan.
+Version `0.7.1` makes Billing & PPP Operations the Airfiber landing page. The temporary native WordPress Customers and Payments submenu screens are hidden while both post types continue operating as internal customer and transaction storage. MikroTik Settings remains available from the Airfiber menu.
