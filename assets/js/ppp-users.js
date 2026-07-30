@@ -2,6 +2,11 @@
 	'use strict';
 
 	let users = [];
+	const selectedNames = new Set();
+	const sortState = {
+		key: 'name',
+		direction: 'asc'
+	};
 
 	function escapeHtml( value ) {
 		return $( '<div>' ).text( value || '' ).html();
@@ -18,6 +23,28 @@
 		const visible = users.filter( function ( user ) {
 			return ! query || [ user.name, user.customer_name, user.phone, user.profile, user.comment, user.address, user.caller_id, user.wifi, user.address_text ]
 				.join( ' ' ).toLowerCase().includes( query );
+		} ).sort( function ( first, second ) {
+			let a = first[ sortState.key ];
+			let b = second[ sortState.key ];
+
+			if ( 'payment_amount' === sortState.key || 'grace' === sortState.key ) {
+				a = parseFloat( a ) || 0;
+				b = parseFloat( b ) || 0;
+			} else if ( 'active' === sortState.key ) {
+				a = a ? 1 : 0;
+				b = b ? 1 : 0;
+			} else {
+				a = String( a || '' ).toLowerCase();
+				b = String( b || '' ).toLowerCase();
+			}
+
+			if ( a < b ) {
+				return 'asc' === sortState.direction ? -1 : 1;
+			}
+			if ( a > b ) {
+				return 'asc' === sortState.direction ? 1 : -1;
+			}
+			return String( first.name ).localeCompare( String( second.name ) );
 		} );
 		const rows = visible.map( function ( user ) {
 			const connection = user.active
@@ -28,7 +55,8 @@
 				: '<span class="badge bg-yellow-lt">Not imported</span>';
 			const checkbox = user.imported
 				? ''
-				: '<input class="form-check-input afc-user-check" type="checkbox">';
+				: '<input class="form-check-input afc-user-check" type="checkbox"' +
+					( selectedNames.has( user.name ) ? ' checked' : '' ) + '>';
 
 			return '<tr data-user="' + encodeURIComponent( JSON.stringify( user ) ) + '">' +
 				'<td>' + checkbox + '</td>' +
@@ -51,6 +79,9 @@
 		$( '#afc-ppp-table tbody' ).html(
 			rows.length ? rows.join( '' ) : '<tr><td colspan="14" class="text-center py-5">No PPP users found.</td></tr>'
 		);
+		$( '.afc-sort-indicator' ).text( '' );
+		$( '.afc-sort[data-sort="' + sortState.key + '"] .afc-sort-indicator' )
+			.text( 'asc' === sortState.direction ? '▲' : '▼' );
 	}
 
 	function loadUsers() {
@@ -64,6 +95,7 @@
 					return;
 				}
 				users = response.data.users;
+				selectedNames.clear();
 				render( $( '#afc-ppp-search' ).val() );
 				notice( 'Loaded ' + response.data.count + ' PPP user(s) from MikroTik.', 'success' );
 			} )
@@ -79,13 +111,39 @@
 		loadUsers();
 		$( '#afc-refresh-ppp' ).on( 'click', loadUsers );
 		$( '#afc-ppp-search' ).on( 'input', function () { render( this.value ); } );
+		$( '.afc-sort' ).on( 'click', function () {
+			const key = $( this ).data( 'sort' );
+			if ( sortState.key === key ) {
+				sortState.direction = 'asc' === sortState.direction ? 'desc' : 'asc';
+			} else {
+				sortState.key = key;
+				sortState.direction = 'asc';
+			}
+			render( $( '#afc-ppp-search' ).val() );
+		} );
+		$( '#afc-ppp-table' ).on( 'change', '.afc-user-check', function () {
+			const user = JSON.parse( decodeURIComponent( $( this ).closest( 'tr' ).attr( 'data-user' ) ) );
+			if ( this.checked ) {
+				selectedNames.add( user.name );
+			} else {
+				selectedNames.delete( user.name );
+			}
+		} );
 		$( '#afc-select-all' ).on( 'change', function () {
-			$( '.afc-user-check' ).prop( 'checked', this.checked );
+			const checked = this.checked;
+			$( '.afc-user-check' ).each( function () {
+				const user = JSON.parse( decodeURIComponent( $( this ).closest( 'tr' ).attr( 'data-user' ) ) );
+				$( this ).prop( 'checked', checked );
+				if ( checked ) {
+					selectedNames.add( user.name );
+				} else {
+					selectedNames.delete( user.name );
+				}
+			} );
 		} );
 		$( '#afc-import-ppp' ).on( 'click', function () {
-			const selected = [];
-			$( '.afc-user-check:checked' ).each( function () {
-				selected.push( JSON.parse( decodeURIComponent( $( this ).closest( 'tr' ).attr( 'data-user' ) ) ) );
+			const selected = users.filter( function ( user ) {
+				return selectedNames.has( user.name );
 			} );
 			if ( ! selected.length ) {
 				notice( afcPPP.noSelection, 'warning' );
@@ -99,6 +157,7 @@
 			} ).done( function ( response ) {
 				notice( response.data.message, response.success ? 'success' : 'danger' );
 				if ( response.success ) {
+					selectedNames.clear();
 					loadUsers();
 				}
 			} ).fail( function () {
