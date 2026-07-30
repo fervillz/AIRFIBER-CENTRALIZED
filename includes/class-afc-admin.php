@@ -102,6 +102,14 @@ class AFC_Admin {
 				true
 			);
 
+			wp_enqueue_script(
+				'afc-collection-groups',
+				AFC_URL . 'assets/js/collection-groups.js',
+				array( 'afc-ppp-users' ),
+				AFC_VERSION,
+				true
+			);
+
 			wp_localize_script(
 				'afc-ppp-users',
 				'afcPPP',
