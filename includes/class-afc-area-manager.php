@@ -19,13 +19,16 @@ class AFC_Area_Manager {
 	}
 
 	private static function replace_comment_value( $comment, $key, $value ) {
-		$keys    = 'installed|grace|paymentMethod|paymentAmount|paymentDate|name|plan|cp|wifi|password|Address';
-		$pattern = '/(' . preg_quote( $key, '/' ) . '\s*:\s*)(.*?)(?=\s+(?:' . $keys . ')\s*:|$)/is';
+		$keys        = 'installed|grace|paymentMethod|paymentAmount|paymentDate|name|plan|cp|wifi|password|Address|addr';
+		$key_pattern = 0 === strcasecmp( $key, 'Address' ) ? '(?:Address|addr)' : preg_quote( $key, '/' );
+		$pattern     = '/(' . $key_pattern . '\s*:\s*)(.*?)(?=\s+(?:' . $keys . ')\s*:|$)/is';
 
 		if ( preg_match( $pattern, $comment ) ) {
 			return preg_replace_callback(
 				$pattern,
 				function ( $matches ) use ( $value ) {
+					// Keep the account's existing label and formatting, whether it is
+					// Address:, address:, Addr: or addr:.
 					return $matches[1] . $value;
 				},
 				$comment,
