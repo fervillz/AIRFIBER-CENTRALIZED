@@ -33,4 +33,4 @@ The admin application uses the free, MIT-licensed [Tabler](https://tabler.io/) d
 
 ## Status
 
-Version `0.2.0` adds the first MikroTik RouterOS 7 REST API connection settings and a read-only connection test. Customer fields, payment processing, receipts, and billing automation will be implemented in subsequent milestones.
+Version `0.3.0` uses the traditional RouterOS API, defaulting to `10.13.88.1`, user `admin`, and port `8728`. API-SSL on port `8729` is also supported. Passwords are never included in source control and are encrypted after entry in WordPress.
