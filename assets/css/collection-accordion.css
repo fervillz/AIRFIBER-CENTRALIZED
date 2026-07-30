@@ -109,56 +109,12 @@
 	padding: 0.5rem 0.65rem;
 }
 
-.afc-admin-page .afc-barangay-tooltip {
-	position: absolute;
-	z-index: 100;
-	left: 0;
-	top: calc( 100% + 8px );
-	display: none;
-	width: max-content;
-	max-width: min( 720px, calc( 100vw - 80px ) );
-	padding: 0.55rem;
-	border: 1px solid var(--tblr-border-color);
-	border-radius: var(--tblr-border-radius);
-	background: var(--tblr-bg-surface);
-	box-shadow: 0 0.5rem 1.5rem rgba( 15, 23, 42, 0.16 );
-	grid-template-columns: repeat( auto-fit, minmax( 92px, 1fr ) );
-	gap: 0.35rem;
-	pointer-events: none;
-}
-
-.afc-admin-page .afc-barangay-group:not(.is-open) .afc-barangay-heading:hover .afc-barangay-tooltip,
-.afc-admin-page .afc-barangay-group:not(.is-open) .afc-barangay-heading:focus .afc-barangay-tooltip {
-	display: grid;
-}
-
-.afc-admin-page .afc-tooltip-zone {
-	display: flex;
-	align-items: center;
-	justify-content: space-between;
-	gap: 0.5rem;
-	padding: 0.35rem 0.5rem;
-	border-radius: var(--tblr-border-radius);
-	background: var(--tblr-bg-surface-secondary, #f6f8fb);
-	font-size: 0.75rem;
-	white-space: nowrap;
-}
-
-.afc-admin-page .afc-tooltip-zone span {
-	color: var(--tblr-primary);
-	font-weight: 700;
-}
-
 @media ( max-width: 782px ) {
 	.afc-admin-page .afc-barangay-heading {
 		flex-basis: calc( 50% - 0.3rem );
 		min-width: 135px;
 		min-height: 48px;
 		padding: 0.55rem 2.2rem 0.55rem 0.7rem;
-	}
-
-	.afc-admin-page .afc-barangay-tooltip {
-		display: none !important;
 	}
 
 	.afc-admin-page .afc-barangay-areas {
