@@ -1,31 +1,44 @@
 .afc-admin-page .afc-area-summary {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: flex-start;
 	gap: 0.55rem;
 }
 
+/*
+ * Remove the barangay section box from layout so all headings can sit in one
+ * card row while the selected zone panel spans the complete row beneath it.
+ */
 .afc-admin-page .afc-barangay-group {
-	position: relative;
-	padding: 0;
-	overflow: visible;
-	background: var(--tblr-bg-surface);
+	display: contents;
 }
 
 .afc-admin-page .afc-barangay-heading {
 	position: relative;
-	min-height: 58px;
+	order: 0;
+	display: flex;
+	flex: 1 1 180px;
+	align-items: center;
+	justify-content: space-between;
+	gap: 0.65rem;
+	min-width: 150px;
+	min-height: 50px;
 	margin: 0;
-	padding: 0.75rem 3rem 0.75rem 1rem;
+	padding: 0.6rem 2.5rem 0.6rem 0.8rem;
+	border: 1px solid var(--tblr-border-color);
 	border-radius: calc( var(--tblr-border-radius) + 2px );
+	background: var(--tblr-bg-surface);
 	cursor: pointer;
-	transition: background-color 0.15s ease, border-color 0.15s ease;
+	transition: background-color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
 }
 
 .afc-admin-page .afc-barangay-heading::after {
 	position: absolute;
-	right: 1rem;
+	right: 0.8rem;
 	top: 50%;
 	content: "›";
 	color: var(--tblr-secondary);
-	font-size: 1.5rem;
+	font-size: 1.35rem;
 	line-height: 1;
 	transform: translateY( -50% );
 	transition: transform 0.18s ease, color 0.18s ease;
@@ -33,8 +46,11 @@
 
 .afc-admin-page .afc-barangay-heading:hover,
 .afc-admin-page .afc-barangay-heading:focus {
+	border-color: var(--tblr-primary);
 	background: var(--tblr-primary-lt);
+	box-shadow: 0 0 0 2px rgba( 32, 107, 196, 0.1 );
 	outline: none;
+	transform: translateY( -1px );
 }
 
 .afc-admin-page .afc-barangay-heading:hover::after,
@@ -43,9 +59,9 @@
 }
 
 .afc-admin-page .afc-barangay-group.is-open .afc-barangay-heading {
-	border-bottom-right-radius: 0;
-	border-bottom-left-radius: 0;
+	border-color: var(--tblr-primary);
 	background: var(--tblr-primary-lt);
+	box-shadow: 0 0 0 2px rgba( 32, 107, 196, 0.1 );
 }
 
 .afc-admin-page .afc-barangay-group.is-open .afc-barangay-heading::after {
@@ -58,15 +74,30 @@
 }
 
 .afc-admin-page .afc-barangay-name {
-	font-size: 1rem;
+	margin: 0;
+	font-size: 0.95rem;
+	line-height: 1.2;
+}
+
+.afc-admin-page .afc-barangay-total {
+	margin-left: auto;
+	padding: 0.2rem 0.5rem;
+	font-size: 0.7rem;
+	white-space: nowrap;
 }
 
 .afc-admin-page .afc-barangay-areas {
+	order: 1;
 	display: none;
+	flex: 0 0 100%;
+	width: 100%;
 	grid-template-columns: repeat( auto-fill, minmax( 105px, 1fr ) );
 	gap: 0.5rem;
+	margin-top: 0.1rem;
 	padding: 0.75rem;
-	border-top: 1px solid var(--tblr-border-color);
+	border: 1px solid var(--tblr-border-color);
+	border-radius: calc( var(--tblr-border-radius) + 2px );
+	background: var(--tblr-bg-surface-secondary, #f6f8fb);
 }
 
 .afc-admin-page .afc-barangay-group.is-open .afc-barangay-areas {
@@ -74,14 +105,14 @@
 }
 
 .afc-admin-page .afc-area-card {
-	min-height: 48px;
-	padding: 0.55rem 0.7rem;
+	min-height: 46px;
+	padding: 0.5rem 0.65rem;
 }
 
 .afc-admin-page .afc-barangay-tooltip {
 	position: absolute;
 	z-index: 100;
-	left: 1rem;
+	left: 0;
 	top: calc( 100% + 8px );
 	display: none;
 	width: max-content;
@@ -120,8 +151,10 @@
 
 @media ( max-width: 782px ) {
 	.afc-admin-page .afc-barangay-heading {
-		min-height: 54px;
-		padding-inline: 0.8rem 2.7rem;
+		flex-basis: calc( 50% - 0.3rem );
+		min-width: 135px;
+		min-height: 48px;
+		padding: 0.55rem 2.2rem 0.55rem 0.7rem;
 	}
 
 	.afc-admin-page .afc-barangay-tooltip {
@@ -130,5 +163,11 @@
 
 	.afc-admin-page .afc-barangay-areas {
 		grid-template-columns: repeat( 2, minmax( 0, 1fr ) );
+	}
+}
+
+@media ( max-width: 480px ) {
+	.afc-admin-page .afc-barangay-heading {
+		flex-basis: 100%;
 	}
 }
