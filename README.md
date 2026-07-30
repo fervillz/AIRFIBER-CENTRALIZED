@@ -33,4 +33,4 @@ The admin application uses the free, MIT-licensed [Tabler](https://tabler.io/) d
 
 ## Status
 
-Version `0.4.1` uses the traditional RouterOS API, defaulting to `10.13.88.1`, user `admin`, and port `8728`. API-SSL on port `8729` is also supported. Connection testing runs through AJAX and records the latest result without refreshing the page. Saved passwords display a safe dummy mask and can be replaced explicitly; real passwords are never returned to the browser or included in source control.
+Version `0.5.0` adds a read-only MikroTik PPP user browser with live connection state, search, selectable customer import, duplicate prevention, and generated Airfiber account numbers. Imported records preserve their PPP username, profile, RouterOS comment, remote address, caller ID, disabled state, and MikroTik record ID.
