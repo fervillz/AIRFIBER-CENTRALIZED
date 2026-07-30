@@ -1,0 +1,217 @@
+.afc-admin-page .afc-admin-mode-switcher {
+	position: sticky;
+	top: 40px;
+	z-index: 9990;
+	display: flex;
+	align-items: center;
+	justify-content: flex-end;
+	gap: 0.65rem;
+	min-height: 48px;
+	margin: -0.35rem 0 0.8rem;
+	padding: 0.4rem 0.55rem;
+	border: 1px solid rgba( 98, 105, 118, 0.16 );
+	border-radius: 0.65rem;
+	background: rgba( 255, 255, 255, 0.94 );
+	box-shadow: 0 6px 22px rgba( 24, 36, 51, 0.08 );
+	backdrop-filter: blur( 12px );
+}
+
+.afc-admin-page .afc-admin-mode-copy {
+	display: flex;
+	min-width: 0;
+	align-items: baseline;
+	gap: 0.5rem;
+	margin-right: auto;
+}
+
+.afc-admin-page .afc-admin-mode-eyebrow {
+	color: var(--tblr-secondary);
+	font-size: 0.62rem;
+	font-weight: 800;
+	letter-spacing: 0.12em;
+	text-transform: uppercase;
+}
+
+.afc-admin-page .afc-admin-mode-description {
+	overflow: hidden;
+	color: var(--tblr-secondary);
+	font-size: 0.76rem;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.afc-admin-page .afc-admin-mode-segment {
+	display: inline-flex;
+	align-items: center;
+	padding: 3px;
+	border: 1px solid var(--tblr-border-color);
+	border-radius: 999px;
+	background: var(--tblr-bg-surface-secondary, #f4f6f8);
+}
+
+.afc-admin-page .afc-admin-mode-segment button {
+	min-width: 78px;
+	padding: 0.35rem 0.7rem;
+	border: 0;
+	border-radius: 999px;
+	background: transparent;
+	color: var(--tblr-secondary);
+	font-size: 0.75rem;
+	font-weight: 700;
+	line-height: 1.2;
+	cursor: pointer;
+	transition: color 0.18s ease, background-color 0.18s ease, box-shadow 0.18s ease, transform 0.18s ease;
+}
+
+.afc-admin-page .afc-admin-mode-segment button:hover,
+.afc-admin-page .afc-admin-mode-segment button:focus-visible {
+	color: var(--tblr-primary);
+	outline: none;
+}
+
+.afc-admin-page .afc-admin-mode-segment button.is-active {
+	background: var(--tblr-bg-surface, #fff);
+	color: var(--tblr-primary);
+	box-shadow: 0 2px 8px rgba( 24, 36, 51, 0.13 );
+}
+
+.afc-admin-page .afc-admin-mode-segment button:active {
+	transform: scale( 0.97 );
+}
+
+.afc-admin-page .afc-admin-mode-save-status {
+	min-width: 92px;
+	color: var(--tblr-secondary);
+	font-size: 0.66rem;
+	text-align: right;
+}
+
+/* Reusable visibility hooks for future Airfiber screens and tools. */
+body.afc-admin-mode-basic .afc-advanced-only,
+body.afc-admin-mode-basic [data-afc-visible-mode="advanced"],
+body.afc-admin-mode-advanced .afc-basic-only,
+body.afc-admin-mode-advanced [data-afc-visible-mode="basic"] {
+	display: none !important;
+}
+
+/* Basic mode: daily tasks only. */
+body.afc-admin-mode-basic #afc-ppp-summary > .col-6:last-child,
+body.afc-admin-mode-basic #afc-import-ppp,
+body.afc-admin-mode-basic .afc-open-area-manager,
+body.afc-admin-mode-basic #afc-manage-locations,
+body.afc-admin-mode-basic .afc-area-manager-banner,
+body.afc-admin-mode-basic #afc-ppp-table .badge.bg-blue-lt,
+body.afc-admin-mode-basic #afc-ppp-table .badge.bg-yellow-lt,
+body.afc-admin-mode-basic #afc-ppp-table td:nth-child(6) .small.text-primary {
+	display: none !important;
+}
+
+body.afc-admin-mode-basic #afc-ppp-summary > .col-6:not(:last-child) {
+	flex: 0 0 33.333333%;
+	max-width: 33.333333%;
+}
+
+body.afc-admin-mode-basic #afc-ppp-table th:first-child,
+body.afc-admin-mode-basic #afc-ppp-table td:first-child,
+body.afc-admin-mode-basic #afc-ppp-table th:nth-child(5),
+body.afc-admin-mode-basic #afc-ppp-table td:nth-child(5) {
+	display: none;
+}
+
+body.afc-admin-mode-basic .afc-operations-toolbar .col-lg-5 {
+	flex: 1 1 58%;
+	max-width: none;
+}
+
+body.afc-admin-mode-basic .afc-operations-toolbar .col-md-4 {
+	flex: 0 1 280px;
+	max-width: 280px;
+}
+
+body.afc-admin-mode-basic .afc-operations-toolbar .col-md-8 {
+	display: none;
+}
+
+body.afc-admin-mode-basic #afc-ppp-table .afc-row-actions {
+	flex-wrap: nowrap;
+}
+
+body.afc-admin-mode-changing .afc-admin-page .card,
+body.afc-admin-mode-changing .afc-admin-page .afc-collection-card {
+	animation: afc-admin-mode-enter 0.24s ease both;
+}
+
+@keyframes afc-admin-mode-enter {
+	from {
+		opacity: 0.65;
+		transform: translateY( 3px );
+	}
+	to {
+		opacity: 1;
+		transform: translateY( 0 );
+	}
+}
+
+@media ( max-width: 782px ) {
+	.afc-admin-page .afc-admin-mode-switcher {
+		top: 54px;
+		align-items: stretch;
+		flex-wrap: wrap;
+	}
+
+	.afc-admin-page .afc-admin-mode-copy {
+		flex: 1 1 100%;
+	}
+
+	.afc-admin-page .afc-admin-mode-segment {
+		flex: 1 1 auto;
+	}
+
+	.afc-admin-page .afc-admin-mode-segment button {
+		flex: 1 1 50%;
+	}
+
+	.afc-admin-page .afc-admin-mode-save-status {
+		align-self: center;
+	}
+
+	body.afc-admin-mode-basic #afc-ppp-summary > .col-6:not(:last-child) {
+		flex: 0 0 50%;
+		max-width: 50%;
+	}
+
+	body.afc-admin-mode-basic #afc-ppp-summary > .col-6:nth-child(3) {
+		flex-basis: 100%;
+		max-width: 100%;
+	}
+}
+
+@media ( max-width: 480px ) {
+	.afc-admin-page .afc-admin-mode-description,
+	.afc-admin-page .afc-admin-mode-save-status {
+		display: none;
+	}
+
+	.afc-admin-page .afc-admin-mode-copy {
+		flex-basis: auto;
+		margin-right: 0;
+	}
+
+	.afc-admin-page .afc-admin-mode-segment {
+		width: 100%;
+	}
+
+	body.afc-admin-mode-basic #afc-ppp-summary > .col-6:not(:last-child) {
+		flex: 0 0 100%;
+		max-width: 100%;
+	}
+}
+
+@media ( prefers-reduced-motion: reduce ) {
+	.afc-admin-page .afc-admin-mode-segment button,
+	body.afc-admin-mode-changing .afc-admin-page .card,
+	body.afc-admin-mode-changing .afc-admin-page .afc-collection-card {
+		animation: none;
+		transition: none;
+	}
+}
