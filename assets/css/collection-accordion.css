@@ -1,0 +1,134 @@
+.afc-admin-page .afc-area-summary {
+	gap: 0.55rem;
+}
+
+.afc-admin-page .afc-barangay-group {
+	position: relative;
+	padding: 0;
+	overflow: visible;
+	background: var(--tblr-bg-surface);
+}
+
+.afc-admin-page .afc-barangay-heading {
+	position: relative;
+	min-height: 58px;
+	margin: 0;
+	padding: 0.75rem 3rem 0.75rem 1rem;
+	border-radius: calc( var(--tblr-border-radius) + 2px );
+	cursor: pointer;
+	transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.afc-admin-page .afc-barangay-heading::after {
+	position: absolute;
+	right: 1rem;
+	top: 50%;
+	content: "›";
+	color: var(--tblr-secondary);
+	font-size: 1.5rem;
+	line-height: 1;
+	transform: translateY( -50% );
+	transition: transform 0.18s ease, color 0.18s ease;
+}
+
+.afc-admin-page .afc-barangay-heading:hover,
+.afc-admin-page .afc-barangay-heading:focus {
+	background: var(--tblr-primary-lt);
+	outline: none;
+}
+
+.afc-admin-page .afc-barangay-heading:hover::after,
+.afc-admin-page .afc-barangay-heading:focus::after {
+	color: var(--tblr-primary);
+}
+
+.afc-admin-page .afc-barangay-group.is-open .afc-barangay-heading {
+	border-bottom-right-radius: 0;
+	border-bottom-left-radius: 0;
+	background: var(--tblr-primary-lt);
+}
+
+.afc-admin-page .afc-barangay-group.is-open .afc-barangay-heading::after {
+	color: var(--tblr-primary);
+	transform: translateY( -50% ) rotate( 90deg );
+}
+
+.afc-admin-page .afc-barangay-label {
+	display: none;
+}
+
+.afc-admin-page .afc-barangay-name {
+	font-size: 1rem;
+}
+
+.afc-admin-page .afc-barangay-areas {
+	display: none;
+	grid-template-columns: repeat( auto-fill, minmax( 105px, 1fr ) );
+	gap: 0.5rem;
+	padding: 0.75rem;
+	border-top: 1px solid var(--tblr-border-color);
+}
+
+.afc-admin-page .afc-barangay-group.is-open .afc-barangay-areas {
+	display: grid;
+}
+
+.afc-admin-page .afc-area-card {
+	min-height: 48px;
+	padding: 0.55rem 0.7rem;
+}
+
+.afc-admin-page .afc-barangay-tooltip {
+	position: absolute;
+	z-index: 100;
+	left: 1rem;
+	top: calc( 100% + 8px );
+	display: none;
+	width: max-content;
+	max-width: min( 720px, calc( 100vw - 80px ) );
+	padding: 0.55rem;
+	border: 1px solid var(--tblr-border-color);
+	border-radius: var(--tblr-border-radius);
+	background: var(--tblr-bg-surface);
+	box-shadow: 0 0.5rem 1.5rem rgba( 15, 23, 42, 0.16 );
+	grid-template-columns: repeat( auto-fit, minmax( 92px, 1fr ) );
+	gap: 0.35rem;
+	pointer-events: none;
+}
+
+.afc-admin-page .afc-barangay-group:not(.is-open) .afc-barangay-heading:hover .afc-barangay-tooltip,
+.afc-admin-page .afc-barangay-group:not(.is-open) .afc-barangay-heading:focus .afc-barangay-tooltip {
+	display: grid;
+}
+
+.afc-admin-page .afc-tooltip-zone {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 0.5rem;
+	padding: 0.35rem 0.5rem;
+	border-radius: var(--tblr-border-radius);
+	background: var(--tblr-bg-surface-secondary, #f6f8fb);
+	font-size: 0.75rem;
+	white-space: nowrap;
+}
+
+.afc-admin-page .afc-tooltip-zone span {
+	color: var(--tblr-primary);
+	font-weight: 700;
+}
+
+@media ( max-width: 782px ) {
+	.afc-admin-page .afc-barangay-heading {
+		min-height: 54px;
+		padding-inline: 0.8rem 2.7rem;
+	}
+
+	.afc-admin-page .afc-barangay-tooltip {
+		display: none !important;
+	}
+
+	.afc-admin-page .afc-barangay-areas {
+		grid-template-columns: repeat( 2, minmax( 0, 1fr ) );
+	}
+}
