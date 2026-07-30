@@ -35,14 +35,20 @@ defined( 'ABSPATH' ) || exit;
 						<tr>
 							<th><input class="form-check-input" id="afc-select-all" type="checkbox"></th>
 							<th><?php esc_html_e( 'PPP Username', 'airfiber-centralized' ); ?></th>
-							<th><?php esc_html_e( 'Profile', 'airfiber-centralized' ); ?></th>
+							<th><?php esc_html_e( 'Customer', 'airfiber-centralized' ); ?></th>
+							<th><?php esc_html_e( 'Phone', 'airfiber-centralized' ); ?></th>
+							<th><?php esc_html_e( 'Plan', 'airfiber-centralized' ); ?></th>
+							<th><?php esc_html_e( 'Installed', 'airfiber-centralized' ); ?></th>
+							<th><?php esc_html_e( 'Payment Date', 'airfiber-centralized' ); ?></th>
+							<th><?php esc_html_e( 'Amount', 'airfiber-centralized' ); ?></th>
+							<th><?php esc_html_e( 'Method', 'airfiber-centralized' ); ?></th>
+							<th><?php esc_html_e( 'Grace', 'airfiber-centralized' ); ?></th>
 							<th><?php esc_html_e( 'Connection', 'airfiber-centralized' ); ?></th>
-							<th><?php esc_html_e( 'IP / Caller ID', 'airfiber-centralized' ); ?></th>
-							<th><?php esc_html_e( 'Comment', 'airfiber-centralized' ); ?></th>
+							<th><?php esc_html_e( 'Wi-Fi / Address', 'airfiber-centralized' ); ?></th>
 							<th><?php esc_html_e( 'Import', 'airfiber-centralized' ); ?></th>
 						</tr>
 					</thead>
-					<tbody><tr><td colspan="7" class="text-center text-secondary py-5"><?php esc_html_e( 'Loading PPP users...', 'airfiber-centralized' ); ?></td></tr></tbody>
+					<tbody><tr><td colspan="14" class="text-center text-secondary py-5"><?php esc_html_e( 'Loading PPP users...', 'airfiber-centralized' ); ?></td></tr></tbody>
 				</table>
 			</div>
 		</div>
