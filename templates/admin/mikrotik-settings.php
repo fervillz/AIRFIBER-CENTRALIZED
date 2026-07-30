@@ -53,7 +53,27 @@ defined( 'ABSPATH' ) || exit;
 							</div>
 							<div class="col-md-6 mb-3">
 								<label class="form-label" for="afc-router-password"><?php esc_html_e( 'Password', 'airfiber-centralized' ); ?></label>
-								<input class="form-control" type="password" autocomplete="new-password" id="afc-router-password" name="afc_mikrotik_settings[password]" placeholder="<?php echo $settings['password'] ? esc_attr__( 'Saved - leave blank to keep it', 'airfiber-centralized' ) : ''; ?>">
+								<div class="input-group">
+									<input
+										class="form-control"
+										type="password"
+										autocomplete="new-password"
+										id="afc-router-password"
+										name="afc_mikrotik_settings[password]"
+										value="<?php echo $settings['password'] ? 'airfiber-saved-password' : ''; ?>"
+										<?php disabled( ! empty( $settings['password'] ) ); ?>
+									>
+									<?php if ( $settings['password'] ) : ?>
+										<button class="btn btn-outline-secondary" id="afc-change-password" type="button">
+											<?php esc_html_e( 'Change', 'airfiber-centralized' ); ?>
+										</button>
+									<?php endif; ?>
+								</div>
+								<?php if ( $settings['password'] ) : ?>
+									<small class="form-hint text-success" id="afc-password-status">
+										<?php esc_html_e( 'Password saved securely. The dots are only a mask.', 'airfiber-centralized' ); ?>
+									</small>
+								<?php endif; ?>
 							</div>
 						</div>
 						<label class="form-check">
