@@ -68,11 +68,23 @@ class AFC_PPP_Users {
 				continue;
 			}
 			$session = isset( $active_by_name[ $name ] ) ? $active_by_name[ $name ] : array();
+			$comment = isset( $secret['comment'] ) ? $secret['comment'] : '';
+			$details = self::parse_comment( $comment );
 			$users[] = array(
 				'id'             => isset( $secret['.id'] ) ? $secret['.id'] : '',
 				'name'           => $name,
-				'profile'        => isset( $secret['profile'] ) ? $secret['profile'] : '',
-				'comment'        => isset( $secret['comment'] ) ? $secret['comment'] : '',
+				'profile'        => ! empty( $details['plan'] ) ? $details['plan'] : ( isset( $secret['profile'] ) ? $secret['profile'] : '' ),
+				'actual_profile' => isset( $secret['profile'] ) ? $secret['profile'] : '',
+				'comment'        => $comment,
+				'customer_name'  => $details['name'],
+				'phone'          => $details['cp'],
+				'installed'      => $details['installed'],
+				'grace'          => $details['grace'],
+				'payment_method' => $details['payment_method'],
+				'payment_amount' => $details['payment_amount'],
+				'payment_date'   => $details['payment_date'],
+				'wifi'           => $details['wifi'],
+				'address_text'   => $details['address'],
 				'disabled'       => isset( $secret['disabled'] ) && 'true' === $secret['disabled'],
 				'remote_address' => isset( $secret['remote-address'] ) ? $secret['remote-address'] : '',
 				'caller_id'      => isset( $session['caller-id'] ) ? $session['caller-id'] : ( isset( $secret['caller-id'] ) ? $secret['caller-id'] : '' ),
@@ -84,6 +96,49 @@ class AFC_PPP_Users {
 		}
 
 		wp_send_json_success( array( 'users' => $users, 'count' => count( $users ) ) );
+	}
+
+	private static function parse_comment( $comment ) {
+		$values = array(
+			'installed'      => '',
+			'grace'          => '',
+			'payment_method' => '',
+			'payment_amount' => '',
+			'payment_date'   => '',
+			'name'           => '',
+			'plan'           => '',
+			'cp'             => '',
+			'wifi'           => '',
+			'address'        => '',
+		);
+		$keys = 'installed|grace|paymentMethod|paymentAmount|paymentDate|name|plan|cp|wifi|password|Address';
+
+		preg_match_all(
+			'/(?:^|\s)(' . $keys . ')\s*:\s*(.*?)(?=\s+(?:' . $keys . ')\s*:|$)/is',
+			trim( $comment ),
+			$matches,
+			PREG_SET_ORDER
+		);
+
+		$map = array(
+			'paymentmethod' => 'payment_method',
+			'paymentamount' => 'payment_amount',
+			'paymentdate'   => 'payment_date',
+			'address'       => 'address',
+		);
+		foreach ( $matches as $match ) {
+			$key   = strtolower( $match[1] );
+			$key   = isset( $map[ $key ] ) ? $map[ $key ] : $key;
+			$value = trim( preg_replace( '/\s+/', ' ', $match[2] ) );
+			if ( 'N/A' === strtoupper( $value ) ) {
+				$value = '';
+			}
+			if ( 'password' !== $key && array_key_exists( $key, $values ) ) {
+				$values[ $key ] = $value;
+			}
+		}
+
+		return $values;
 	}
 
 	private static function get_imported_usernames() {
@@ -124,11 +179,12 @@ class AFC_PPP_Users {
 				continue;
 			}
 
+			$customer_name = isset( $user['customer_name'] ) ? sanitize_text_field( $user['customer_name'] ) : '';
 			$post_id = wp_insert_post(
 				array(
 					'post_type'   => 'afc_customer',
 					'post_status' => 'publish',
-					'post_title'  => $name,
+					'post_title'  => $customer_name ? $customer_name : $name,
 				),
 				true
 			);
@@ -141,6 +197,15 @@ class AFC_PPP_Users {
 			update_post_meta( $post_id, '_afc_ppp_username', $name );
 			update_post_meta( $post_id, '_afc_mikrotik_id', isset( $user['id'] ) ? sanitize_text_field( $user['id'] ) : '' );
 			update_post_meta( $post_id, '_afc_plan', isset( $user['profile'] ) ? sanitize_text_field( $user['profile'] ) : '' );
+			update_post_meta( $post_id, '_afc_customer_name', $customer_name );
+			update_post_meta( $post_id, '_afc_phone', isset( $user['phone'] ) ? sanitize_text_field( $user['phone'] ) : '' );
+			update_post_meta( $post_id, '_afc_installation_date', isset( $user['installed'] ) ? sanitize_text_field( $user['installed'] ) : '' );
+			update_post_meta( $post_id, '_afc_grace_days', isset( $user['grace'] ) ? absint( $user['grace'] ) : 0 );
+			update_post_meta( $post_id, '_afc_payment_method', isset( $user['payment_method'] ) ? sanitize_text_field( $user['payment_method'] ) : '' );
+			update_post_meta( $post_id, '_afc_payment_amount', isset( $user['payment_amount'] ) ? floatval( $user['payment_amount'] ) : 0 );
+			update_post_meta( $post_id, '_afc_payment_date', isset( $user['payment_date'] ) ? sanitize_text_field( $user['payment_date'] ) : '' );
+			update_post_meta( $post_id, '_afc_wifi_name', isset( $user['wifi'] ) ? sanitize_text_field( $user['wifi'] ) : '' );
+			update_post_meta( $post_id, '_afc_address', isset( $user['address_text'] ) ? sanitize_textarea_field( $user['address_text'] ) : '' );
 			update_post_meta( $post_id, '_afc_mikrotik_comment', isset( $user['comment'] ) ? sanitize_textarea_field( $user['comment'] ) : '' );
 			update_post_meta( $post_id, '_afc_remote_address', isset( $user['remote_address'] ) ? sanitize_text_field( $user['remote_address'] ) : '' );
 			update_post_meta( $post_id, '_afc_caller_id', isset( $user['caller_id'] ) ? sanitize_text_field( $user['caller_id'] ) : '' );
