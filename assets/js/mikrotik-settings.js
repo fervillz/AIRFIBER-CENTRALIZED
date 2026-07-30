@@ -4,6 +4,16 @@
 	$( function () {
 		const $button = $( '#afc-test-mikrotik' );
 		const $result = $( '#afc-mikrotik-test-result' );
+		const $password = $( '#afc-router-password' );
+
+		$( '#afc-change-password' ).on( 'click', function () {
+			$password.prop( 'disabled', false ).val( '' ).trigger( 'focus' );
+			$( this ).remove();
+			$( '#afc-password-status' )
+				.removeClass( 'text-success' )
+				.addClass( 'text-secondary' )
+				.text( 'Enter the new password, then save the connection.' );
+		} );
 
 		$button.on( 'click', function () {
 			$button.prop( 'disabled', true ).text( afcMikroTik.testing );
@@ -40,4 +50,3 @@
 		} );
 	} );
 }( jQuery ) );
-
