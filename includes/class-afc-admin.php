@@ -23,6 +23,15 @@ class AFC_Admin {
 
 		add_submenu_page(
 			'airfiber-centralized',
+			__( 'MikroTik PPP Users', 'airfiber-centralized' ),
+			__( 'PPP Users', 'airfiber-centralized' ),
+			'manage_options',
+			'airfiber-ppp-users',
+			array( 'AFC_PPP_Users', 'render_page' )
+		);
+
+		add_submenu_page(
+			'airfiber-centralized',
 			__( 'MikroTik Settings', 'airfiber-centralized' ),
 			__( 'MikroTik', 'airfiber-centralized' ),
 			'manage_options',
@@ -34,6 +43,7 @@ class AFC_Admin {
 	public static function enqueue_assets( $hook_suffix ) {
 		$airfiber_pages = array(
 			'toplevel_page_airfiber-centralized',
+			'airfiber_page_airfiber-ppp-users',
 			'airfiber_page_airfiber-mikrotik',
 		);
 
@@ -73,6 +83,28 @@ class AFC_Admin {
 					'nonce'   => wp_create_nonce( 'afc_test_mikrotik_ajax' ),
 					'testing' => __( 'Testing connection...', 'airfiber-centralized' ),
 					'button'  => __( 'Test Saved Connection', 'airfiber-centralized' ),
+				)
+			);
+		}
+
+		if ( 'airfiber_page_airfiber-ppp-users' === $hook_suffix ) {
+			wp_enqueue_script(
+				'afc-ppp-users',
+				AFC_URL . 'assets/js/ppp-users.js',
+				array( 'jquery' ),
+				AFC_VERSION,
+				true
+			);
+
+			wp_localize_script(
+				'afc-ppp-users',
+				'afcPPP',
+				array(
+					'ajaxUrl'     => admin_url( 'admin-ajax.php' ),
+					'nonce'       => wp_create_nonce( 'afc_ppp_users' ),
+					'loading'     => __( 'Loading PPP users from MikroTik...', 'airfiber-centralized' ),
+					'importing'   => __( 'Importing selected users...', 'airfiber-centralized' ),
+					'noSelection' => __( 'Select at least one PPP user to import.', 'airfiber-centralized' ),
 				)
 			);
 		}
