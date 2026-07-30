@@ -25,7 +25,7 @@ class AFC_Post_Types {
 				),
 				'public'       => false,
 				'show_ui'      => true,
-				'show_in_menu' => 'airfiber-centralized',
+				'show_in_menu' => false,
 				'supports'     => array( 'title' ),
 				'menu_icon'    => 'dashicons-groups',
 			)
@@ -43,11 +43,10 @@ class AFC_Post_Types {
 				),
 				'public'       => false,
 				'show_ui'      => true,
-				'show_in_menu' => 'airfiber-centralized',
+				'show_in_menu' => false,
 				'supports'     => array( 'title' ),
 				'menu_icon'    => 'dashicons-money-alt',
 			)
 		);
 	}
 }
-
