@@ -47,31 +47,146 @@
 		} );
 	}
 
+	function plainText( value ) {
+		const text = String( value || '' ).replace( /\uFFFD/g, 'n' );
+		return 'function' === typeof text.normalize
+			? text.normalize( 'NFD' ).replace( /[\u0300-\u036f]/g, '' )
+			: text;
+	}
+
+	function areaDistance( first, second ) {
+		const rows = [];
+		let row;
+		let column;
+
+		for ( row = 0; row <= second.length; row++ ) {
+			rows[ row ] = [ row ];
+		}
+		for ( column = 0; column <= first.length; column++ ) {
+			rows[ 0 ][ column ] = column;
+		}
+		for ( row = 1; row <= second.length; row++ ) {
+			for ( column = 1; column <= first.length; column++ ) {
+				rows[ row ][ column ] = second.charAt( row - 1 ) === first.charAt( column - 1 )
+					? rows[ row - 1 ][ column - 1 ]
+					: Math.min(
+						rows[ row - 1 ][ column - 1 ] + 1,
+						rows[ row ][ column - 1 ] + 1,
+						rows[ row - 1 ][ column ] + 1
+					);
+			}
+		}
+		return rows[ second.length ][ first.length ];
+	}
+
+	function closestKnownArea( value ) {
+		const compact = value.toLowerCase().replace( /[^a-z0-9]/g, '' );
+		const known = {
+			lingion: 'Lingion',
+			stonino: 'Sto. Nino',
+			dalirig: 'Dalirig',
+			dicklum: 'Dicklum',
+			mangima: 'Mangima',
+			lowersosohon: 'Lower Sosohon',
+			caagsaman: 'Caagsaman',
+			gabok: 'Gabok',
+			bulagok: 'Bulagok',
+			valle: 'Valle',
+			apad: 'Apad'
+		};
+		let best = '';
+		let bestDistance = 99;
+
+		if ( known[ compact ] ) {
+			return known[ compact ];
+		}
+		if ( compact.length < 5 ) {
+			return '';
+		}
+
+		Object.keys( known ).forEach( function ( candidate ) {
+			const distance = areaDistance( compact, candidate );
+			if ( distance < bestDistance ) {
+				best = known[ candidate ];
+				bestDistance = distance;
+			}
+		} );
+
+		return bestDistance <= ( compact.length >= 7 ? 2 : 1 ) ? best : '';
+	}
+
 	function normalizeArea( address ) {
-		let normalized = String( address || '' ).trim();
-		if ( ! normalized ) {
+		let normalized = plainText( address ).trim();
+		let zone = '';
+		const localities = [];
+		const localityRules = [
+			{ name: 'Lingion', pattern: /\b(?:lingi[\s.\-]*on|lingoin|ligion|ligiom)(?=\b|mfb?\b)/i },
+			{ name: 'Sto. Nino', pattern: /\b(?:sto|st)[\s.\-]*ni[\s.\-]*n?o\b/i },
+			{ name: 'Lower Sosohon', pattern: /\b(?:lower[\s.\-]*sosohon|lowersosohon|lowsersosohon)\b/i },
+			{ name: 'Dalirig', pattern: /\bdali?r[ei]g\b/i },
+			{ name: 'Dicklum', pattern: /\bdickl[uo]m\b/i },
+			{ name: 'Mangima', pattern: /\bmangima\b/i },
+			{ name: 'Caagsaman', pattern: /\bca+gsaman\b/i },
+			{ name: 'Gabok', pattern: /\bgabok\b/i },
+			{ name: 'Bulagok', pattern: /\bbulagok\b/i },
+			{ name: 'Valle', pattern: /\bvalle\b/i },
+			{ name: 'Apad', pattern: /\bapad\b/i }
+		];
+
+		if ( ! normalized || /^(?:n\s*\/?\s*a|none|unknown|-)\b/i.test( normalized ) || /^\d+$/.test( normalized ) ) {
 			return 'Unassigned Area';
 		}
 
 		normalized = normalized
-			.replace( /\bsto[\s.\-]*nino\b/gi, 'Sto. Nino' )
-			.replace( /\b(?:manolo\s+fortich|manolo|m\s*\.?\s*f\s*\.?)\b/gi, 'Manolo Fortich' )
-			.replace( /\b(?:zone|z)\s*0*(\d+)\b/gi, 'Zone $1' )
-			.replace( /\bbrgy\.?\b/gi, 'Barangay' )
-			.replace( /\s*,\s*/g, ', ' )
-			.replace( /\s+/g, ' ' )
-			.replace( /,+/g, ',' )
-			.replace( /^,\s*|\s*,$/g, '' );
+			.replace( /\b(?:barangay|brgy)\.?\b/gi, ' ' )
+			.replace( /\b(?:manolo\s+fortich|manolo|mfb|mf|bukidnon|buk)\.?\b/gi, ' ' );
 
-		return normalized.split( ',' ).map( function ( part ) {
-			const clean = part.trim();
-			if ( /^(Zone \d+|Sto\. Nino|Manolo Fortich)$/i.test( clean ) ) {
-				return clean.replace( /^zone/i, 'Zone' )
-					.replace( /^sto\. nino$/i, 'Sto. Nino' )
-					.replace( /^manolo fortich$/i, 'Manolo Fortich' );
+		const zoneMatch = normalized.match( /\b(?:zone|zon|zine|zne|z|purok)\s*[-.:]?\s*0*(\d+)\s*([a-z])?\b/i );
+		if ( zoneMatch ) {
+			zone = 'Zone ' + Number( zoneMatch[1] ) + ( zoneMatch[2] ? zoneMatch[2].toUpperCase() : '' );
+			normalized = normalized.replace( zoneMatch[0], ' ' );
+		}
+
+		localityRules.forEach( function ( rule ) {
+			const match = normalized.match( rule.pattern );
+			if ( match ) {
+				localities.push( { name: rule.name, index: match.index } );
+				normalized = normalized.replace( new RegExp( rule.pattern.source, 'gi' ), ' ' );
 			}
-			return titleCase( clean );
-		} ).filter( Boolean ).join( ', ' ) || 'Unassigned Area';
+		} );
+		localities.sort( function ( first, second ) {
+			return first.index - second.index;
+		} );
+
+		const result = [];
+		if ( zone ) {
+			result.push( zone );
+		}
+		localities.forEach( function ( locality ) {
+			if ( ! result.includes( locality.name ) ) {
+				result.push( locality.name );
+			}
+		} );
+
+		if ( ! localities.length ) {
+			normalized
+				.replace( /\([^)]*\)/g, ' ' )
+				.replace( /\b(?:at|sa|purok|center)\b/gi, ' ' )
+				.replace( /[^a-z0-9]+/gi, ' ' )
+				.replace( /\s+/g, ' ' )
+				.trim()
+				.split( /\s*,\s*/ )
+				.filter( Boolean )
+				.forEach( function ( part ) {
+					const known = closestKnownArea( part );
+					const clean = known || titleCase( part );
+					if ( clean && ! result.includes( clean ) ) {
+						result.push( clean );
+					}
+				} );
+		}
+
+		return result.join( ', ' ) || 'Unassigned Area';
 	}
 
 	function dateNumber( value ) {
