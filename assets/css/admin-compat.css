@@ -45,7 +45,53 @@
 
 .afc-admin-page .afc-area-summary {
 	display: grid;
-	grid-template-columns: repeat( auto-fill, minmax( 190px, 1fr ) );
+	gap: 1rem;
+}
+
+.afc-admin-page .afc-barangay-group {
+	padding: 1rem;
+	border: 1px solid var(--tblr-border-color);
+	border-radius: calc( var(--tblr-border-radius) + 2px );
+	background: var(--tblr-bg-surface-secondary, #f6f8fb);
+}
+
+.afc-admin-page .afc-barangay-heading {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 1rem;
+	margin-bottom: 0.8rem;
+}
+
+.afc-admin-page .afc-barangay-label {
+	display: block;
+	margin-bottom: 0.1rem;
+	color: var(--tblr-secondary);
+	font-size: 0.68rem;
+	font-weight: 700;
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+}
+
+.afc-admin-page .afc-barangay-name {
+	margin: 0;
+	font-size: 1rem;
+	line-height: 1.25;
+}
+
+.afc-admin-page .afc-barangay-total {
+	flex: 0 0 auto;
+	padding: 0.3rem 0.6rem;
+	border-radius: 999px;
+	background: var(--tblr-primary-lt);
+	color: var(--tblr-primary);
+	font-size: 0.75rem;
+	font-weight: 700;
+}
+
+.afc-admin-page .afc-barangay-areas {
+	display: grid;
+	grid-template-columns: repeat( auto-fill, minmax( 170px, 1fr ) );
 	gap: 0.65rem;
 }
 
@@ -54,21 +100,22 @@
 	align-items: center;
 	justify-content: space-between;
 	gap: 0.75rem;
-	min-height: 64px;
-	padding: 0.75rem 0.9rem;
+	min-height: 58px;
+	padding: 0.7rem 0.85rem;
 	border: 1px solid var(--tblr-border-color);
 	border-radius: var(--tblr-border-radius);
 	background: var(--tblr-bg-surface);
 	color: inherit;
 	text-align: left;
 	cursor: pointer;
-	transition: border-color 0.15s ease, box-shadow 0.15s ease;
+	transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
 }
 
 .afc-admin-page .afc-area-card:hover,
 .afc-admin-page .afc-area-card:focus {
 	border-color: var(--tblr-primary);
 	box-shadow: 0 0 0 2px rgba( 32, 107, 196, 0.1 );
+	transform: translateY( -1px );
 }
 
 .afc-admin-page .afc-area-name {
@@ -132,4 +179,14 @@
 	justify-content: flex-end;
 	border-top: 1px solid var(--tblr-border-color);
 	border-bottom: 0;
+}
+
+@media ( max-width: 782px ) {
+	.afc-admin-page .afc-barangay-group {
+		padding: 0.8rem;
+	}
+
+	.afc-admin-page .afc-barangay-areas {
+		grid-template-columns: 1fr;
+	}
 }
