@@ -19,3 +19,22 @@
 .afc-admin-page #afc-ppp-table td {
 	vertical-align: middle;
 }
+
+.afc-admin-page .afc-sort {
+	padding: 0;
+	border: 0;
+	background: transparent;
+	color: inherit;
+	font: inherit;
+	font-weight: inherit;
+	text-transform: inherit;
+	white-space: nowrap;
+	cursor: pointer;
+}
+
+.afc-admin-page .afc-sort-indicator {
+	display: inline-block;
+	min-width: 0.8rem;
+	color: var(--tblr-primary);
+	font-size: 0.65rem;
+}
