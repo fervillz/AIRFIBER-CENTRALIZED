@@ -33,4 +33,4 @@ The admin application uses the free, MIT-licensed [Tabler](https://tabler.io/) d
 
 ## Status
 
-Version `0.6.0` parses existing RouterOS PPP comments in both single-line and multiline formats. Customer name, phone, installation date, plan, grace days, payment method, payment amount, payment date, Wi-Fi name, and address are displayed as structured columns and preserved during customer import. Wi-Fi passwords are intentionally excluded from the bulk table.
+Version `0.6.1` adds ascending and descending client-side sorting for PPP username, customer, phone, plan, installed date, payment date, amount, method, grace, and connection. Selected users remain selected while searching or sorting.
