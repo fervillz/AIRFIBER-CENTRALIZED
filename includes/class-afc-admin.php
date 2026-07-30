@@ -55,6 +55,27 @@ class AFC_Admin {
 			'1.4.0',
 			true
 		);
+
+		if ( 'airfiber_page_airfiber-mikrotik' === $hook_suffix ) {
+			wp_enqueue_script(
+				'afc-mikrotik-settings',
+				AFC_URL . 'assets/js/mikrotik-settings.js',
+				array( 'jquery' ),
+				AFC_VERSION,
+				true
+			);
+
+			wp_localize_script(
+				'afc-mikrotik-settings',
+				'afcMikroTik',
+				array(
+					'ajaxUrl' => admin_url( 'admin-ajax.php' ),
+					'nonce'   => wp_create_nonce( 'afc_test_mikrotik_ajax' ),
+					'testing' => __( 'Testing connection...', 'airfiber-centralized' ),
+					'button'  => __( 'Test Saved Connection', 'airfiber-centralized' ),
+				)
+			);
+		}
 	}
 
 	public static function render_dashboard() {
