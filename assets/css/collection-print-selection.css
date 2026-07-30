@@ -55,6 +55,80 @@
 	font-weight: 700;
 }
 
+/*
+ * Zone cards use the number as the main visual anchor. The original area text
+ * stays in the DOM for accessibility and printing, while the visible label is
+ * rendered from data attributes so other collection scripts may safely update
+ * the text without breaking this layout.
+ */
+.afc-admin-page .afc-zone-print-item .afc-area-card.has-zone-visual {
+	position: relative;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	min-height: 64px;
+	padding: 0.45rem 2.35rem 0.4rem 1.8rem;
+	text-align: center;
+}
+
+.afc-admin-page .afc-zone-print-item .afc-area-card.has-zone-visual .afc-zone-visual-label {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	gap: 0.05rem;
+	min-width: 2.25rem;
+	font-size: 0;
+	line-height: 1;
+}
+
+.afc-admin-page .afc-zone-print-item .afc-area-card.has-zone-visual .afc-zone-visual-label::before {
+	content: attr( data-zone-number );
+	font-size: 1.65rem;
+	font-weight: 800;
+	line-height: 0.95;
+	letter-spacing: -0.04em;
+}
+
+.afc-admin-page .afc-zone-print-item .afc-area-card.has-zone-visual .afc-zone-visual-label::after {
+	content: attr( data-zone-caption );
+	color: var(--tblr-secondary);
+	font-size: 0.56rem;
+	font-weight: 700;
+	line-height: 1;
+	letter-spacing: 0.12em;
+	text-transform: uppercase;
+}
+
+.afc-admin-page .afc-zone-print-item .afc-area-card.has-zone-visual .afc-area-count {
+	position: absolute;
+	right: 0.45rem;
+	top: 0.45rem;
+	min-width: 1.75rem;
+	padding: 0.18rem 0.4rem;
+	font-size: 0.68rem;
+	line-height: 1.2;
+}
+
+.afc-admin-page .afc-zone-print-item .afc-zone-print-check {
+	left: 0.5rem;
+	top: 0.5rem;
+	transform: none;
+}
+
+.afc-admin-page .afc-zone-print-item.is-selected .afc-zone-visual-label::before {
+	color: var(--tblr-primary);
+}
+
+.afc-admin-page .afc-zone-print-item.is-selected .afc-zone-visual-label::after {
+	color: var(--tblr-primary);
+}
+
+.afc-admin-page .afc-zone-print-item .afc-zone-visual-label.is-no-zone::before {
+	font-size: 1.3rem;
+	letter-spacing: 0;
+}
+
 @media ( max-width: 782px ) {
 	.afc-admin-page .afc-zone-print-toolbar {
 		align-items: stretch;
