@@ -64,6 +64,15 @@ class AFC_Admin {
 			AFC_VERSION
 		);
 
+		if ( 'toplevel_page_airfiber-centralized' === $hook_suffix ) {
+			wp_enqueue_style(
+				'afc-collection-accordion',
+				AFC_URL . 'assets/css/collection-accordion.css',
+				array( 'afc-admin-compat' ),
+				AFC_VERSION
+			);
+		}
+
 		wp_enqueue_script(
 			'afc-tabler',
 			'https://cdn.jsdelivr.net/npm/@tabler/core@1.4.0/dist/js/tabler.min.js',
