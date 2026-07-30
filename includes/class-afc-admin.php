@@ -158,9 +158,17 @@ class AFC_Admin {
 			);
 
 			wp_enqueue_script(
+				'afc-collection-area-manager-auto-apply',
+				AFC_URL . 'assets/js/collection-area-manager-auto-apply.js',
+				array( 'jquery', 'afc-collection-area-manager' ),
+				AFC_VERSION,
+				true
+			);
+
+			wp_enqueue_script(
 				'afc-collection-area-manager-access',
 				AFC_URL . 'assets/js/collection-area-manager-access.js',
-				array( 'jquery', 'afc-collection-area-manager' ),
+				array( 'jquery', 'afc-collection-area-manager-auto-apply' ),
 				AFC_VERSION,
 				true
 			);
