@@ -1,0 +1,218 @@
+.afc-admin-page .afc-area-manager-banner {
+	grid-column: 1 / -1;
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 1rem;
+	padding: 0.65rem 0.75rem;
+	border: 1px dashed rgba( 32, 107, 196, 0.38 );
+	border-radius: var(--tblr-border-radius);
+	background: var(--tblr-primary-lt);
+}
+
+.afc-admin-page .afc-area-manager-banner span {
+	display: block;
+	margin-top: 0.1rem;
+	color: var(--tblr-secondary);
+	font-size: 0.75rem;
+}
+
+.afc-area-manager-dialog.afc-dialog {
+	width: min( 96vw, 1180px );
+	max-width: 1180px;
+	max-height: min( 92vh, 860px );
+	overflow: hidden;
+}
+
+.afc-area-manager-dialog form {
+	display: flex;
+	max-height: min( 92vh, 860px );
+	flex-direction: column;
+}
+
+.afc-area-manager-dialog .afc-dialog-body {
+	overflow: auto;
+}
+
+.afc-area-manager-layout {
+	display: grid;
+	grid-template-columns: minmax( 0, 1.7fr ) minmax( 280px, 0.8fr );
+	gap: 1rem;
+	align-items: start;
+}
+
+.afc-area-manager-accounts,
+.afc-area-manager-assignment {
+	min-width: 0;
+	border: 1px solid var(--tblr-border-color);
+	border-radius: var(--tblr-border-radius);
+	background: var(--tblr-bg-surface);
+}
+
+.afc-area-manager-tools {
+	display: flex;
+	align-items: center;
+	gap: 0.65rem;
+	padding: 0.75rem;
+	border-bottom: 1px solid var(--tblr-border-color);
+}
+
+.afc-area-manager-tools .form-control {
+	min-width: 0;
+}
+
+.afc-area-zone-filters {
+	display: flex;
+	gap: 0.35rem;
+	padding: 0.6rem 0.75rem;
+	overflow-x: auto;
+	border-bottom: 1px solid var(--tblr-border-color);
+}
+
+.afc-area-zone-filter {
+	flex: 0 0 auto;
+	padding: 0.3rem 0.55rem;
+	border: 1px solid var(--tblr-border-color);
+	border-radius: 999px;
+	background: var(--tblr-bg-surface);
+	color: inherit;
+	font-size: 0.75rem;
+	cursor: pointer;
+}
+
+.afc-area-zone-filter span {
+	margin-left: 0.2rem;
+	color: var(--tblr-secondary);
+	font-weight: 700;
+}
+
+.afc-area-zone-filter:hover,
+.afc-area-zone-filter:focus,
+.afc-area-zone-filter.is-active {
+	border-color: var(--tblr-primary);
+	background: var(--tblr-primary-lt);
+	color: var(--tblr-primary);
+	outline: none;
+}
+
+.afc-area-manager-table-wrap {
+	max-height: 470px;
+	overflow: auto;
+}
+
+.afc-area-manager-table-wrap thead th {
+	position: sticky;
+	z-index: 2;
+	top: 0;
+	background: var(--tblr-bg-surface);
+	box-shadow: inset 0 -1px 0 var(--tblr-border-color);
+}
+
+.afc-area-manager-table-wrap th:first-child,
+.afc-area-manager-table-wrap td:first-child {
+	width: 36px;
+}
+
+.afc-area-manager-table-wrap th:last-child,
+.afc-area-manager-table-wrap td:last-child {
+	width: 135px;
+}
+
+.afc-area-current {
+	max-width: 250px;
+	overflow: hidden;
+	color: var(--tblr-secondary);
+	font-size: 0.75rem;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.afc-area-manager-assignment {
+	position: sticky;
+	top: 0;
+	padding: 0.85rem;
+}
+
+.afc-area-manager-summary {
+	display: grid;
+	grid-template-columns: repeat( 3, minmax( 0, 1fr ) );
+	gap: 0.45rem;
+}
+
+.afc-area-manager-summary > div {
+	padding: 0.55rem;
+	border-radius: var(--tblr-border-radius);
+	background: var(--tblr-bg-surface-secondary, #f6f8fb);
+	font-size: 0.75rem;
+	text-align: center;
+}
+
+.afc-area-manager-summary strong {
+	display: block;
+	font-size: 1rem;
+}
+
+.afc-area-manager-preview {
+	padding: 0.7rem;
+	border-radius: var(--tblr-border-radius);
+	background: var(--tblr-bg-surface-secondary, #f6f8fb);
+}
+
+.afc-area-preview-row {
+	display: grid;
+	grid-template-columns: minmax( 0, 0.8fr ) minmax( 0, 1.2fr );
+	gap: 0.6rem;
+	padding: 0.35rem 0;
+	border-bottom: 1px solid var(--tblr-border-color);
+	font-size: 0.75rem;
+}
+
+.afc-area-preview-row:last-child {
+	border-bottom: 0;
+}
+
+.afc-area-preview-row span,
+.afc-area-preview-row strong {
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.afc-area-preview-row strong {
+	text-align: right;
+}
+
+.afc-area-manager-progress .progress {
+	height: 0.55rem;
+}
+
+@media ( max-width: 900px ) {
+	.afc-area-manager-layout {
+		grid-template-columns: 1fr;
+	}
+
+	.afc-area-manager-assignment {
+		position: static;
+	}
+}
+
+@media ( max-width: 600px ) {
+	.afc-admin-page .afc-area-manager-banner,
+	.afc-area-manager-tools {
+		align-items: stretch;
+		flex-direction: column;
+	}
+
+	.afc-area-manager-dialog.afc-dialog {
+		width: 98vw;
+		max-height: 96vh;
+	}
+
+	.afc-area-manager-dialog form {
+		max-height: 96vh;
+	}
+
+	.afc-area-manager-summary {
+		grid-template-columns: 1fr;
+	}
+}
