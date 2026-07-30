@@ -33,4 +33,4 @@ The admin application uses the free, MIT-licensed [Tabler](https://tabler.io/) d
 
 ## Status
 
-Version `0.7.1` makes Billing & PPP Operations the Airfiber landing page. The temporary native WordPress Customers and Payments submenu screens are hidden while both post types continue operating as internal customer and transaction storage. MikroTik Settings remains available from the Airfiber menu.
+Version `0.8.0` adds money-collection printing. Staff can choose a cutoff date, print every account whose `paymentDate` is on or before that date, or click a normalized collection-area summary to print only that area. Variants such as Z4/Zone4, Sto.Nino/Sto Nino, and MF/Manolo/Manolo Fortich are grouped together. Printouts contain only Zone/Area, Customer Name, Plan, and Due Date.
