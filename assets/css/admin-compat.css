@@ -1,0 +1,22 @@
+/*
+ * Compatibility overrides between WordPress Admin and Tabler.
+ * This is intentionally limited to Airfiber application pages.
+ */
+.afc-admin-page .card {
+	max-width: none;
+}
+
+.afc-admin-page .table-responsive {
+	max-width: 100%;
+	overflow-x: auto;
+}
+
+.afc-admin-page #afc-ppp-table {
+	min-width: 1180px;
+}
+
+.afc-admin-page #afc-ppp-table th,
+.afc-admin-page #afc-ppp-table td {
+	vertical-align: middle;
+}
+
