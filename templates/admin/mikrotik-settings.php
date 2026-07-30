@@ -66,11 +66,10 @@ defined( 'ABSPATH' ) || exit;
 					</div>
 				</form>
 
-				<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="mt-3">
-					<input type="hidden" name="action" value="afc_test_mikrotik">
-					<?php wp_nonce_field( 'afc_test_mikrotik' ); ?>
-					<button class="btn btn-success" type="submit"><?php esc_html_e( 'Test Saved Connection', 'airfiber-centralized' ); ?></button>
-				</form>
+				<div id="afc-mikrotik-test-result" class="mt-3" aria-live="polite"></div>
+				<button id="afc-test-mikrotik" class="btn btn-success mt-2" type="button">
+					<?php esc_html_e( 'Test Saved Connection', 'airfiber-centralized' ); ?>
+				</button>
 			</div>
 			<div class="col-lg-4">
 				<div class="card">
@@ -78,6 +77,20 @@ defined( 'ABSPATH' ) || exit;
 						<h3 class="card-title"><?php esc_html_e( 'Before testing', 'airfiber-centralized' ); ?></h3>
 						<p><?php esc_html_e( 'Enable the RouterOS API service and allow the WordPress server to reach port 8728, or use API-SSL on port 8729.', 'airfiber-centralized' ); ?></p>
 						<p class="text-secondary mb-0"><?php esc_html_e( 'Use a dedicated RouterOS user. The test is read-only and requests system resource information.', 'airfiber-centralized' ); ?></p>
+					</div>
+				</div>
+				<div class="card mt-3">
+					<div class="card-header"><h3 class="card-title"><?php esc_html_e( 'Last Connection Test', 'airfiber-centralized' ); ?></h3></div>
+					<div class="card-body">
+						<?php if ( ! empty( $last_status ) ) : ?>
+							<span class="badge <?php echo 'success' === $last_status['status'] ? 'bg-success-lt' : 'bg-danger-lt'; ?>">
+								<?php echo esc_html( ucfirst( $last_status['status'] ) ); ?>
+							</span>
+							<p class="mt-2 mb-1"><?php echo esc_html( $last_status['message'] ); ?></p>
+							<p class="text-secondary mb-0"><?php echo esc_html( $last_status['time'] ); ?></p>
+						<?php else : ?>
+							<p class="text-secondary mb-0"><?php esc_html_e( 'No connection test has been recorded yet.', 'airfiber-centralized' ); ?></p>
+						<?php endif; ?>
 					</div>
 				</div>
 			</div>
