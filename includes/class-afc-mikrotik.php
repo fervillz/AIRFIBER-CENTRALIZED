@@ -118,6 +118,10 @@ class AFC_MikroTik {
 	}
 
 	public static function test_connection() {
+		return self::run_command( array( '/system/resource/print' ) );
+	}
+
+	public static function run_command( $command ) {
 		$settings = self::get_settings();
 		$password = self::decrypt_password( $settings['password'] );
 
@@ -125,7 +129,7 @@ class AFC_MikroTik {
 			return new WP_Error( 'afc_missing_credentials', __( 'Enter the router IP, username, and password first.', 'airfiber-centralized' ) );
 		}
 
-		return self::api_command( $settings, $password, array( '/system/resource/print' ) );
+		return self::api_command( $settings, $password, $command );
 	}
 
 	private static function api_command( $settings, $password, $command ) {
