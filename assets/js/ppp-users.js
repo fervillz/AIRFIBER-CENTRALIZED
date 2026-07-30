@@ -16,7 +16,7 @@
 	function render( filter ) {
 		const query = ( filter || '' ).toLowerCase();
 		const visible = users.filter( function ( user ) {
-			return ! query || [ user.name, user.profile, user.comment, user.address, user.caller_id ]
+			return ! query || [ user.name, user.customer_name, user.phone, user.profile, user.comment, user.address, user.caller_id, user.wifi, user.address_text ]
 				.join( ' ' ).toLowerCase().includes( query );
 		} );
 		const rows = visible.map( function ( user ) {
@@ -34,22 +34,28 @@
 				'<td>' + checkbox + '</td>' +
 				'<td><strong>' + escapeHtml( user.name ) + '</strong>' +
 					( user.disabled ? ' <span class="badge bg-danger-lt">Disabled</span>' : '' ) + '</td>' +
+				'<td>' + escapeHtml( user.customer_name || '—' ) + '</td>' +
+				'<td>' + escapeHtml( user.phone || '—' ) + '</td>' +
 				'<td>' + escapeHtml( user.profile ) + '</td>' +
+				'<td>' + escapeHtml( user.installed || '—' ) + '</td>' +
+				'<td>' + escapeHtml( user.payment_date || '—' ) + '</td>' +
+				'<td>' + ( user.payment_amount ? '₱' + escapeHtml( user.payment_amount ) : '—' ) + '</td>' +
+				'<td>' + escapeHtml( user.payment_method || '—' ) + '</td>' +
+				'<td>' + escapeHtml( user.grace || '—' ) + '</td>' +
 				'<td>' + connection + '</td>' +
-				'<td>' + escapeHtml( user.address || user.remote_address ) +
-					'<div class="text-secondary">' + escapeHtml( user.caller_id ) + '</div></td>' +
-				'<td>' + escapeHtml( user.comment ) + '</td>' +
+				'<td>' + escapeHtml( user.wifi || '—' ) +
+					'<div class="text-secondary">' + escapeHtml( user.address_text || '—' ) + '</div></td>' +
 				'<td>' + importStatus + '</td></tr>';
 		} );
 
 		$( '#afc-ppp-table tbody' ).html(
-			rows.length ? rows.join( '' ) : '<tr><td colspan="7" class="text-center py-5">No PPP users found.</td></tr>'
+			rows.length ? rows.join( '' ) : '<tr><td colspan="14" class="text-center py-5">No PPP users found.</td></tr>'
 		);
 	}
 
 	function loadUsers() {
 		$( '#afc-refresh-ppp' ).prop( 'disabled', true );
-		$( '#afc-ppp-table tbody' ).html( '<tr><td colspan="7" class="text-center py-5">' + afcPPP.loading + '</td></tr>' );
+		$( '#afc-ppp-table tbody' ).html( '<tr><td colspan="14" class="text-center py-5">' + afcPPP.loading + '</td></tr>' );
 
 		$.post( afcPPP.ajaxUrl, { action: 'afc_get_ppp_users', nonce: afcPPP.nonce } )
 			.done( function ( response ) {
@@ -103,4 +109,3 @@
 		} );
 	} );
 }( jQuery ) );
-
