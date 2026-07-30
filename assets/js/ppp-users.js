@@ -10,6 +10,15 @@
 		return $( '<div>' ).text( value || '' ).html();
 	}
 
+	function escapeAttr( value ) {
+		return String( value || '' )
+			.replace( /&/g, '&amp;' )
+			.replace( /"/g, '&quot;' )
+			.replace( /'/g, '&#039;' )
+			.replace( /</g, '&lt;' )
+			.replace( />/g, '&gt;' );
+	}
+
 	function notice( message, type ) {
 		$( '#afc-ppp-notice' ).html(
 			$( '<div>', { class: 'alert alert-' + type, text: message } )
@@ -30,6 +39,142 @@
 		$( '[data-summary="online"]' ).text( users.filter( function ( user ) { return user.active; } ).length );
 		$( '[data-summary="expired"]' ).text( users.filter( isExpired ).length );
 		$( '[data-summary="imported"]' ).text( users.filter( function ( user ) { return user.imported; } ).length );
+	}
+
+	function titleCase( value ) {
+		return value.toLowerCase().replace( /\b[a-z]/g, function ( letter ) {
+			return letter.toUpperCase();
+		} );
+	}
+
+	function normalizeArea( address ) {
+		let normalized = String( address || '' ).trim();
+		if ( ! normalized ) {
+			return 'Unassigned Area';
+		}
+
+		normalized = normalized
+			.replace( /\bsto[\s.\-]*nino\b/gi, 'Sto. Nino' )
+			.replace( /\b(?:manolo\s+fortich|manolo|m\s*\.?\s*f\s*\.?)\b/gi, 'Manolo Fortich' )
+			.replace( /\b(?:zone|z)\s*0*(\d+)\b/gi, 'Zone $1' )
+			.replace( /\bbrgy\.?\b/gi, 'Barangay' )
+			.replace( /\s*,\s*/g, ', ' )
+			.replace( /\s+/g, ' ' )
+			.replace( /,+/g, ',' )
+			.replace( /^,\s*|\s*,$/g, '' );
+
+		return normalized.split( ',' ).map( function ( part ) {
+			const clean = part.trim();
+			if ( /^(Zone \d+|Sto\. Nino|Manolo Fortich)$/i.test( clean ) ) {
+				return clean.replace( /^zone/i, 'Zone' )
+					.replace( /^sto\. nino$/i, 'Sto. Nino' )
+					.replace( /^manolo fortich$/i, 'Manolo Fortich' );
+			}
+			return titleCase( clean );
+		} ).filter( Boolean ).join( ', ' ) || 'Unassigned Area';
+	}
+
+	function dateNumber( value ) {
+		const match = String( value || '' ).match( /^(\d{4})-(\d{1,2})-(\d{1,2})$/ );
+		if ( ! match ) {
+			return 0;
+		}
+		return ( Number( match[1] ) * 10000 ) + ( Number( match[2] ) * 100 ) + Number( match[3] );
+	}
+
+	function dueUsers() {
+		const cutoff = dateNumber( $( '#afc-due-cutoff' ).val() );
+		return users.filter( function ( user ) {
+			const due = dateNumber( user.payment_date );
+			return ! user.disabled && due && cutoff && due <= cutoff;
+		} );
+	}
+
+	function collectionGroups() {
+		const groups = {};
+		dueUsers().forEach( function ( user ) {
+			const area = normalizeArea( user.address_text );
+			if ( ! groups[ area ] ) {
+				groups[ area ] = [];
+			}
+			groups[ area ].push( user );
+		} );
+		return groups;
+	}
+
+	function renderCollectionAreas() {
+		const groups = collectionGroups();
+		const areas = Object.keys( groups ).sort( function ( a, b ) {
+			return a.localeCompare( b, undefined, { numeric: true } );
+		} );
+		const total = areas.reduce( function ( count, area ) {
+			return count + groups[ area ].length;
+		}, 0 );
+
+		$( '#afc-due-total' ).text( total );
+		if ( ! areas.length ) {
+			$( '#afc-area-summary' ).html( '<div class="text-secondary">No accounts are due by the selected date.</div>' );
+			return;
+		}
+
+		$( '#afc-area-summary' ).html( areas.map( function ( area ) {
+			return '<button class="afc-area-card" type="button" data-area="' + encodeURIComponent( area ) +
+				'" title="Print due accounts for ' + escapeAttr( area ) + '">' +
+				'<span class="afc-area-name">' + escapeHtml( area ) + '</span>' +
+				'<span class="afc-area-count">' + groups[ area ].length + '</span></button>';
+		} ).join( '' ) );
+	}
+
+	function printCollectionList( area ) {
+		const cutoff = $( '#afc-due-cutoff' ).val();
+		let printable = dueUsers().map( function ( user ) {
+			return {
+				area: normalizeArea( user.address_text ),
+				name: user.customer_name || user.name,
+				plan: user.profile || user.actual_profile || '',
+				due: user.payment_date
+			};
+		} );
+
+		if ( area ) {
+			printable = printable.filter( function ( row ) { return row.area === area; } );
+		}
+		printable.sort( function ( first, second ) {
+			return first.area.localeCompare( second.area, undefined, { numeric: true } ) ||
+				first.name.localeCompare( second.name );
+		} );
+
+		if ( ! printable.length ) {
+			notice( 'No due accounts are available for this print selection.', 'warning' );
+			return;
+		}
+
+		const printWindow = window.open( '', '_blank', 'width=950,height=720' );
+		if ( ! printWindow ) {
+			notice( 'The browser blocked the print window. Allow pop-ups for this WordPress site.', 'warning' );
+			return;
+		}
+
+		const rows = printable.map( function ( row, index ) {
+			return '<tr><td>' + ( index + 1 ) + '</td><td>' + escapeHtml( row.area ) +
+				'</td><td>' + escapeHtml( row.name ) + '</td><td>' + escapeHtml( row.plan ) +
+				'</td><td>' + escapeHtml( row.due ) + '</td></tr>';
+		} ).join( '' );
+		const title = area ? area : 'All Collection Areas';
+
+		printWindow.document.write(
+			'<!doctype html><html><head><meta charset="utf-8"><title>Airfiber Collection List</title>' +
+			'<style>@page{size:A4;margin:12mm}body{font:13px Arial,sans-serif;color:#111}h1{font-size:20px;margin:0 0 4px}' +
+			'p{margin:0 0 14px;color:#444}table{width:100%;border-collapse:collapse}th,td{padding:7px 6px;border-bottom:1px solid #bbb;text-align:left}' +
+			'th{background:#eee;font-size:11px;text-transform:uppercase}td:first-child{width:34px}.meta{display:flex;justify-content:space-between}</style>' +
+			'</head><body><h1>Airfiber - Centralized</h1><div class="meta"><p><strong>' + escapeHtml( title ) +
+			'</strong></p><p>Due until: <strong>' + escapeHtml( cutoff ) + '</strong></p></div>' +
+			'<table><thead><tr><th>#</th><th>Zone / Area</th><th>Customer Name</th><th>Plan</th><th>Due Date</th></tr></thead>' +
+			'<tbody>' + rows + '</tbody></table></body></html>'
+		);
+		printWindow.document.close();
+		printWindow.focus();
+		window.setTimeout( function () { printWindow.print(); }, 250 );
 	}
 
 	function sortUsers( visible ) {
@@ -93,10 +238,10 @@
 				'<div class="mt-1">' + imported + ( user.disabled ? ' <span class="badge bg-danger-lt">Disabled</span>' : '' ) + '</div></td>' +
 			'<td><div>' + payment + '</div>' +
 				'<div class="small text-secondary">₱' + escapeHtml( user.payment_amount || '0' ) + ' · ' + escapeHtml( user.payment_method || 'cash' ) + '</div></td>' +
-			'<td title="' + escapeHtml( serviceTitle ) + '">' + service +
+			'<td title="' + escapeAttr( serviceTitle ) + '">' + service +
 				( expired && user.profile ? '<div class="small text-secondary mt-1">Restore: ' + escapeHtml( user.profile ) + '</div>' : '' ) + '</td>' +
 			'<td>' + connection + '</td>' +
-			'<td title="' + escapeHtml( details ) + '"><div>' + escapeHtml( user.phone || 'No phone' ) + '</div>' +
+			'<td title="' + escapeAttr( details ) + '"><div>' + escapeHtml( user.phone || 'No phone' ) + '</div>' +
 				'<div class="small text-secondary text-truncate afc-location">' + escapeHtml( user.address_text || user.wifi || 'No address' ) + '</div>' +
 				'<span class="small text-primary">Hover for details</span></td>' +
 			'<td class="text-end"><div class="afc-row-actions">' +
@@ -144,6 +289,7 @@
 				users = response.data.users;
 				selectedNames.clear();
 				updateSummary();
+				renderCollectionAreas();
 				render();
 			} )
 			.fail( function ( xhr ) {
@@ -189,6 +335,13 @@
 		loadUsers();
 
 		$( '#afc-refresh-ppp' ).on( 'click', loadUsers );
+		$( '#afc-due-cutoff' ).on( 'change', renderCollectionAreas );
+		$( '#afc-print-all-due' ).on( 'click', function () {
+			printCollectionList( '' );
+		} );
+		$( '#afc-area-summary' ).on( 'click', '.afc-area-card', function () {
+			printCollectionList( decodeURIComponent( $( this ).data( 'area' ) ) );
+		} );
 		$( '#afc-ppp-search, #afc-service-filter' ).on( 'input change', render );
 		$( '.afc-sort' ).on( 'click', function () {
 			const key = $( this ).data( 'sort' );
