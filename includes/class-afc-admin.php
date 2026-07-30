@@ -110,6 +110,14 @@ class AFC_Admin {
 				true
 			);
 
+			wp_enqueue_script(
+				'afc-collection-area-labels',
+				AFC_URL . 'assets/js/collection-area-labels.js',
+				array( 'afc-collection-groups' ),
+				AFC_VERSION,
+				true
+			);
+
 			wp_localize_script(
 				'afc-ppp-users',
 				'afcPPP',
