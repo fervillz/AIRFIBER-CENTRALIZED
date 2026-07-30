@@ -25,6 +25,10 @@
 		const heading = group.querySelector( '.afc-barangay-heading' );
 		const opening = ! group.classList.contains( 'is-open' );
 
+		if ( window.AFCTooltip ) {
+			window.AFCTooltip.hideAll();
+		}
+
 		if ( opening ) {
 			closeOtherGroups( group );
 		}
@@ -32,6 +36,21 @@
 		group.classList.toggle( 'is-open', opening );
 		if ( heading ) {
 			heading.setAttribute( 'aria-expanded', opening ? 'true' : 'false' );
+		}
+	}
+
+	function printAreaFromTooltip( trigger, encodedArea ) {
+		const group = trigger.closest( '.afc-barangay-group' );
+		if ( ! group ) {
+			return;
+		}
+
+		const targetCard = Array.from( group.querySelectorAll( '.afc-canonical-area' ) ).find( function ( card ) {
+			return card.getAttribute( 'data-canonical-area' ) === encodedArea;
+		} );
+
+		if ( targetCard ) {
+			targetCard.click();
 		}
 	}
 
@@ -62,11 +81,13 @@
 			heading.setAttribute( 'aria-expanded', group.classList.contains( 'is-open' ) ? 'true' : 'false' );
 
 			const tooltipItems = [];
+			const plainSummary = [];
 			group.querySelectorAll( '.afc-canonical-area' ).forEach( function ( card ) {
 				const label = card.querySelector( '.afc-area-name' );
 				const count = card.querySelector( '.afc-area-count' );
 				const encodedArea = card.getAttribute( 'data-canonical-area' ) || '';
 				const fullArea = decodeURIComponent( encodedArea );
+				const countValue = count ? count.textContent.trim() : '0';
 				let shortLabel = fullArea;
 
 				if ( fullArea.toLowerCase() === barangay.toLowerCase() ) {
@@ -77,21 +98,45 @@
 						.trim();
 				}
 
-				label.textContent = shortLabel || fullArea;
+				if ( label && label.textContent !== ( shortLabel || fullArea ) ) {
+					label.textContent = shortLabel || fullArea;
+				}
+
+				plainSummary.push( ( shortLabel || fullArea ) + ': ' + countValue + ' due' );
 				tooltipItems.push(
-					'<span class="afc-tooltip-zone"><strong>' + escapeHtml( shortLabel || fullArea ) + '</strong>' +
-					'<span>' + escapeHtml( count ? count.textContent.trim() : '0' ) + ' due</span></span>'
+					'<button type="button" class="afc-tooltip-zone afc-tooltip-action" ' +
+					'data-afc-tooltip-action="print-area" data-canonical-area="' + escapeHtml( encodedArea ) + '">' +
+					'<strong>' + escapeHtml( shortLabel || fullArea ) + '</strong>' +
+					'<span class="afc-tooltip-zone-count">' + escapeHtml( countValue ) + ' due</span></button>'
 				);
 			} );
 
-			let tooltip = heading.querySelector( '.afc-barangay-tooltip' );
-			if ( ! tooltip ) {
-				tooltip = document.createElement( 'div' );
-				tooltip.className = 'afc-barangay-tooltip';
-				tooltip.setAttribute( 'role', 'tooltip' );
-				heading.appendChild( tooltip );
+			const tooltipContent =
+				'<div class="afc-tooltip-heading"><strong>' + escapeHtml( barangay ) + ' zones</strong>' +
+				'<span>Click a zone to print</span></div>' +
+				'<div class="afc-tooltip-zone-grid">' + tooltipItems.join( '' ) + '</div>';
+
+			if ( window.AFCTooltip ) {
+				heading.removeAttribute( 'title' );
+				window.AFCTooltip.attach( heading, {
+					content: tooltipContent,
+					placement: 'top',
+					offset: 11,
+					interactive: true,
+					className: 'afc-collection-tooltip',
+					shouldShow: function () {
+						return ! group.classList.contains( 'is-open' ) &&
+							window.matchMedia( '(hover: hover) and (pointer: fine)' ).matches;
+					},
+					onAction: function ( details ) {
+						if ( 'print-area' === details.action.getAttribute( 'data-afc-tooltip-action' ) ) {
+							printAreaFromTooltip( details.trigger, details.action.getAttribute( 'data-canonical-area' ) || '' );
+						}
+					}
+				} );
+			} else {
+				heading.setAttribute( 'title', plainSummary.join( '\n' ) );
 			}
-			tooltip.innerHTML = tooltipItems.join( '' );
 		} );
 
 		updating = false;
@@ -127,4 +172,4 @@
 		observer.observe( container, { childList: true, subtree: true } );
 		prepareCollectionGroups();
 	} );
-}( ) );
+}() );
