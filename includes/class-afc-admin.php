@@ -78,6 +78,13 @@ class AFC_Admin {
 				array( 'afc-tooltip' ),
 				AFC_VERSION
 			);
+
+			wp_enqueue_style(
+				'afc-collection-area-manager',
+				AFC_URL . 'assets/css/collection-area-manager.css',
+				array( 'afc-collection-accordion' ),
+				AFC_VERSION
+			);
 		}
 
 		wp_enqueue_script(
@@ -138,6 +145,14 @@ class AFC_Admin {
 				'afc-collection-area-labels',
 				AFC_URL . 'assets/js/collection-area-labels.js',
 				array( 'afc-collection-groups', 'afc-tooltip' ),
+				AFC_VERSION,
+				true
+			);
+
+			wp_enqueue_script(
+				'afc-collection-area-manager',
+				AFC_URL . 'assets/js/collection-area-manager.js',
+				array( 'jquery', 'afc-collection-area-labels' ),
 				AFC_VERSION,
 				true
 			);
