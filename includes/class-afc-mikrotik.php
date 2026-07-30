@@ -25,11 +25,11 @@ class AFC_MikroTik {
 	public static function defaults() {
 		return array(
 			'name'       => 'Main Router',
-			'host'       => '',
-			'username'   => '',
+			'host'       => '10.13.88.1',
+			'username'   => 'admin',
 			'password'   => '',
-			'protocol'   => 'https',
-			'port'       => 443,
+			'protocol'   => 'api',
+			'port'       => 8728,
 			'verify_ssl' => 0,
 		);
 	}
@@ -40,7 +40,7 @@ class AFC_MikroTik {
 
 	public static function sanitize_settings( $input ) {
 		$current  = self::get_settings();
-		$protocol = isset( $input['protocol'] ) && 'http' === $input['protocol'] ? 'http' : 'https';
+		$protocol = isset( $input['protocol'] ) && 'api-ssl' === $input['protocol'] ? 'api-ssl' : 'api';
 		$host     = isset( $input['host'] ) ? trim( sanitize_text_field( $input['host'] ) ) : '';
 		$host     = preg_replace( '#^https?://#i', '', $host );
 		$host     = trim( $host, "/ \t\n\r\0\x0B" );
@@ -48,7 +48,7 @@ class AFC_MikroTik {
 		$port     = isset( $input['port'] ) ? absint( $input['port'] ) : 0;
 
 		if ( $port < 1 || $port > 65535 ) {
-			$port = 'https' === $protocol ? 443 : 80;
+			$port = 'api-ssl' === $protocol ? 8729 : 8728;
 		}
 
 		$password = $current['password'];
@@ -124,42 +124,133 @@ class AFC_MikroTik {
 			return new WP_Error( 'afc_missing_credentials', __( 'Enter the router IP, username, and password first.', 'airfiber-centralized' ) );
 		}
 
-		$url = sprintf(
-			'%s://%s:%d/rest/system/resource',
-			$settings['protocol'],
-			$settings['host'],
-			$settings['port']
-		);
+		return self::api_command( $settings, $password, array( '/system/resource/print' ) );
+	}
 
-		$response = wp_remote_get(
-			$url,
+	private static function api_command( $settings, $password, $command ) {
+		$ssl     = 'api-ssl' === $settings['protocol'];
+		$context = stream_context_create(
 			array(
-				'headers'   => array(
-					'Authorization' => 'Basic ' . base64_encode( $settings['username'] . ':' . $password ),
+				'ssl' => array(
+					'verify_peer'      => $ssl && (bool) $settings['verify_ssl'],
+					'verify_peer_name' => $ssl && (bool) $settings['verify_ssl'],
 				),
-				'timeout'   => 10,
-				'sslverify' => (bool) $settings['verify_ssl'],
 			)
 		);
+		$target  = ( $ssl ? 'tls://' : 'tcp://' ) . $settings['host'] . ':' . $settings['port'];
+		$socket  = @stream_socket_client( $target, $error_number, $error_message, 10, STREAM_CLIENT_CONNECT, $context );
 
-		if ( is_wp_error( $response ) ) {
-			return $response;
-		}
-
-		$status = wp_remote_retrieve_response_code( $response );
-		if ( 200 !== $status ) {
+		if ( ! is_resource( $socket ) ) {
 			return new WP_Error(
-				'afc_mikrotik_http_error',
-				sprintf( __( 'Router returned HTTP %d. Check the protocol, port, username, and password.', 'airfiber-centralized' ), $status )
+				'afc_mikrotik_socket_error',
+				sprintf( __( 'Could not reach the router: %s', 'airfiber-centralized' ), $error_message )
 			);
 		}
 
-		$body = json_decode( wp_remote_retrieve_body( $response ), true );
-		if ( ! is_array( $body ) ) {
-			return new WP_Error( 'afc_invalid_response', __( 'The router responded, but the response was not valid RouterOS JSON.', 'airfiber-centralized' ) );
+		stream_set_timeout( $socket, 10 );
+		self::write_sentence( $socket, array( '/login', '=name=' . $settings['username'], '=password=' . $password ) );
+		$login = self::read_response( $socket );
+
+		if ( is_wp_error( $login ) ) {
+			fclose( $socket );
+			return $login;
 		}
 
-		return $body;
+		self::write_sentence( $socket, $command );
+		$response = self::read_response( $socket );
+		fclose( $socket );
+
+		return $response;
+	}
+
+	private static function write_sentence( $socket, $words ) {
+		foreach ( $words as $word ) {
+			$length = strlen( $word );
+			if ( $length < 0x80 ) {
+				$encoded = chr( $length );
+			} elseif ( $length < 0x4000 ) {
+				$encoded = pack( 'n', $length | 0x8000 );
+			} elseif ( $length < 0x200000 ) {
+				$encoded = chr( ( $length >> 16 ) | 0xC0 ) . pack( 'n', $length & 0xFFFF );
+			} elseif ( $length < 0x10000000 ) {
+				$encoded = pack( 'N', $length | 0xE0000000 );
+			} else {
+				$encoded = chr( 0xF0 ) . pack( 'N', $length );
+			}
+			fwrite( $socket, $encoded . $word );
+		}
+		fwrite( $socket, chr( 0 ) );
+	}
+
+	private static function read_response( $socket ) {
+		$rows    = array();
+		$current = array();
+
+		while ( ! feof( $socket ) ) {
+			$word = self::read_word( $socket );
+			if ( false === $word ) {
+				return new WP_Error( 'afc_mikrotik_timeout', __( 'The router connection timed out.', 'airfiber-centralized' ) );
+			}
+			if ( '' === $word ) {
+				if ( isset( $current[0] ) && '!trap' === $current[0] ) {
+					$message = isset( $current['message'] ) ? $current['message'] : __( 'RouterOS rejected the request.', 'airfiber-centralized' );
+					return new WP_Error( 'afc_mikrotik_trap', $message );
+				}
+				if ( isset( $current[0] ) && '!re' === $current[0] ) {
+					unset( $current[0] );
+					$rows[] = $current;
+				}
+				if ( isset( $current[0] ) && '!done' === $current[0] ) {
+					return 1 === count( $rows ) ? $rows[0] : $rows;
+				}
+				$current = array();
+				continue;
+			}
+			if ( 0 === strpos( $word, '=' ) ) {
+				$parts = explode( '=', substr( $word, 1 ), 2 );
+				$current[ $parts[0] ] = isset( $parts[1] ) ? $parts[1] : '';
+			} else {
+				$current[] = $word;
+			}
+		}
+
+		return new WP_Error( 'afc_mikrotik_closed', __( 'The router closed the connection unexpectedly.', 'airfiber-centralized' ) );
+	}
+
+	private static function read_word( $socket ) {
+		$first = fread( $socket, 1 );
+		if ( '' === $first || false === $first ) {
+			return false;
+		}
+
+		$byte = ord( $first );
+		if ( 0 === $byte ) {
+			return '';
+		}
+		if ( $byte < 0x80 ) {
+			$length = $byte;
+		} elseif ( $byte < 0xC0 ) {
+			$length = ( ( $byte & 0x3F ) << 8 ) + ord( fread( $socket, 1 ) );
+		} elseif ( $byte < 0xE0 ) {
+			$tail   = unpack( 'n', fread( $socket, 2 ) );
+			$length = ( ( $byte & 0x1F ) << 16 ) + $tail[1];
+		} elseif ( $byte < 0xF0 ) {
+			$tail   = unpack( 'N', chr( $byte & 0x0F ) . fread( $socket, 3 ) );
+			$length = $tail[1];
+		} else {
+			$tail   = unpack( 'N', fread( $socket, 4 ) );
+			$length = $tail[1];
+		}
+
+		$data = '';
+		while ( strlen( $data ) < $length && ! feof( $socket ) ) {
+			$chunk = fread( $socket, $length - strlen( $data ) );
+			if ( false === $chunk || '' === $chunk ) {
+				return false;
+			}
+			$data .= $chunk;
+		}
+		return $data;
 	}
 
 	public static function handle_test_connection() {
