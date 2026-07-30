@@ -51,6 +51,31 @@ class AFC_Area_Manager {
 		return $customers ? (int) $customers[0] : 0;
 	}
 
+	private static function get_current_secrets() {
+		$secrets = AFC_MikroTik::run_command(
+			array(
+				'/ppp/secret/print',
+				'=.proplist=.id,name,comment',
+			)
+		);
+
+		if ( is_wp_error( $secrets ) ) {
+			return $secrets;
+		}
+		if ( isset( $secrets['name'] ) ) {
+			$secrets = array( $secrets );
+		}
+
+		$by_id = array();
+		foreach ( $secrets as $secret ) {
+			if ( ! empty( $secret['.id'] ) ) {
+				$by_id[ $secret['.id'] ] = $secret;
+			}
+		}
+
+		return $by_id;
+	}
+
 	public static function ajax_bulk_assign_area() {
 		self::authorize_ajax();
 
@@ -73,13 +98,17 @@ class AFC_Area_Manager {
 			);
 		}
 
+		$current_secrets = self::get_current_secrets();
+		if ( is_wp_error( $current_secrets ) ) {
+			wp_send_json_error( array( 'message' => $current_secrets->get_error_message() ) );
+		}
+
 		$updated  = array();
 		$failures = array();
 
 		foreach ( $assignments as $assignment ) {
 			$id      = isset( $assignment['id'] ) ? sanitize_text_field( $assignment['id'] ) : '';
 			$name    = isset( $assignment['name'] ) ? sanitize_text_field( $assignment['name'] ) : '';
-			$comment = isset( $assignment['comment'] ) ? sanitize_textarea_field( $assignment['comment'] ) : '';
 			$address = isset( $assignment['address'] ) ? sanitize_text_field( $assignment['address'] ) : '';
 
 			if ( ! $id || ! $name || ! $address || strlen( $address ) > 120 ) {
@@ -90,8 +119,18 @@ class AFC_Area_Manager {
 				continue;
 			}
 
-			$new_comment = self::replace_comment_value( $comment, 'Address', $address );
-			$result      = AFC_MikroTik::run_command(
+			if ( ! isset( $current_secrets[ $id ] ) ) {
+				$failures[] = array(
+					'name'    => $name,
+					'message' => __( 'The PPP account no longer exists in MikroTik.', 'airfiber-centralized' ),
+				);
+				continue;
+			}
+
+			$current_name = isset( $current_secrets[ $id ]['name'] ) ? sanitize_text_field( $current_secrets[ $id ]['name'] ) : $name;
+			$comment      = isset( $current_secrets[ $id ]['comment'] ) ? $current_secrets[ $id ]['comment'] : '';
+			$new_comment  = self::replace_comment_value( $comment, 'Address', $address );
+			$result       = AFC_MikroTik::run_command(
 				array(
 					'/ppp/secret/set',
 					'=.id=' . $id,
@@ -101,24 +140,24 @@ class AFC_Area_Manager {
 
 			if ( is_wp_error( $result ) ) {
 				$failures[] = array(
-					'name'    => $name,
+					'name'    => $current_name,
 					'message' => $result->get_error_message(),
 				);
 				continue;
 			}
 
-			$customer_id = self::get_customer_id( $name );
+			$customer_id = self::get_customer_id( $current_name );
 			if ( $customer_id ) {
 				update_post_meta( $customer_id, '_afc_address', $address );
 				update_post_meta( $customer_id, '_afc_mikrotik_comment', $new_comment );
 			}
 
 			$updated[] = array(
-				'name'    => $name,
+				'name'    => $current_name,
 				'address' => $address,
 			);
 
-			do_action( 'afc_ppp_area_assigned', $name, $address, $customer_id );
+			do_action( 'afc_ppp_area_assigned', $current_name, $address, $customer_id );
 		}
 
 		wp_send_json_success(
