@@ -64,11 +64,18 @@ class AFC_Admin {
 			AFC_VERSION
 		);
 
+		wp_enqueue_style(
+			'afc-tooltip',
+			AFC_URL . 'assets/css/afc-tooltip.css',
+			array( 'afc-admin-compat' ),
+			AFC_VERSION
+		);
+
 		if ( 'toplevel_page_airfiber-centralized' === $hook_suffix ) {
 			wp_enqueue_style(
 				'afc-collection-accordion',
 				AFC_URL . 'assets/css/collection-accordion.css',
-				array( 'afc-admin-compat' ),
+				array( 'afc-tooltip' ),
 				AFC_VERSION
 			);
 		}
@@ -81,11 +88,19 @@ class AFC_Admin {
 			true
 		);
 
+		wp_enqueue_script(
+			'afc-tooltip',
+			AFC_URL . 'assets/js/afc-tooltip.js',
+			array(),
+			AFC_VERSION,
+			true
+		);
+
 		if ( 'airfiber_page_airfiber-mikrotik' === $hook_suffix ) {
 			wp_enqueue_script(
 				'afc-mikrotik-settings',
 				AFC_URL . 'assets/js/mikrotik-settings.js',
-				array( 'jquery' ),
+				array( 'jquery', 'afc-tooltip' ),
 				AFC_VERSION,
 				true
 			);
@@ -122,7 +137,7 @@ class AFC_Admin {
 			wp_enqueue_script(
 				'afc-collection-area-labels',
 				AFC_URL . 'assets/js/collection-area-labels.js',
-				array( 'afc-collection-groups' ),
+				array( 'afc-collection-groups', 'afc-tooltip' ),
 				AFC_VERSION,
 				true
 			);
