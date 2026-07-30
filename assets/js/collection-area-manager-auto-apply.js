@@ -101,6 +101,30 @@
 		}, 0 );
 	} );
 
+	/*
+	 * The manager already has an in-dialog preview, progress bar and result
+	 * message. Skip its legacy browser confirm so repeated AJAX batches require
+	 * only one click on Update MikroTik.
+	 */
+	document.addEventListener( 'click', function ( event ) {
+		const button = event.target.closest( '#afc-confirm-area-update' );
+		if ( ! button || button.disabled ) {
+			return;
+		}
+
+		const originalConfirm = window.confirm;
+		window.confirm = function ( message ) {
+			if ( String( message || '' ).includes( 'Update the Address value for' ) ) {
+				return true;
+			}
+			return originalConfirm.call( window, message );
+		};
+
+		window.setTimeout( function () {
+			window.confirm = originalConfirm;
+		}, 0 );
+	}, true );
+
 	$( document ).ajaxSuccess( function ( event, xhr, settings ) {
 		if ( ! String( settings.data || '' ).includes( 'action=afc_ppp_bulk_assign_area' ) ) {
 			return;
