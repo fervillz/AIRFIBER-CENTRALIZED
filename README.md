@@ -33,5 +33,4 @@ The admin application uses the free, MIT-licensed [Tabler](https://tabler.io/) d
 
 ## Status
 
-Version `0.1.0` is the initial scaffold. Customer fields, payment processing, receipts, billing automation, and MikroTik integration will be implemented in subsequent milestones.
-
+Version `0.2.0` adds the first MikroTik RouterOS 7 REST API connection settings and a read-only connection test. Customer fields, payment processing, receipts, and billing automation will be implemented in subsequent milestones.
