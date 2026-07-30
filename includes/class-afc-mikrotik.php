@@ -8,6 +8,7 @@ class AFC_MikroTik {
 
 	public static function init() {
 		add_action( 'admin_init', array( __CLASS__, 'register_settings' ) );
+		add_action( 'wp_ajax_afc_test_mikrotik', array( __CLASS__, 'ajax_test_connection' ) );
 	}
 
 	public static function register_settings() {
@@ -280,6 +281,39 @@ class AFC_MikroTik {
 		exit;
 	}
 
+	public static function ajax_test_connection() {
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_send_json_error( array( 'message' => __( 'You do not have permission to test this connection.', 'airfiber-centralized' ) ), 403 );
+		}
+
+		check_ajax_referer( 'afc_test_mikrotik_ajax', 'nonce' );
+		$result = self::test_connection();
+
+		if ( is_wp_error( $result ) ) {
+			update_option(
+				'afc_mikrotik_last_status',
+				array(
+					'status'  => 'error',
+					'message' => $result->get_error_message(),
+					'time'    => current_time( 'mysql' ),
+				),
+				false
+			);
+			wp_send_json_error( array( 'message' => $result->get_error_message() ) );
+		}
+
+		$version = isset( $result['version'] ) ? $result['version'] : __( 'Unknown', 'airfiber-centralized' );
+		$status  = array(
+			'status'  => 'success',
+			'message' => sprintf( __( 'Connected successfully to RouterOS %s.', 'airfiber-centralized' ), $version ),
+			'version' => $version,
+			'time'    => current_time( 'mysql' ),
+		);
+
+		update_option( 'afc_mikrotik_last_status', $status, false );
+		wp_send_json_success( $status );
+	}
+
 	public static function render_settings_page() {
 		if ( ! current_user_can( 'manage_options' ) ) {
 			wp_die( esc_html__( 'You do not have permission to access this page.', 'airfiber-centralized' ) );
@@ -287,6 +321,7 @@ class AFC_MikroTik {
 
 		$settings = self::get_settings();
 		$notice   = get_transient( 'afc_mikrotik_notice_' . get_current_user_id() );
+		$last_status = get_option( 'afc_mikrotik_last_status', array() );
 		delete_transient( 'afc_mikrotik_notice_' . get_current_user_id() );
 
 		include AFC_PATH . 'templates/admin/mikrotik-settings.php';
