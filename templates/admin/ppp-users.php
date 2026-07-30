@@ -2,8 +2,8 @@
 
 defined( 'ABSPATH' ) || exit;
 ?>
-<div class="wrap">
-	<div class="container-xl py-4">
+<div class="wrap afc-admin-page">
+	<div class="container-fluid py-4">
 		<div class="page-header mb-4">
 			<div class="row align-items-center">
 				<div class="col">
@@ -48,4 +48,3 @@ defined( 'ABSPATH' ) || exit;
 		</div>
 	</div>
 </div>
-
