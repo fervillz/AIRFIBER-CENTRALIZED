@@ -111,6 +111,17 @@
 .afc-area-manager-table-wrap th:first-child,
 .afc-area-manager-table-wrap td:first-child {
 	width: 36px;
+	text-align: center;
+}
+
+#afc-area-select-all-visible {
+	margin: 0;
+	cursor: pointer;
+}
+
+#afc-area-select-all-visible:indeterminate {
+	background-color: var(--tblr-primary);
+	border-color: var(--tblr-primary);
 }
 
 .afc-area-manager-table-wrap th:last-child,
@@ -184,6 +195,16 @@
 
 .afc-area-manager-progress .progress {
 	height: 0.55rem;
+}
+
+#afc-area-manager-result {
+	max-height: 165px;
+	overflow: auto;
+	font-size: 0.8rem;
+}
+
+.afc-area-manager-dialog[open] .afc-dialog-footer {
+	flex: 0 0 auto;
 }
 
 @media ( max-width: 900px ) {
