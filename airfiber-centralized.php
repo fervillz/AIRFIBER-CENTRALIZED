@@ -2,14 +2,14 @@
 /**
  * Plugin Name: Airfiber - Centralized
  * Description: Customer, billing, payment, installation, notification, and MikroTik management for Airfiber.
- * Version: 0.8.7
+ * Version: 0.8.8
  * Author: Airfiber
  * Text Domain: airfiber-centralized
  */
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'AFC_VERSION', '0.8.7' );
+define( 'AFC_VERSION', '0.8.8' );
 define( 'AFC_FILE', __FILE__ );
 define( 'AFC_PATH', plugin_dir_path( __FILE__ ) );
 define( 'AFC_URL', plugin_dir_url( __FILE__ ) );
@@ -17,12 +17,14 @@ define( 'AFC_URL', plugin_dir_url( __FILE__ ) );
 require_once AFC_PATH . 'includes/class-afc-post-types.php';
 require_once AFC_PATH . 'includes/class-afc-mikrotik.php';
 require_once AFC_PATH . 'includes/class-afc-ppp-users.php';
+require_once AFC_PATH . 'includes/class-afc-area-manager.php';
 require_once AFC_PATH . 'includes/class-afc-admin.php';
 
 function afc_boot_plugin() {
 	AFC_Post_Types::init();
 	AFC_MikroTik::init();
 	AFC_PPP_Users::init();
+	AFC_Area_Manager::init();
 
 	if ( is_admin() ) {
 		AFC_Admin::init();
