@@ -27,5 +27,13 @@ class AFC_Collection_Print {
 			AFC_VERSION,
 			true
 		);
+
+		wp_enqueue_script(
+			'afc-collection-zone-card-layout',
+			AFC_URL . 'assets/js/collection-zone-card-layout.js',
+			array( 'afc-collection-print-selection' ),
+			AFC_VERSION,
+			true
+		);
 	}
 }
