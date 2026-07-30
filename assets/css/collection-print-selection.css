@@ -1,0 +1,82 @@
+.afc-admin-page .afc-zone-print-toolbar {
+	grid-column: 1 / -1;
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 0.75rem;
+	min-height: 36px;
+	padding: 0.35rem 0.45rem 0.45rem;
+	border-bottom: 1px solid var(--tblr-border-color);
+}
+
+.afc-admin-page .afc-zone-print-status {
+	color: var(--tblr-secondary);
+	font-size: 0.75rem;
+	font-weight: 600;
+}
+
+.afc-admin-page .afc-zone-print-actions {
+	display: flex;
+	align-items: center;
+	gap: 0.4rem;
+	white-space: nowrap;
+}
+
+.afc-admin-page .afc-zone-print-item {
+	position: relative;
+	min-width: 0;
+}
+
+.afc-admin-page .afc-zone-print-item .afc-area-card {
+	width: 100%;
+	padding-left: 2rem;
+}
+
+.afc-admin-page .afc-zone-print-check {
+	position: absolute;
+	z-index: 4;
+	left: 0.55rem;
+	top: 50%;
+	width: 15px;
+	height: 15px;
+	margin: 0;
+	cursor: pointer;
+	transform: translateY( -50% );
+}
+
+.afc-admin-page .afc-zone-print-item.is-selected .afc-area-card {
+	border-color: var(--tblr-primary);
+	background: var(--tblr-primary-lt);
+	box-shadow: 0 0 0 2px rgba( 32, 107, 196, 0.1 );
+}
+
+.afc-admin-page .afc-zone-print-item.is-selected .afc-area-name {
+	color: var(--tblr-primary);
+	font-weight: 700;
+}
+
+@media ( max-width: 782px ) {
+	.afc-admin-page .afc-zone-print-toolbar {
+		align-items: stretch;
+		flex-direction: column;
+	}
+
+	.afc-admin-page .afc-zone-print-actions {
+		width: 100%;
+		white-space: normal;
+	}
+
+	.afc-admin-page .afc-zone-print-actions .btn {
+		flex: 1 1 auto;
+	}
+}
+
+@media ( max-width: 480px ) {
+	.afc-admin-page .afc-zone-print-actions {
+		flex-wrap: wrap;
+	}
+
+	.afc-admin-page .afc-clear-selected-zones {
+		flex-basis: 100%;
+	}
+}
