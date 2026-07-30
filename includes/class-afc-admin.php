@@ -16,17 +16,17 @@ class AFC_Admin {
 			__( 'Airfiber', 'airfiber-centralized' ),
 			'manage_options',
 			'airfiber-centralized',
-			array( __CLASS__, 'render_dashboard' ),
+			array( 'AFC_PPP_Users', 'render_page' ),
 			'dashicons-cloud',
 			3
 		);
 
 		add_submenu_page(
 			'airfiber-centralized',
-			__( 'MikroTik PPP Users', 'airfiber-centralized' ),
-			__( 'PPP Users', 'airfiber-centralized' ),
+			__( 'Billing & PPP Operations', 'airfiber-centralized' ),
+			__( 'Billing & PPP', 'airfiber-centralized' ),
 			'manage_options',
-			'airfiber-ppp-users',
+			'airfiber-centralized',
 			array( 'AFC_PPP_Users', 'render_page' )
 		);
 
@@ -43,7 +43,6 @@ class AFC_Admin {
 	public static function enqueue_assets( $hook_suffix ) {
 		$airfiber_pages = array(
 			'toplevel_page_airfiber-centralized',
-			'airfiber_page_airfiber-ppp-users',
 			'airfiber_page_airfiber-mikrotik',
 		);
 
@@ -94,7 +93,7 @@ class AFC_Admin {
 			);
 		}
 
-		if ( 'airfiber_page_airfiber-ppp-users' === $hook_suffix ) {
+		if ( 'toplevel_page_airfiber-centralized' === $hook_suffix ) {
 			wp_enqueue_script(
 				'afc-ppp-users',
 				AFC_URL . 'assets/js/ppp-users.js',
