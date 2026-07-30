@@ -157,6 +157,14 @@ class AFC_Admin {
 				true
 			);
 
+			wp_enqueue_script(
+				'afc-collection-area-manager-access',
+				AFC_URL . 'assets/js/collection-area-manager-access.js',
+				array( 'jquery', 'afc-collection-area-manager' ),
+				AFC_VERSION,
+				true
+			);
+
 			wp_localize_script(
 				'afc-ppp-users',
 				'afcPPP',
