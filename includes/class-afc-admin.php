@@ -1,0 +1,60 @@
+<?php
+
+defined( 'ABSPATH' ) || exit;
+
+class AFC_Admin {
+
+	public static function init() {
+		add_action( 'admin_menu', array( __CLASS__, 'register_menu' ) );
+		add_action( 'admin_enqueue_scripts', array( __CLASS__, 'enqueue_assets' ) );
+	}
+
+	public static function register_menu() {
+		add_menu_page(
+			__( 'Airfiber Centralized', 'airfiber-centralized' ),
+			__( 'Airfiber', 'airfiber-centralized' ),
+			'manage_options',
+			'airfiber-centralized',
+			array( __CLASS__, 'render_dashboard' ),
+			'dashicons-cloud',
+			3
+		);
+	}
+
+	public static function enqueue_assets( $hook_suffix ) {
+		if ( 'toplevel_page_airfiber-centralized' !== $hook_suffix ) {
+			return;
+		}
+
+		wp_enqueue_style(
+			'afc-tabler',
+			'https://cdn.jsdelivr.net/npm/@tabler/core@1.4.0/dist/css/tabler.min.css',
+			array(),
+			'1.4.0'
+		);
+
+		wp_enqueue_script(
+			'afc-tabler',
+			'https://cdn.jsdelivr.net/npm/@tabler/core@1.4.0/dist/js/tabler.min.js',
+			array(),
+			'1.4.0',
+			true
+		);
+	}
+
+	public static function render_dashboard() {
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_die( esc_html__( 'You do not have permission to access this page.', 'airfiber-centralized' ) );
+		}
+
+		$counts = array(
+			'customers' => wp_count_posts( 'afc_customer' )->publish ?? 0,
+			'payments'  => wp_count_posts( 'afc_payment' )->publish ?? 0,
+			'due_soon'  => 0,
+			'expired'   => 0,
+		);
+
+		include AFC_PATH . 'templates/admin/dashboard.php';
+	}
+}
+
