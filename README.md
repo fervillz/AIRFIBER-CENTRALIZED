@@ -33,4 +33,4 @@ The admin application uses the free, MIT-licensed [Tabler](https://tabler.io/) d
 
 ## Status
 
-Version `0.3.0` uses the traditional RouterOS API, defaulting to `10.13.88.1`, user `admin`, and port `8728`. API-SSL on port `8729` is also supported. Passwords are never included in source control and are encrypted after entry in WordPress.
+Version `0.4.0` uses the traditional RouterOS API, defaulting to `10.13.88.1`, user `admin`, and port `8728`. API-SSL on port `8729` is also supported. Connection testing runs through AJAX and records the latest result without refreshing the page. Passwords are never included in source control and are encrypted after entry in WordPress.
