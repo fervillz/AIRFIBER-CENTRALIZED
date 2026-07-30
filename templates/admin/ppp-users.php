@@ -26,6 +26,32 @@ defined( 'ABSPATH' ) || exit;
 			<div class="col-6 col-md-3"><div class="card card-sm"><div class="card-body"><div class="text-secondary"><?php esc_html_e( 'Imported', 'airfiber-centralized' ); ?></div><div class="h2 mb-0 text-primary" data-summary="imported">—</div></div></div></div>
 		</div>
 
+		<div class="card mb-3 afc-collection-card">
+			<div class="card-header">
+				<div>
+					<h3 class="card-title"><?php esc_html_e( 'Money Collection Print', 'airfiber-centralized' ); ?></h3>
+					<p class="card-subtitle"><?php esc_html_e( 'Print all accounts due on or before the cutoff date, grouped by normalized collection area.', 'airfiber-centralized' ); ?></p>
+				</div>
+			</div>
+			<div class="card-body">
+				<div class="row g-2 align-items-end">
+					<div class="col-sm-6 col-md-4 col-lg-3">
+						<label class="form-label" for="afc-due-cutoff"><?php esc_html_e( 'Due until', 'airfiber-centralized' ); ?></label>
+						<input class="form-control" id="afc-due-cutoff" type="date" value="<?php echo esc_attr( current_time( 'Y-m-d' ) ); ?>">
+					</div>
+					<div class="col-sm-auto">
+						<button class="btn btn-primary" id="afc-print-all-due" type="button"><?php esc_html_e( 'Print All Due', 'airfiber-centralized' ); ?></button>
+					</div>
+					<div class="col-sm-auto">
+						<div class="text-secondary"><strong id="afc-due-total">0</strong> <?php esc_html_e( 'account(s) due', 'airfiber-centralized' ); ?></div>
+					</div>
+				</div>
+				<div class="afc-area-summary mt-3" id="afc-area-summary">
+					<div class="text-secondary"><?php esc_html_e( 'Collection areas will appear after MikroTik accounts load.', 'airfiber-centralized' ); ?></div>
+				</div>
+			</div>
+		</div>
+
 		<div class="card">
 			<div class="card-header afc-operations-toolbar">
 				<div class="row g-2 w-100 align-items-center">
