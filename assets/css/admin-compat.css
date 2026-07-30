@@ -12,11 +12,10 @@
 }
 
 .afc-admin-page #afc-ppp-table {
-	min-width: 1180px;
+	min-width: 1900px;
 }
 
 .afc-admin-page #afc-ppp-table th,
 .afc-admin-page #afc-ppp-table td {
 	vertical-align: middle;
 }
-
