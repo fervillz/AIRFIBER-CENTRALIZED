@@ -34,16 +34,16 @@ defined( 'ABSPATH' ) || exit;
 					<thead>
 						<tr>
 							<th><input class="form-check-input" id="afc-select-all" type="checkbox"></th>
-							<th><?php esc_html_e( 'PPP Username', 'airfiber-centralized' ); ?></th>
-							<th><?php esc_html_e( 'Customer', 'airfiber-centralized' ); ?></th>
-							<th><?php esc_html_e( 'Phone', 'airfiber-centralized' ); ?></th>
-							<th><?php esc_html_e( 'Plan', 'airfiber-centralized' ); ?></th>
-							<th><?php esc_html_e( 'Installed', 'airfiber-centralized' ); ?></th>
-							<th><?php esc_html_e( 'Payment Date', 'airfiber-centralized' ); ?></th>
-							<th><?php esc_html_e( 'Amount', 'airfiber-centralized' ); ?></th>
-							<th><?php esc_html_e( 'Method', 'airfiber-centralized' ); ?></th>
-							<th><?php esc_html_e( 'Grace', 'airfiber-centralized' ); ?></th>
-							<th><?php esc_html_e( 'Connection', 'airfiber-centralized' ); ?></th>
+							<th><button class="afc-sort" type="button" data-sort="name"><?php esc_html_e( 'PPP Username', 'airfiber-centralized' ); ?> <span class="afc-sort-indicator"></span></button></th>
+							<th><button class="afc-sort" type="button" data-sort="customer_name"><?php esc_html_e( 'Customer', 'airfiber-centralized' ); ?> <span class="afc-sort-indicator"></span></button></th>
+							<th><button class="afc-sort" type="button" data-sort="phone"><?php esc_html_e( 'Phone', 'airfiber-centralized' ); ?> <span class="afc-sort-indicator"></span></button></th>
+							<th><button class="afc-sort" type="button" data-sort="profile"><?php esc_html_e( 'Plan', 'airfiber-centralized' ); ?> <span class="afc-sort-indicator"></span></button></th>
+							<th><button class="afc-sort" type="button" data-sort="installed"><?php esc_html_e( 'Installed', 'airfiber-centralized' ); ?> <span class="afc-sort-indicator"></span></button></th>
+							<th><button class="afc-sort" type="button" data-sort="payment_date"><?php esc_html_e( 'Payment Date', 'airfiber-centralized' ); ?> <span class="afc-sort-indicator"></span></button></th>
+							<th><button class="afc-sort" type="button" data-sort="payment_amount"><?php esc_html_e( 'Amount', 'airfiber-centralized' ); ?> <span class="afc-sort-indicator"></span></button></th>
+							<th><button class="afc-sort" type="button" data-sort="payment_method"><?php esc_html_e( 'Method', 'airfiber-centralized' ); ?> <span class="afc-sort-indicator"></span></button></th>
+							<th><button class="afc-sort" type="button" data-sort="grace"><?php esc_html_e( 'Grace', 'airfiber-centralized' ); ?> <span class="afc-sort-indicator"></span></button></th>
+							<th><button class="afc-sort" type="button" data-sort="active"><?php esc_html_e( 'Connection', 'airfiber-centralized' ); ?> <span class="afc-sort-indicator"></span></button></th>
 							<th><?php esc_html_e( 'Wi-Fi / Address', 'airfiber-centralized' ); ?></th>
 							<th><?php esc_html_e( 'Import', 'airfiber-centralized' ); ?></th>
 						</tr>
