@@ -58,6 +58,13 @@ class AFC_Admin {
 			'1.4.0'
 		);
 
+		wp_enqueue_style(
+			'afc-admin-compat',
+			AFC_URL . 'assets/css/admin-compat.css',
+			array( 'afc-tabler' ),
+			AFC_VERSION
+		);
+
 		wp_enqueue_script(
 			'afc-tabler',
 			'https://cdn.jsdelivr.net/npm/@tabler/core@1.4.0/dist/js/tabler.min.js',
