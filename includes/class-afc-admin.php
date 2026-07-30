@@ -151,7 +151,7 @@ class AFC_Admin {
 
 			wp_enqueue_script(
 				'afc-collection-area-manager',
-				AFC_URL . 'assets/js/collection-area-manager.js',
+				AFC_URL . 'assets/js/collection-area-manager-v2.js',
 				array( 'jquery', 'afc-collection-area-labels' ),
 				AFC_VERSION,
 				true
