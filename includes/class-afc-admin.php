@@ -111,6 +111,7 @@ class AFC_Admin {
 					'loading'     => __( 'Loading PPP users from MikroTik...', 'airfiber-centralized' ),
 					'importing'   => __( 'Importing selected users...', 'airfiber-centralized' ),
 					'noSelection' => __( 'Select at least one PPP user to import.', 'airfiber-centralized' ),
+					'currentDate' => current_time( 'Y-m-d' ),
 				)
 			);
 		}
