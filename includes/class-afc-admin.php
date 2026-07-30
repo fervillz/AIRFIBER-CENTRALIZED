@@ -7,6 +7,7 @@ class AFC_Admin {
 	public static function init() {
 		add_action( 'admin_menu', array( __CLASS__, 'register_menu' ) );
 		add_action( 'admin_enqueue_scripts', array( __CLASS__, 'enqueue_assets' ) );
+		add_action( 'admin_post_afc_test_mikrotik', array( 'AFC_MikroTik', 'handle_test_connection' ) );
 	}
 
 	public static function register_menu() {
@@ -19,10 +20,24 @@ class AFC_Admin {
 			'dashicons-cloud',
 			3
 		);
+
+		add_submenu_page(
+			'airfiber-centralized',
+			__( 'MikroTik Settings', 'airfiber-centralized' ),
+			__( 'MikroTik', 'airfiber-centralized' ),
+			'manage_options',
+			'airfiber-mikrotik',
+			array( 'AFC_MikroTik', 'render_settings_page' )
+		);
 	}
 
 	public static function enqueue_assets( $hook_suffix ) {
-		if ( 'toplevel_page_airfiber-centralized' !== $hook_suffix ) {
+		$airfiber_pages = array(
+			'toplevel_page_airfiber-centralized',
+			'airfiber_page_airfiber-mikrotik',
+		);
+
+		if ( ! in_array( $hook_suffix, $airfiber_pages, true ) ) {
 			return;
 		}
 
@@ -57,4 +72,3 @@ class AFC_Admin {
 		include AFC_PATH . 'templates/admin/dashboard.php';
 	}
 }
-
