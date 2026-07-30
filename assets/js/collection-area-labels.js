@@ -9,6 +9,10 @@
 		return element.innerHTML;
 	}
 
+	function isUnassignedBarangay( barangay ) {
+		return /^(?:Other \/ Unassigned|Unassigned Area)$/i.test( String( barangay || '' ).trim() );
+	}
+
 	function closeOtherGroups( currentGroup ) {
 		document.querySelectorAll( '#afc-area-summary .afc-barangay-group.is-open' ).forEach( function ( group ) {
 			if ( group !== currentGroup ) {
@@ -52,6 +56,10 @@
 		if ( targetCard ) {
 			targetCard.click();
 		}
+	}
+
+	function openAreaManager() {
+		document.dispatchEvent( new CustomEvent( 'afc:open-area-manager' ) );
 	}
 
 	function prepareCollectionGroups() {
@@ -111,10 +119,13 @@
 				);
 			} );
 
+			const managerAction = isUnassignedBarangay( barangay )
+				? '<div class="afc-tooltip-action-row"><button type="button" class="afc-tooltip-action" data-afc-tooltip-action="manage-unassigned">Assign barangay and zones</button></div>'
+				: '';
 			const tooltipContent =
 				'<div class="afc-tooltip-heading"><strong>' + escapeHtml( barangay ) + ' zones</strong>' +
 				'<span>Click a zone to print</span></div>' +
-				'<div class="afc-tooltip-zone-grid">' + tooltipItems.join( '' ) + '</div>';
+				'<div class="afc-tooltip-zone-grid">' + tooltipItems.join( '' ) + '</div>' + managerAction;
 
 			if ( window.AFCTooltip ) {
 				heading.removeAttribute( 'title' );
@@ -129,8 +140,11 @@
 							window.matchMedia( '(hover: hover) and (pointer: fine)' ).matches;
 					},
 					onAction: function ( details ) {
-						if ( 'print-area' === details.action.getAttribute( 'data-afc-tooltip-action' ) ) {
+						const action = details.action.getAttribute( 'data-afc-tooltip-action' );
+						if ( 'print-area' === action ) {
 							printAreaFromTooltip( details.trigger, details.action.getAttribute( 'data-canonical-area' ) || '' );
+						} else if ( 'manage-unassigned' === action ) {
+							openAreaManager();
 						}
 					}
 				} );
