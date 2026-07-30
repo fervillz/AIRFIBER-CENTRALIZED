@@ -33,4 +33,4 @@ The admin application uses the free, MIT-licensed [Tabler](https://tabler.io/) d
 
 ## Status
 
-Version `0.5.0` adds a read-only MikroTik PPP user browser with live connection state, search, selectable customer import, duplicate prevention, and generated Airfiber account numbers. Imported records preserve their PPP username, profile, RouterOS comment, remote address, caller ID, disabled state, and MikroTik record ID.
+Version `0.5.1` adds a read-only MikroTik PPP user browser with live connection state, search, selectable customer import, duplicate prevention, and generated Airfiber account numbers. A small compatibility stylesheet removes WordPress Admin's 520px card limit and preserves a responsive, horizontally scrollable PPP table.
