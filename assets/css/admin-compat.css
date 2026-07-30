@@ -43,6 +43,50 @@
 	padding-block: 0.75rem;
 }
 
+.afc-admin-page .afc-area-summary {
+	display: grid;
+	grid-template-columns: repeat( auto-fill, minmax( 190px, 1fr ) );
+	gap: 0.65rem;
+}
+
+.afc-admin-page .afc-area-card {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 0.75rem;
+	min-height: 64px;
+	padding: 0.75rem 0.9rem;
+	border: 1px solid var(--tblr-border-color);
+	border-radius: var(--tblr-border-radius);
+	background: var(--tblr-bg-surface);
+	color: inherit;
+	text-align: left;
+	cursor: pointer;
+	transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.afc-admin-page .afc-area-card:hover,
+.afc-admin-page .afc-area-card:focus {
+	border-color: var(--tblr-primary);
+	box-shadow: 0 0 0 2px rgba( 32, 107, 196, 0.1 );
+}
+
+.afc-admin-page .afc-area-name {
+	font-weight: 600;
+	line-height: 1.25;
+}
+
+.afc-admin-page .afc-area-count {
+	flex: 0 0 auto;
+	min-width: 2rem;
+	padding: 0.2rem 0.45rem;
+	border-radius: 999px;
+	background: var(--tblr-primary-lt);
+	color: var(--tblr-primary);
+	font-weight: 700;
+	text-align: center;
+}
+
 .afc-admin-page .afc-operations-table tbody tr:hover {
 	background: rgba( 32, 107, 196, 0.04 );
 }
