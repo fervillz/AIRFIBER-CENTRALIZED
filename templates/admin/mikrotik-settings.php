@@ -22,7 +22,7 @@ defined( 'ABSPATH' ) || exit;
 				<form method="post" action="options.php" class="card">
 					<?php settings_fields( 'afc_mikrotik' ); ?>
 					<div class="card-header">
-						<h3 class="card-title"><?php esc_html_e( 'RouterOS REST API', 'airfiber-centralized' ); ?></h3>
+						<h3 class="card-title"><?php esc_html_e( 'RouterOS API', 'airfiber-centralized' ); ?></h3>
 					</div>
 					<div class="card-body">
 						<div class="mb-3">
@@ -37,8 +37,8 @@ defined( 'ABSPATH' ) || exit;
 							<div class="col-md-3 mb-3">
 								<label class="form-label" for="afc-router-protocol"><?php esc_html_e( 'Protocol', 'airfiber-centralized' ); ?></label>
 								<select class="form-select" id="afc-router-protocol" name="afc_mikrotik_settings[protocol]">
-									<option value="https" <?php selected( $settings['protocol'], 'https' ); ?>>HTTPS</option>
-									<option value="http" <?php selected( $settings['protocol'], 'http' ); ?>>HTTP</option>
+									<option value="api" <?php selected( $settings['protocol'], 'api' ); ?>>API (TCP)</option>
+									<option value="api-ssl" <?php selected( $settings['protocol'], 'api-ssl' ); ?>>API-SSL (TLS)</option>
 								</select>
 							</div>
 							<div class="col-md-3 mb-3">
@@ -76,7 +76,7 @@ defined( 'ABSPATH' ) || exit;
 				<div class="card">
 					<div class="card-body">
 						<h3 class="card-title"><?php esc_html_e( 'Before testing', 'airfiber-centralized' ); ?></h3>
-						<p><?php esc_html_e( 'Enable the RouterOS www-ssl service for HTTPS REST access and allow the WordPress server to reach the selected port.', 'airfiber-centralized' ); ?></p>
+						<p><?php esc_html_e( 'Enable the RouterOS API service and allow the WordPress server to reach port 8728, or use API-SSL on port 8729.', 'airfiber-centralized' ); ?></p>
 						<p class="text-secondary mb-0"><?php esc_html_e( 'Use a dedicated RouterOS user. The test is read-only and requests system resource information.', 'airfiber-centralized' ); ?></p>
 					</div>
 				</div>
@@ -84,4 +84,3 @@ defined( 'ABSPATH' ) || exit;
 		</div>
 	</div>
 </div>
-
