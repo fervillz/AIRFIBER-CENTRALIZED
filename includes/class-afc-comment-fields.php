@@ -7,9 +7,10 @@ defined( 'ABSPATH' ) || exit;
  */
 class AFC_Comment_Fields {
 
-	const OPTION_KEY = 'afc_comment_fields';
-	const NONCE      = 'afc_comment_fields';
-	const MAX_FIELDS = 30;
+	const OPTION_KEY  = 'afc_comment_fields';
+	const NONCE       = 'afc_comment_fields';
+	const MAX_FIELDS  = 30;
+	const LINE_ENDING = "\r\n";
 
 	public static function init() {
 		add_action( 'wp_ajax_afc_save_comment_fields', array( __CLASS__, 'ajax_save_fields' ) );
@@ -88,10 +89,10 @@ class AFC_Comment_Fields {
 				continue;
 			}
 
-			$label = isset( $field['label'] ) ? sanitize_text_field( $field['label'] ) : '';
-			$label = $label ? substr( $label, 0, 60 ) : $key;
-			$type  = isset( $field['type'] ) ? sanitize_key( $field['type'] ) : 'text';
-			$type  = isset( $allowed[ $type ] ) ? $type : 'text';
+			$label   = isset( $field['label'] ) ? sanitize_text_field( $field['label'] ) : '';
+			$label   = $label ? substr( $label, 0, 60 ) : $key;
+			$type    = isset( $field['type'] ) ? sanitize_key( $field['type'] ) : 'text';
+			$type    = isset( $allowed[ $type ] ) ? $type : 'text';
 			$default = isset( $field['default'] ) ? substr( sanitize_text_field( $field['default'] ), 0, 120 ) : '';
 
 			$clean[] = array(
@@ -142,10 +143,10 @@ class AFC_Comment_Fields {
 	}
 
 	/**
-	 * Put every recognized key:value field on its own real line.
-	 * Also repairs older compact comments such as Address:...billingDay:21.
+	 * Normalize recognized fields internally with LF. This form is used only
+	 * while parsing and editing; RouterOS output is converted to CRLF below.
 	 */
-	public static function normalize_comment( $comment ) {
+	private static function normalize_comment_lf( $comment ) {
 		$comment = str_replace( array( "\r\n", "\r" ), "\n", (string) $comment );
 		$keys    = self::get_keys_pattern();
 
@@ -175,6 +176,16 @@ class AFC_Comment_Fields {
 		);
 
 		return implode( "\n", $lines );
+	}
+
+	/**
+	 * Put every recognized key:value field on its own real RouterOS/Winbox line.
+	 * CRLF is intentional: Winbox can display LF-only appended fields as one line.
+	 */
+	public static function normalize_comment( $comment ) {
+		$normalized = self::normalize_comment_lf( $comment );
+
+		return str_replace( "\n", self::LINE_ENDING, $normalized );
 	}
 
 	/**
@@ -220,7 +231,7 @@ class AFC_Comment_Fields {
 
 		preg_match_all(
 			'/^(' . self::get_keys_pattern() . ')\s*:\s*(.*)$/mi',
-			self::normalize_comment( $comment ),
+			self::normalize_comment_lf( $comment ),
 			$matches,
 			PREG_SET_ORDER
 		);
@@ -248,16 +259,14 @@ class AFC_Comment_Fields {
 		return $values;
 	}
 
-	/**
-	 * Replace or append one value and always return a readable multiline comment.
-	 */
+	/** Replace or append one value and always return readable CRLF output. */
 	public static function replace_value( $comment, $key, $value ) {
 		$key = self::sanitize_field_key( $key );
 		if ( ! $key ) {
 			return self::normalize_comment( $comment );
 		}
 
-		$comment     = self::normalize_comment( $comment );
+		$comment     = self::normalize_comment_lf( $comment );
 		$key_pattern = 0 === strcasecmp( $key, 'Address' ) ? '(?:Address|addr)' : preg_quote( $key, '/' );
 		$pattern     = '/^(' . $key_pattern . ')\s*:\s*.*$/mi';
 
