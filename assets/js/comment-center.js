@@ -154,7 +154,8 @@
 
 	function migrationStatus() {
 		const summary = $( '.afc-comment-migration-summary' );
-		if ( ! summary || summary.closest( '[hidden]' ) ) { return null; }
+		const results = summary ? summary.closest( '[data-afc-migration-results]' ) : null;
+		if ( ! summary || ( results && results.hidden ) ) { return null; }
 		const number = selector => Number( ( $( selector, summary ) || {} ).textContent || 0 );
 		return { safe: number( '.is-safe strong' ), review: number( '.is-review strong' ) };
 	}
