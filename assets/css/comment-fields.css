@@ -1,0 +1,390 @@
+.afc-comment-fields-panel {
+	width: 100%;
+}
+
+.afc-comment-fields-shell {
+	max-width: 1320px;
+	margin: 0 auto;
+	padding: 1rem 0 2.5rem;
+}
+
+.afc-comment-fields-header {
+	display: flex;
+	align-items: flex-start;
+	justify-content: space-between;
+	gap: 1rem;
+	margin-bottom: 1rem;
+	padding: 1.25rem;
+	border: 1px solid rgba( 98, 105, 118, 0.16 );
+	border-radius: 18px;
+	background: #fff;
+	box-shadow: 0 12px 36px rgba( 24, 36, 51, 0.07 );
+}
+
+.afc-comment-fields-kicker {
+	display: block;
+	margin-bottom: 0.25rem;
+	color: #206bc4;
+	font-size: 0.68rem;
+	font-weight: 800;
+	letter-spacing: 0.11em;
+	text-transform: uppercase;
+}
+
+.afc-comment-fields-header h1,
+.afc-comment-fields-card h2 {
+	margin: 0;
+	color: #182433;
+}
+
+.afc-comment-fields-header h1 {
+	font-size: clamp( 1.55rem, 3vw, 2.15rem );
+}
+
+.afc-comment-fields-header p,
+.afc-comment-fields-card p {
+	margin: 0.4rem 0 0;
+	color: #667382;
+	line-height: 1.55;
+}
+
+.afc-comment-fields-header p {
+	max-width: 760px;
+}
+
+.afc-comment-fields-layout {
+	display: grid;
+	grid-template-columns: minmax( 0, 1.8fr ) minmax( 280px, 0.8fr );
+	gap: 1rem;
+	align-items: start;
+}
+
+.afc-comment-fields-side {
+	display: grid;
+	gap: 1rem;
+	position: sticky;
+	top: 92px;
+}
+
+.afc-comment-fields-card {
+	padding: 1rem;
+	border: 1px solid rgba( 98, 105, 118, 0.16 );
+	border-radius: 18px;
+	background: #fff;
+	box-shadow: 0 10px 30px rgba( 24, 36, 51, 0.055 );
+}
+
+.afc-comment-fields-card h2 {
+	font-size: 1rem;
+}
+
+.afc-comment-fields-card p {
+	font-size: 0.8rem;
+}
+
+.afc-comment-fields-card-head {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 1rem;
+	margin-bottom: 0.9rem;
+}
+
+.afc-comment-fields-list {
+	display: grid;
+	gap: 0.65rem;
+}
+
+.afc-comment-field-row {
+	padding: 0.8rem;
+	border: 1px solid #dce1e7;
+	border-radius: 14px;
+	background: #fff;
+}
+
+.afc-comment-field-row.is-core {
+	background: #f7f9fc;
+}
+
+.afc-comment-field-row.is-custom {
+	border-color: rgba( 32, 107, 196, 0.28 );
+	box-shadow: 0 4px 15px rgba( 32, 107, 196, 0.055 );
+}
+
+.afc-comment-field-row-top {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 0.75rem;
+	margin-bottom: 0.55rem;
+}
+
+.afc-comment-field-badge {
+	display: inline-flex;
+	align-items: center;
+	min-height: 24px;
+	padding: 0.18rem 0.55rem;
+	border-radius: 999px;
+	background: #e9f2ff;
+	color: #206bc4;
+	font-size: 0.65rem;
+	font-weight: 800;
+	letter-spacing: 0.04em;
+	text-transform: uppercase;
+}
+
+.afc-comment-field-row.is-core .afc-comment-field-badge {
+	background: #e9ecef;
+	color: #667382;
+}
+
+.afc-comment-field-row-actions {
+	display: flex;
+	align-items: center;
+	gap: 0.35rem;
+}
+
+.afc-comment-field-row-actions button {
+	min-height: 30px;
+	padding: 0.25rem 0.55rem;
+	border: 1px solid #dce1e7;
+	border-radius: 8px;
+	background: #fff;
+	color: #44546a;
+	font-size: 0.72rem;
+	font-weight: 700;
+	cursor: pointer;
+}
+
+.afc-comment-field-row-actions button:hover,
+.afc-comment-field-row-actions button:focus-visible {
+	border-color: #206bc4;
+	color: #206bc4;
+	outline: none;
+}
+
+.afc-comment-field-row-actions .afc-comment-field-remove:hover,
+.afc-comment-field-row-actions .afc-comment-field-remove:focus-visible {
+	border-color: #d63939;
+	color: #d63939;
+}
+
+.afc-comment-field-controls {
+	display: grid;
+	grid-template-columns: minmax( 145px, 1.05fr ) minmax( 145px, 1fr ) minmax( 105px, 0.65fr ) minmax( 130px, 0.85fr );
+	gap: 0.55rem;
+}
+
+.afc-comment-field-control {
+	display: grid;
+	gap: 0.25rem;
+	min-width: 0;
+}
+
+.afc-comment-field-control > span {
+	color: #667382;
+	font-size: 0.64rem;
+	font-weight: 700;
+}
+
+.afc-comment-field-control input,
+.afc-comment-field-control select {
+	width: 100%;
+	min-width: 0;
+	height: 40px;
+	padding: 0 0.65rem;
+	border: 1px solid #dce1e7;
+	border-radius: 9px;
+	background: #fff;
+	color: #182433;
+	font-size: 0.78rem;
+}
+
+.afc-comment-field-control input:focus,
+.afc-comment-field-control select:focus {
+	border-color: #206bc4;
+	outline: 3px solid rgba( 32, 107, 196, 0.12 );
+}
+
+.afc-comment-field-control input[readonly],
+.afc-comment-field-control select:disabled {
+	background: #eef1f4;
+	color: #667382;
+	cursor: not-allowed;
+}
+
+.afc-comment-fields-suggestions {
+	display: grid;
+	gap: 0.5rem;
+	margin-top: 0.8rem;
+}
+
+.afc-comment-field-suggestion {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 0.65rem;
+	width: 100%;
+	padding: 0.7rem;
+	border: 1px solid #dce1e7;
+	border-radius: 11px;
+	background: #fff;
+	color: #182433;
+	text-align: left;
+	cursor: pointer;
+}
+
+.afc-comment-field-suggestion:hover,
+.afc-comment-field-suggestion:focus-visible {
+	border-color: #206bc4;
+	background: #f3f8ff;
+	outline: none;
+}
+
+.afc-comment-field-suggestion:disabled {
+	opacity: 0.48;
+	cursor: default;
+}
+
+.afc-comment-field-suggestion strong,
+.afc-comment-field-suggestion span {
+	display: block;
+}
+
+.afc-comment-field-suggestion strong {
+	font-size: 0.78rem;
+}
+
+.afc-comment-field-suggestion span {
+	color: #667382;
+	font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+	font-size: 0.66rem;
+}
+
+#afc-comment-fields-preview {
+	max-height: 420px;
+	margin: 0.8rem 0 0;
+	padding: 0.85rem;
+	overflow: auto;
+	border-radius: 12px;
+	background: #111827;
+	color: #dbeafe;
+	font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+	font-size: 0.72rem;
+	line-height: 1.6;
+	white-space: pre-wrap;
+}
+
+.afc-comment-fields-notice {
+	display: none;
+	margin-bottom: 0.85rem;
+	padding: 0.75rem 0.9rem;
+	border-radius: 11px;
+	font-size: 0.82rem;
+	font-weight: 700;
+}
+
+.afc-comment-fields-notice.is-visible {
+	display: block;
+}
+
+.afc-comment-fields-notice.is-success {
+	background: #eaf7ec;
+	color: #22863a;
+}
+
+.afc-comment-fields-notice.is-warning {
+	background: #fff4d6;
+	color: #8a5d00;
+}
+
+.afc-comment-fields-notice.is-danger {
+	background: #fdecec;
+	color: #b42318;
+}
+
+#afc-comment-fields-save.is-loading {
+	position: relative;
+	padding-left: 2.25rem;
+}
+
+#afc-comment-fields-save.is-loading::before {
+	position: absolute;
+	left: 0.85rem;
+	top: 50%;
+	width: 15px;
+	height: 15px;
+	content: "";
+	border: 2px solid rgba( 255, 255, 255, 0.45 );
+	border-top-color: #fff;
+	border-radius: 50%;
+	transform: translateY( -50% );
+	animation: afc-comment-fields-spin 0.7s linear infinite;
+}
+
+@keyframes afc-comment-fields-spin {
+	to { transform: translateY( -50% ) rotate( 360deg ); }
+}
+
+@media ( max-width: 1050px ) {
+	.afc-comment-fields-layout {
+		grid-template-columns: 1fr;
+	}
+
+	.afc-comment-fields-side {
+		position: static;
+		grid-template-columns: repeat( 2, minmax( 0, 1fr ) );
+	}
+}
+
+@media ( max-width: 760px ) {
+	.afc-comment-fields-header,
+	.afc-comment-fields-card-head {
+		align-items: stretch;
+		flex-direction: column;
+	}
+
+	.afc-comment-fields-header > button,
+	.afc-comment-fields-card-head > button {
+		width: 100%;
+	}
+
+	.afc-comment-field-controls {
+		grid-template-columns: 1fr 1fr;
+	}
+
+	.afc-comment-fields-side {
+		grid-template-columns: 1fr;
+	}
+}
+
+@media ( max-width: 480px ) {
+	.afc-comment-fields-shell {
+		padding-top: 0.3rem;
+	}
+
+	.afc-comment-fields-header,
+	.afc-comment-fields-card {
+		padding: 0.8rem;
+		border-radius: 14px;
+	}
+
+	.afc-comment-field-controls {
+		grid-template-columns: 1fr;
+	}
+
+	.afc-comment-field-row-top {
+		align-items: flex-start;
+	}
+
+	.afc-comment-field-row-actions {
+		flex-wrap: wrap;
+		justify-content: flex-end;
+	}
+}
+
+@media ( prefers-reduced-motion: reduce ) {
+	#afc-comment-fields-save.is-loading::before {
+		animation: none;
+	}
+}
