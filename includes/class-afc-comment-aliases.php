@@ -22,54 +22,8 @@ class AFC_Comment_Aliases {
 		check_ajax_referer( 'afc_ppp_users', 'nonce' );
 	}
 
-	/**
-	 * Parse both Address: and its legacy addr: abbreviation into one address value.
-	 */
 	private static function parse_comment( $comment ) {
-		$values = array(
-			'installed'      => '',
-			'grace'          => '',
-			'payment_method' => '',
-			'payment_amount' => '',
-			'payment_date'   => '',
-			'name'           => '',
-			'plan'           => '',
-			'cp'             => '',
-			'wifi'           => '',
-			'address'        => '',
-		);
-		$keys = 'installed|grace|paymentMethod|paymentAmount|paymentDate|name|plan|cp|wifi|password|Address|addr';
-
-		preg_match_all(
-			'/(?:^|\s)(' . $keys . ')\s*:\s*(.*?)(?=\s+(?:' . $keys . ')\s*:|$)/is',
-			trim( $comment ),
-			$matches,
-			PREG_SET_ORDER
-		);
-
-		$map = array(
-			'paymentmethod' => 'payment_method',
-			'paymentamount' => 'payment_amount',
-			'paymentdate'   => 'payment_date',
-			'address'       => 'address',
-			'addr'          => 'address',
-		);
-
-		foreach ( $matches as $match ) {
-			$key   = strtolower( $match[1] );
-			$key   = isset( $map[ $key ] ) ? $map[ $key ] : $key;
-			$value = trim( preg_replace( '/\s+/', ' ', $match[2] ) );
-
-			if ( 'N/A' === strtoupper( $value ) ) {
-				$value = '';
-			}
-
-			if ( 'password' !== $key && array_key_exists( $key, $values ) ) {
-				$values[ $key ] = $value;
-			}
-		}
-
-		return $values;
+		return AFC_Comment_Fields::parse_comment( $comment );
 	}
 
 	private static function get_imported_usernames() {
@@ -146,6 +100,7 @@ class AFC_Comment_Aliases {
 				'profile'        => ! empty( $details['plan'] ) ? $details['plan'] : ( isset( $secret['profile'] ) ? $secret['profile'] : '' ),
 				'actual_profile' => isset( $secret['profile'] ) ? $secret['profile'] : '',
 				'comment'        => $comment,
+				'comment_fields' => isset( $details['custom_fields'] ) ? $details['custom_fields'] : array(),
 				'customer_name'  => $details['name'],
 				'phone'          => $details['cp'],
 				'installed'      => $details['installed'],
