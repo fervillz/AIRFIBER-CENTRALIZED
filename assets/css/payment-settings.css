@@ -1,0 +1,245 @@
+.afc-payment-settings-panel {
+	padding: 0;
+}
+
+.afc-payment-settings-shell {
+	max-width: 1180px;
+	margin: 0 auto;
+	padding: 24px;
+}
+
+.afc-payment-settings-header {
+	display: flex;
+	align-items: flex-start;
+	justify-content: space-between;
+	gap: 24px;
+	padding: 24px;
+	border: 1px solid #d8e2ef;
+	border-radius: 20px;
+	background: linear-gradient(135deg, #fff 0%, #f3f8ff 100%);
+}
+
+.afc-payment-settings-header > div:first-child > span {
+	display: block;
+	margin-bottom: 5px;
+	font-size: 11px;
+	font-weight: 800;
+	letter-spacing: .08em;
+	text-transform: uppercase;
+	color: #1667bd;
+}
+
+.afc-payment-settings-header h1 {
+	margin: 0;
+	font-size: 27px;
+	color: #18263a;
+}
+
+.afc-payment-settings-header p {
+	margin: 8px 0 0;
+	max-width: 690px;
+	color: #65758b;
+}
+
+.afc-payment-settings-status {
+	display: flex;
+	align-items: center;
+	gap: 9px;
+	padding: 11px 14px;
+	border-radius: 999px;
+	background: #e9f8ef;
+	color: #17663c;
+	font-size: 12px;
+	white-space: nowrap;
+}
+
+.afc-payment-settings-status > span {
+	width: 9px;
+	height: 9px;
+	border-radius: 50%;
+	background: #27ae60;
+}
+
+.afc-payment-settings-notice {
+	display: none;
+	margin: 16px 0;
+	padding: 12px 14px;
+	border-radius: 12px;
+	font-weight: 700;
+	font-size: 13px;
+}
+
+.afc-payment-settings-notice.is-visible { display: block; }
+.afc-payment-settings-notice.is-info { background: #eaf4ff; color: #14578f; }
+.afc-payment-settings-notice.is-success { background: #e7f8ed; color: #17663c; }
+.afc-payment-settings-notice.is-warning { background: #fff3d6; color: #80550b; }
+.afc-payment-settings-notice.is-error { background: #ffe8e8; color: #a22b2b; }
+
+.afc-payment-settings-grid {
+	display: grid;
+	grid-template-columns: minmax(0, 1.15fr) minmax(320px, .85fr);
+	gap: 18px;
+	margin-top: 18px;
+}
+
+.afc-payment-settings-grid > form,
+.afc-payment-settings-grid > aside {
+	padding: 22px;
+	border: 1px solid #d8e2ef;
+	border-radius: 18px;
+	background: #fff;
+}
+
+.afc-payment-settings-grid form {
+	display: grid;
+	gap: 17px;
+}
+
+.afc-payment-settings-grid form > label,
+.afc-payment-settings-two > label {
+	display: grid;
+	gap: 7px;
+}
+
+.afc-payment-settings-grid label > span {
+	font-size: 12px;
+	font-weight: 800;
+	color: #30425d;
+}
+
+.afc-payment-settings-grid input[type="text"],
+.afc-payment-settings-grid input[type="number"] {
+	width: 100%;
+	min-height: 44px;
+	border: 1px solid #c9d5e4;
+	border-radius: 11px;
+	padding: 9px 11px;
+	background: #fff;
+}
+
+.afc-payment-settings-grid label > small {
+	color: #718096;
+	line-height: 1.45;
+}
+
+.afc-payment-settings-two {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: 12px;
+}
+
+.afc-payment-settings-number {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+}
+
+.afc-payment-settings-number b {
+	font-size: 12px;
+	color: #65758b;
+}
+
+.afc-payment-settings-switch {
+	display: grid !important;
+	grid-template-columns: auto 1fr;
+	align-items: flex-start;
+	gap: 11px !important;
+	padding: 14px;
+	border-radius: 13px;
+	background: #f3f8ff;
+}
+
+.afc-payment-settings-switch input {
+	margin-top: 3px;
+}
+
+.afc-payment-settings-switch > span {
+	display: grid;
+	gap: 3px;
+}
+
+.afc-payment-settings-switch small {
+	font-weight: 400;
+	color: #65758b;
+}
+
+.afc-payment-settings-grid aside > span {
+	font-size: 11px;
+	font-weight: 800;
+	letter-spacing: .08em;
+	text-transform: uppercase;
+	color: #1667bd;
+}
+
+.afc-payment-settings-grid aside h2 {
+	margin: 5px 0 14px;
+	font-size: 21px;
+	color: #1d2d44;
+}
+
+.afc-payment-preset-preview {
+	display: grid;
+	grid-template-columns: repeat(3, minmax(0, 1fr));
+	gap: 8px;
+}
+
+.afc-payment-preset-preview span {
+	display: grid;
+	place-items: center;
+	min-height: 48px;
+	padding: 7px;
+	border-radius: 11px;
+	background: #eef6ff;
+	border: 1px solid #cfe0f4;
+	font-size: 12px;
+	font-weight: 800;
+	color: #155d9f;
+}
+
+.afc-payment-settings-example {
+	margin-top: 16px;
+	padding: 16px;
+	border-radius: 14px;
+	background: #122037;
+	color: #fff;
+}
+
+.afc-payment-settings-example small {
+	display: block;
+	color: #adc0da;
+}
+
+.afc-payment-settings-example strong {
+	display: block;
+	margin-top: 5px;
+	font-size: 27px;
+}
+
+.afc-payment-settings-example p {
+	margin: 8px 0 0;
+	font-size: 12px;
+	line-height: 1.5;
+	color: #c8d5e6;
+}
+
+.afc-payment-settings-grid aside ul {
+	margin: 16px 0 0;
+	padding-left: 18px;
+	color: #5d6d83;
+	font-size: 12px;
+	line-height: 1.7;
+}
+
+@media (max-width: 820px) {
+	.afc-payment-settings-shell { padding: 14px; }
+	.afc-payment-settings-header { flex-direction: column; padding: 18px; }
+	.afc-payment-settings-status { white-space: normal; }
+	.afc-payment-settings-grid { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 520px) {
+	.afc-payment-settings-two,
+	.afc-payment-preset-preview { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+	.afc-payment-settings-grid > form,
+	.afc-payment-settings-grid > aside { padding: 16px; }
+}
