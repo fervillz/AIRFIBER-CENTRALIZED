@@ -99,10 +99,6 @@
 		return '';
 	}
 
-	/**
-	 * Reclassify migration candidates before schedulers.js stores the preview.
-	 * Missing/legacy remains the primary status; past cutoff becomes a warning.
-	 */
 	$.ajaxPrefilter( function ( options, originalOptions ) {
 		const action = requestAction( options, originalOptions );
 
@@ -177,6 +173,12 @@
 		};
 	} );
 
+	function setText( element, text ) {
+		if ( element && element.textContent !== text ) {
+			element.textContent = text;
+		}
+	}
+
 	function updateInterfaceCopy() {
 		const root = document.getElementById( 'afc-scheduler-center' );
 		if ( ! root ) {
@@ -186,25 +188,27 @@
 		const bulkPanel = root.querySelector( '[data-afc-scheduler-panel="bulk"]' );
 		if ( bulkPanel ) {
 			const description = bulkPanel.querySelector( '.afc-scheduler-section-head p' );
-			if ( description ) {
-				description.textContent = 'Only PPP users with no scheduler or an old legacy event are shown here. Past-cutoff candidates are migrated disabled so they cannot immediately disconnect a customer.';
-			}
+			setText( description, 'Only PPP users with no scheduler or an old legacy event are shown here. Past-cutoff candidates are migrated disabled so they cannot immediately disconnect a customer.' );
 
 			const master = bulkPanel.querySelector( '[data-afc-scheduler-select-safe]' );
 			if ( master && master.parentElement ) {
 				const label = master.parentElement;
-				Array.from( label.childNodes ).forEach( function ( node ) {
-					if ( Node.TEXT_NODE === node.nodeType ) {
-						node.remove();
-					}
-				} );
-				label.appendChild( document.createTextNode( ' Select all missing and legacy schedulers' ) );
+				let copy = label.querySelector( '[data-afc-migration-label-copy]' );
+				if ( ! copy ) {
+					Array.from( label.childNodes ).forEach( function ( node ) {
+						if ( Node.TEXT_NODE === node.nodeType ) {
+							node.remove();
+						}
+					} );
+					copy = document.createElement( 'span' );
+					copy.setAttribute( 'data-afc-migration-label-copy', '' );
+					label.appendChild( copy );
+				}
+				setText( copy, 'Select all missing and legacy schedulers' );
 			}
 
 			const syncButton = bulkPanel.querySelector( '[data-afc-scheduler-bulk="sync"]' );
-			if ( syncButton ) {
-				syncButton.textContent = 'Create / Upgrade Selected';
-			}
+			setText( syncButton, 'Create / Upgrade Selected' );
 		}
 
 		return true;
