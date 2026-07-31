@@ -1,0 +1,85 @@
+.afc-migration-review-explanation {
+	display: grid;
+	grid-template-columns: minmax( 0, 1fr );
+	gap: 0.75rem;
+	margin: 0 0 0.9rem;
+	padding: 0.9rem 1rem;
+	border: 1px solid rgba( 245, 159, 0, 0.28 );
+	border-radius: 14px;
+	background: rgba( 255, 247, 225, 0.82 );
+}
+
+.afc-migration-review-copy {
+	display: flex;
+	flex-direction: column;
+	gap: 0.2rem;
+}
+
+.afc-migration-review-copy strong {
+	font-size: 0.9rem;
+}
+
+.afc-migration-review-copy span {
+	color: var( --tblr-body-color, #182433 );
+	font-size: 0.8rem;
+	line-height: 1.5;
+}
+
+.afc-migration-review-copy small {
+	color: var( --tblr-secondary, #667382 );
+	font-size: 0.72rem;
+}
+
+.afc-migration-review-reasons {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.45rem;
+}
+
+.afc-migration-review-reasons button {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.4rem;
+	padding: 0.42rem 0.62rem;
+	border: 1px solid rgba( 245, 159, 0, 0.3 );
+	border-radius: 999px;
+	background: #fff;
+	color: inherit;
+	font-size: 0.72rem;
+	cursor: pointer;
+}
+
+.afc-migration-review-reasons button:hover,
+.afc-migration-review-reasons button:focus-visible {
+	border-color: var( --tblr-warning, #f59f00 );
+	outline: none;
+	box-shadow: 0 0 0 3px rgba( 245, 159, 0, 0.12 );
+}
+
+.afc-migration-review-reasons strong {
+	display: inline-grid;
+	min-width: 1.55rem;
+	height: 1.55rem;
+	place-items: center;
+	border-radius: 999px;
+	background: var( --tblr-warning-lt, #fff4d6 );
+	color: #8a5d00;
+	font-size: 0.7rem;
+}
+
+@media ( max-width: 640px ) {
+	.afc-migration-review-explanation {
+		padding: 0.8rem;
+	}
+
+	.afc-migration-review-reasons {
+		display: grid;
+		grid-template-columns: 1fr;
+	}
+
+	.afc-migration-review-reasons button {
+		width: 100%;
+		justify-content: flex-start;
+		text-align: left;
+	}
+}
