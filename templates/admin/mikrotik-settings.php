@@ -19,7 +19,7 @@ defined( 'ABSPATH' ) || exit;
 
 		<div class="row">
 			<div class="col-lg-8">
-				<form method="post" action="options.php" class="card">
+				<form method="post" action="<?php echo esc_url( admin_url( 'options.php' ) ); ?>" class="card">
 					<?php settings_fields( 'afc_mikrotik' ); ?>
 					<div class="card-header">
 						<h3 class="card-title"><?php esc_html_e( 'RouterOS API', 'airfiber-centralized' ); ?></h3>
