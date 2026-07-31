@@ -1,0 +1,221 @@
+.afc-admin-page .afc-pay-today {
+	display: none;
+}
+
+.afc-admin-page .afc-customer-action-trigger {
+	width: fit-content;
+	max-width: 100%;
+	border-radius: 0.35rem;
+	cursor: pointer;
+	transition: color 0.16s ease, background-color 0.16s ease, box-shadow 0.16s ease;
+}
+
+.afc-admin-page .afc-customer-action-trigger:hover,
+.afc-admin-page .afc-customer-action-trigger:focus-visible {
+	color: var(--tblr-primary);
+	outline: none;
+	box-shadow: 0 0 0 3px rgba( 32, 107, 196, 0.1 );
+}
+
+.afc-admin-page .afc-quick-payment-dialog {
+	width: min( 92vw, 520px );
+	border-radius: 1.25rem;
+}
+
+.afc-admin-page .afc-quick-payment-dialog .afc-dialog-body {
+	padding: 1.15rem 1.25rem 1.35rem;
+}
+
+.afc-admin-page .afc-quick-payment-summary {
+	display: grid;
+	grid-template-columns: repeat( 3, minmax( 0, 1fr ) );
+	gap: 0.5rem;
+	margin-bottom: 1rem;
+}
+
+.afc-admin-page .afc-quick-payment-summary > div {
+	min-width: 0;
+	padding: 0.65rem 0.7rem;
+	border: 1px solid var(--tblr-border-color);
+	border-radius: 0.65rem;
+	background: var(--tblr-bg-surface-secondary, #f6f8fb);
+}
+
+.afc-admin-page .afc-quick-payment-summary span,
+.afc-admin-page .afc-quick-payment-summary strong {
+	display: block;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.afc-admin-page .afc-quick-payment-summary span {
+	margin-bottom: 0.18rem;
+	color: var(--tblr-secondary);
+	font-size: 0.64rem;
+	font-weight: 700;
+	letter-spacing: 0.06em;
+	text-transform: uppercase;
+}
+
+.afc-admin-page .afc-quick-payment-summary strong {
+	font-size: 0.82rem;
+}
+
+.afc-admin-page .afc-quick-payment-message {
+	display: none;
+	margin-bottom: 0.85rem;
+	padding: 0.65rem 0.75rem;
+	border-radius: 0.55rem;
+	font-size: 0.78rem;
+	line-height: 1.45;
+}
+
+.afc-admin-page .afc-quick-payment-message.is-visible {
+	display: block;
+}
+
+.afc-admin-page .afc-quick-payment-message.is-info {
+	background: var(--tblr-azure-lt, #eaf4ff);
+	color: var(--tblr-azure, #4299e1);
+}
+
+.afc-admin-page .afc-quick-payment-message.is-success {
+	background: var(--tblr-green-lt, #eaf7ef);
+	color: var(--tblr-green, #2fb344);
+}
+
+.afc-admin-page .afc-quick-payment-message.is-danger {
+	background: var(--tblr-red-lt, #faecec);
+	color: var(--tblr-red, #d63939);
+}
+
+.afc-admin-page .afc-quick-action {
+	position: relative;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: 0.55rem;
+	min-height: 46px;
+	border: 0;
+	border-radius: 0.7rem;
+	font-weight: 800;
+	cursor: pointer;
+	transition: transform 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease;
+}
+
+.afc-admin-page .afc-quick-action:hover:not(:disabled),
+.afc-admin-page .afc-quick-action:focus-visible:not(:disabled) {
+	transform: translateY( -1px );
+	box-shadow: 0 7px 18px rgba( 24, 36, 51, 0.16 );
+	outline: none;
+}
+
+.afc-admin-page .afc-quick-action:active:not(:disabled) {
+	transform: translateY( 0 ) scale( 0.985 );
+}
+
+.afc-admin-page .afc-quick-action:disabled {
+	cursor: wait;
+	opacity: 0.62;
+}
+
+.afc-admin-page .afc-quick-cash {
+	width: 100%;
+	min-height: 58px;
+	background: var(--tblr-green, #2fb344);
+	color: #fff;
+	font-size: 1rem;
+	letter-spacing: 0.08em;
+}
+
+.afc-admin-page .afc-quick-secondary-actions {
+	display: flex;
+	justify-content: center;
+	gap: 0.65rem;
+	margin-top: 0.7rem;
+}
+
+.afc-admin-page .afc-quick-secondary-actions .afc-quick-gcash {
+	flex: 0 1 58%;
+	background: #0878e8;
+	color: #fff;
+}
+
+.afc-admin-page .afc-quick-secondary-actions.has-reconnect .afc-quick-gcash,
+.afc-admin-page .afc-quick-secondary-actions.has-reconnect .afc-quick-reconnect {
+	flex: 1 1 50%;
+}
+
+.afc-admin-page .afc-quick-reconnect {
+	background: var(--tblr-primary, #206bc4);
+	color: #fff;
+}
+
+.afc-admin-page .afc-button-spinner {
+	display: none;
+	width: 16px;
+	height: 16px;
+	border: 2px solid rgba( 255, 255, 255, 0.42 );
+	border-top-color: #fff;
+	border-radius: 50%;
+	animation: afc-quick-payment-spin 0.7s linear infinite;
+}
+
+.afc-admin-page .afc-quick-action.is-loading .afc-button-spinner {
+	display: inline-block;
+}
+
+.afc-admin-page .afc-quick-payment-meta {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 0.75rem;
+	margin-top: 0.85rem;
+	color: var(--tblr-secondary);
+	font-size: 0.7rem;
+}
+
+.afc-admin-page .afc-quick-gcash-note {
+	text-align: right;
+}
+
+@keyframes afc-quick-payment-spin {
+	to {
+		transform: rotate( 360deg );
+	}
+}
+
+@media ( max-width: 520px ) {
+	.afc-admin-page .afc-quick-payment-summary {
+		grid-template-columns: 1fr;
+	}
+
+	.afc-admin-page .afc-quick-secondary-actions,
+	.afc-admin-page .afc-quick-secondary-actions.has-reconnect {
+		flex-wrap: wrap;
+	}
+
+	.afc-admin-page .afc-quick-secondary-actions .afc-quick-gcash,
+	.afc-admin-page .afc-quick-secondary-actions.has-reconnect .afc-quick-gcash,
+	.afc-admin-page .afc-quick-secondary-actions.has-reconnect .afc-quick-reconnect {
+		flex: 1 1 100%;
+	}
+
+	.afc-admin-page .afc-quick-payment-meta {
+		align-items: flex-start;
+		flex-direction: column;
+	}
+
+	.afc-admin-page .afc-quick-gcash-note {
+		text-align: left;
+	}
+}
+
+@media ( prefers-reduced-motion: reduce ) {
+	.afc-admin-page .afc-quick-action,
+	.afc-admin-page .afc-button-spinner {
+		animation: none;
+		transition: none;
+	}
+}
