@@ -262,10 +262,9 @@ body.afc-frontend-page a {
 	border-radius: 0 0 var(--tblr-border-radius-lg, 8px) var(--tblr-border-radius-lg, 8px);
 }
 
-/* The Basic app is already the task-focused frontend landing area. */
+/* Basic keeps daily payment and collection tasks while hiding technical tables. */
 body.afc-admin-mode-basic .afc-frontend-panel[data-afc-panel="operations"] .page-header,
 body.afc-admin-mode-basic .afc-frontend-panel[data-afc-panel="operations"] #afc-ppp-summary,
-body.afc-admin-mode-basic .afc-frontend-panel[data-afc-panel="operations"] .afc-collection-card,
 body.afc-admin-mode-basic .afc-frontend-panel[data-afc-panel="operations"] > .wrap > .container-fluid > .card:last-of-type {
 	display: none;
 }
@@ -283,7 +282,6 @@ body.afc-admin-mode-basic [data-afc-panel="mikrotik"] {
 	display: none !important;
 }
 
-/* Keep native and plugin dialogs above the sticky app header. */
 body.afc-frontend-page dialog,
 body.afc-frontend-page .afc-tooltip {
 	z-index: 100000;
