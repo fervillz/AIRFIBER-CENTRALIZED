@@ -7,8 +7,10 @@
 	let searchWrap = null;
 	let results = null;
 	let resizeObserver = null;
+	let resultsObserver = null;
 	let blurTimer = null;
 	let measureFrame = null;
+	let resultsFrame = null;
 	let forceClosed = false;
 
 	function isBasicMobile() {
@@ -99,6 +101,35 @@
 		measureFrame = window.requestAnimationFrame( measureViewport );
 	}
 
+	function syncResultsLayout() {
+		resultsFrame = null;
+		if ( ! results ) {
+			return;
+		}
+
+		const cards = Array.from( results.querySelectorAll( '.afc-basic-customer-result' ) );
+		const active = isBasicMobile() && cards.length > 0;
+		results.classList.toggle( 'afc-mobile-has-results', active );
+
+		cards.forEach( function ( card, index ) {
+			/* The highest-ranked first match stays nearest the bottom search field. */
+			card.style.order = active ? String( cards.length - index ) : '';
+		} );
+
+		if ( active && app && app.classList.contains( 'afc-mobile-search-open' ) ) {
+			window.requestAnimationFrame( function () {
+				results.scrollTop = results.scrollHeight;
+			} );
+		}
+	}
+
+	function queueResultsLayout() {
+		if ( resultsFrame ) {
+			window.cancelAnimationFrame( resultsFrame );
+		}
+		resultsFrame = window.requestAnimationFrame( syncResultsLayout );
+	}
+
 	function setOpen( open ) {
 		if ( ! app ) {
 			return;
@@ -107,6 +138,7 @@
 		app.classList.toggle( 'afc-mobile-search-open', Boolean( open && isBasicMobile() ) );
 		if ( open ) {
 			queueMeasure();
+			queueResultsLayout();
 		}
 	}
 
@@ -152,6 +184,7 @@
 			forceClosed = false;
 			setOpen( true );
 			queueMeasure();
+			queueResultsLayout();
 			window.setTimeout( queueMeasure, 80 );
 			window.setTimeout( queueMeasure, 260 );
 		} );
@@ -160,6 +193,7 @@
 			forceClosed = false;
 			updateOpenState();
 			queueMeasure();
+			queueResultsLayout();
 		} );
 
 		input.addEventListener( 'blur', function () {
@@ -183,6 +217,7 @@
 				window.setTimeout( function () {
 					setOpen( true );
 					queueMeasure();
+					queueResultsLayout();
 				}, 0 );
 			}
 		} );
@@ -192,13 +227,23 @@
 			resizeObserver.observe( searchWrap );
 		}
 
+		resultsObserver = new MutationObserver( function () {
+			queueResultsLayout();
+			queueMeasure();
+		} );
+		resultsObserver.observe( results, { childList: true, subtree: true } );
+
 		if ( window.visualViewport ) {
 			window.visualViewport.addEventListener( 'resize', queueMeasure );
 			window.visualViewport.addEventListener( 'scroll', queueMeasure );
 		}
-		window.addEventListener( 'resize', queueMeasure );
+		window.addEventListener( 'resize', function () {
+			queueMeasure();
+			queueResultsLayout();
+		} );
 		window.addEventListener( 'orientationchange', function () {
 			window.setTimeout( queueMeasure, 180 );
+			window.setTimeout( queueResultsLayout, 180 );
 		} );
 
 		document.addEventListener( 'afc:admin-mode-change', function () {
@@ -206,6 +251,7 @@
 				forceClosed = false;
 				updateOpenState();
 				queueMeasure();
+				queueResultsLayout();
 			}, 20 );
 		} );
 
@@ -214,11 +260,13 @@
 				forceClosed = false;
 				updateOpenState();
 				queueMeasure();
+				queueResultsLayout();
 			} );
 		}
 
 		updateOpenState();
 		queueMeasure();
+		queueResultsLayout();
 		return true;
 	}
 
