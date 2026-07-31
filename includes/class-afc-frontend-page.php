@@ -15,10 +15,11 @@ class AFC_Frontend_Page {
 	public static function init() {
 		add_shortcode( self::SHORTCODE, array( __CLASS__, 'render_app' ) );
 		add_action( 'admin_init', array( __CLASS__, 'maybe_repair_page' ) );
-		add_action( 'template_redirect', array( __CLASS__, 'require_login' ) );
+		add_action( 'template_redirect', array( __CLASS__, 'protect_app' ) );
 		add_action( 'wp_enqueue_scripts', array( __CLASS__, 'enqueue_assets' ) );
 		add_filter( 'template_include', array( __CLASS__, 'use_app_template' ), 99 );
 		add_filter( 'display_post_states', array( __CLASS__, 'add_page_state' ), 10, 2 );
+		add_filter( 'show_admin_bar', array( __CLASS__, 'hide_admin_bar' ) );
 	}
 
 	/**
@@ -159,22 +160,87 @@ class AFC_Frontend_Page {
 		return $page_id && is_page( $page_id );
 	}
 
-	public static function require_login() {
-		if ( self::is_app_request() && ! is_user_logged_in() ) {
+	/**
+	 * The frontend app uses the same privileged operations as the existing
+	 * dashboard. Keep the capability check server-side rather than relying on
+	 * hidden buttons or the Basic / Advanced presentation mode.
+	 */
+	public static function protect_app() {
+		if ( ! self::is_app_request() ) {
+			return;
+		}
+
+		if ( ! is_user_logged_in() ) {
 			auth_redirect();
+		}
+
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_die(
+				esc_html__( 'Your account does not have permission to use the Airfiber operations app.', 'airfiber-centralized' ),
+				esc_html__( 'Airfiber Access Required', 'airfiber-centralized' ),
+				array( 'response' => 403 )
+			);
 		}
 	}
 
+	public static function hide_admin_bar( $show ) {
+		return self::is_app_request() ? false : $show;
+	}
+
+	/**
+	 * Loads the complete existing operations stack on the standalone frontend
+	 * page. The original modules keep their handles, AJAX nonces and dependency
+	 * order, so the frontend and wp-admin fallback use one implementation.
+	 */
 	public static function enqueue_assets() {
-		if ( ! self::is_app_request() ) {
+		if ( ! self::is_app_request() || ! current_user_can( 'manage_options' ) ) {
 			return;
+		}
+
+		if ( class_exists( 'AFC_Admin' ) ) {
+			AFC_Admin::enqueue_assets( 'toplevel_page_airfiber-centralized' );
+			AFC_Admin::enqueue_assets( 'airfiber_page_airfiber-mikrotik' );
+		}
+		if ( class_exists( 'AFC_Collection_Print' ) ) {
+			AFC_Collection_Print::enqueue_assets( 'toplevel_page_airfiber-centralized' );
+		}
+		if ( class_exists( 'AFC_Admin_Mode' ) ) {
+			AFC_Admin_Mode::enqueue_assets( 'toplevel_page_airfiber-centralized' );
+		}
+		if ( class_exists( 'AFC_Basic_Payments' ) ) {
+			AFC_Basic_Payments::enqueue_assets( 'toplevel_page_airfiber-centralized' );
+		}
+		if ( class_exists( 'AFC_Quick_Payments' ) ) {
+			AFC_Quick_Payments::enqueue_assets( 'toplevel_page_airfiber-centralized' );
 		}
 
 		wp_enqueue_style(
 			'afc-frontend-app',
 			AFC_URL . 'assets/css/frontend-app.css',
-			array(),
+			array( 'afc-quick-payments', 'afc-collection-print-selection' ),
 			AFC_VERSION
+		);
+
+		wp_enqueue_script(
+			'afc-frontend-app',
+			AFC_URL . 'assets/js/frontend-app.js',
+			array( 'jquery', 'afc-admin-mode', 'afc-quick-payments', 'afc-mikrotik-settings' ),
+			AFC_VERSION,
+			true
+		);
+
+		$current_user = wp_get_current_user();
+		wp_localize_script(
+			'afc-frontend-app',
+			'afcFrontendApp',
+			array(
+				'mode'        => class_exists( 'AFC_Admin_Mode' ) ? AFC_Admin_Mode::current_mode() : 'basic',
+				'operations'  => __( 'Operations', 'airfiber-centralized' ),
+				'mikrotik'    => __( 'MikroTik', 'airfiber-centralized' ),
+				'userName'    => $current_user->display_name,
+				'logoutUrl'   => wp_logout_url( self::get_url() ),
+				'adminUrl'    => admin_url(),
+			)
 		);
 	}
 
@@ -194,41 +260,87 @@ class AFC_Frontend_Page {
 		return $states;
 	}
 
+	private static function render_operations_panel() {
+		include AFC_PATH . 'templates/admin/ppp-users.php';
+	}
+
+	private static function render_mikrotik_panel() {
+		if ( ! function_exists( 'settings_fields' ) ) {
+			require_once ABSPATH . 'wp-admin/includes/plugin.php';
+			require_once ABSPATH . 'wp-admin/includes/template.php';
+		}
+
+		$settings    = AFC_MikroTik::get_settings();
+		$notice      = get_transient( 'afc_mikrotik_notice_' . get_current_user_id() );
+		$last_status = get_option( 'afc_mikrotik_last_status', array() );
+		delete_transient( 'afc_mikrotik_notice_' . get_current_user_id() );
+
+		ob_start();
+		include AFC_PATH . 'templates/admin/mikrotik-settings.php';
+		$settings_markup = ob_get_clean();
+
+		// The existing admin template uses a relative options.php action. Make it
+		// absolute when it is rendered from /airfiber/.
+		$settings_markup = str_replace(
+			'action="options.php"',
+			'action="' . esc_url( admin_url( 'options.php' ) ) . '"',
+			$settings_markup
+		);
+
+		echo $settings_markup; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+	}
+
 	public static function render_app() {
-		if ( ! is_user_logged_in() ) {
+		if ( ! is_user_logged_in() || ! current_user_can( 'manage_options' ) ) {
 			return '';
 		}
 
-		$mode = class_exists( 'AFC_Admin_Mode' ) ? AFC_Admin_Mode::current_mode() : 'basic';
+		$mode         = class_exists( 'AFC_Admin_Mode' ) ? AFC_Admin_Mode::current_mode() : 'basic';
+		$current_user = wp_get_current_user();
 
 		ob_start();
 		?>
 		<div class="afc-frontend-shell" id="afc-frontend-app" data-afc-mode="<?php echo esc_attr( $mode ); ?>">
 			<header class="afc-frontend-header">
-				<div class="afc-frontend-brand">
+				<a class="afc-frontend-brand" href="<?php echo esc_url( self::get_url() ); ?>" aria-label="<?php esc_attr_e( 'Airfiber home', 'airfiber-centralized' ); ?>">
 					<span class="afc-frontend-mark" aria-hidden="true">A</span>
-					<div>
+					<span class="afc-frontend-brand-copy">
 						<strong><?php esc_html_e( 'Airfiber Centralized', 'airfiber-centralized' ); ?></strong>
-						<span><?php esc_html_e( 'Private operations app', 'airfiber-centralized' ); ?></span>
+						<small><?php esc_html_e( 'Private operations app', 'airfiber-centralized' ); ?></small>
+					</span>
+				</a>
+
+				<nav class="afc-frontend-nav" aria-label="<?php esc_attr_e( 'Airfiber sections', 'airfiber-centralized' ); ?>">
+					<button type="button" class="is-active" data-afc-app-panel="operations" aria-pressed="true">
+						<?php esc_html_e( 'Operations', 'airfiber-centralized' ); ?>
+					</button>
+					<button type="button" class="afc-advanced-only" data-afc-app-panel="mikrotik" aria-pressed="false">
+						<?php esc_html_e( 'MikroTik', 'airfiber-centralized' ); ?>
+					</button>
+				</nav>
+
+				<div class="afc-frontend-header-actions">
+					<div class="afc-frontend-mode-toggle" role="group" aria-label="<?php esc_attr_e( 'Choose Basic or Advanced mode', 'airfiber-centralized' ); ?>">
+						<button type="button" data-afc-frontend-mode="basic" aria-pressed="<?php echo 'basic' === $mode ? 'true' : 'false'; ?>"><?php esc_html_e( 'Basic', 'airfiber-centralized' ); ?></button>
+						<button type="button" data-afc-frontend-mode="advanced" aria-pressed="<?php echo 'advanced' === $mode ? 'true' : 'false'; ?>"><?php esc_html_e( 'Advanced', 'airfiber-centralized' ); ?></button>
+					</div>
+					<div class="afc-frontend-user">
+						<span><?php echo esc_html( $current_user->display_name ); ?></span>
+						<a href="<?php echo esc_url( wp_logout_url( self::get_url() ) ); ?>"><?php esc_html_e( 'Sign out', 'airfiber-centralized' ); ?></a>
 					</div>
 				</div>
-				<span class="afc-frontend-mode"><?php echo esc_html( ucfirst( $mode ) ); ?> <?php esc_html_e( 'mode', 'airfiber-centralized' ); ?></span>
 			</header>
 
 			<main class="afc-frontend-content">
-				<?php if ( has_action( 'afc_frontend_app_content' ) ) : ?>
-					<?php do_action( 'afc_frontend_app_content', $mode ); ?>
-				<?php else : ?>
-					<section class="afc-frontend-welcome">
-						<span class="afc-frontend-kicker"><?php esc_html_e( 'Frontend foundation installed', 'airfiber-centralized' ); ?></span>
-						<h1><?php esc_html_e( 'Your Airfiber app page is ready.', 'airfiber-centralized' ); ?></h1>
-						<p><?php esc_html_e( 'The plugin created this protected page automatically. Existing Basic and Advanced tools will be moved here module by module.', 'airfiber-centralized' ); ?></p>
-						<div class="afc-frontend-actions">
-							<a class="afc-frontend-primary" href="<?php echo esc_url( admin_url( 'admin.php?page=airfiber-centralized' ) ); ?>"><?php esc_html_e( 'Open Current Dashboard', 'airfiber-centralized' ); ?></a>
-							<a class="afc-frontend-secondary" href="<?php echo esc_url( wp_logout_url( self::get_url() ) ); ?>"><?php esc_html_e( 'Sign Out', 'airfiber-centralized' ); ?></a>
-						</div>
-					</section>
-				<?php endif; ?>
+				<section class="afc-frontend-panel is-active" data-afc-panel="operations" aria-hidden="false">
+					<?php self::render_operations_panel(); ?>
+				</section>
+
+				<section class="afc-frontend-panel afc-advanced-only" data-afc-panel="mikrotik" aria-hidden="true" hidden>
+					<?php self::render_mikrotik_panel(); ?>
+				</section>
+
+				<?php do_action( 'afc_frontend_app_content', $mode ); ?>
 			</main>
 		</div>
 		<?php
