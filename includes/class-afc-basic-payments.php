@@ -23,10 +23,25 @@ class AFC_Basic_Payments {
 			AFC_VERSION
 		);
 
+		wp_enqueue_style(
+			'afc-mobile-payment-search',
+			AFC_URL . 'assets/css/mobile-payment-search.css',
+			array( 'afc-basic-payments' ),
+			AFC_VERSION
+		);
+
 		wp_enqueue_script(
 			'afc-basic-payments',
 			AFC_URL . 'assets/js/basic-payments.js',
 			array( 'jquery', 'afc-ppp-users', 'afc-admin-mode' ),
+			AFC_VERSION,
+			true
+		);
+
+		wp_enqueue_script(
+			'afc-mobile-payment-search',
+			AFC_URL . 'assets/js/mobile-payment-search.js',
+			array( 'afc-basic-payments' ),
 			AFC_VERSION,
 			true
 		);
