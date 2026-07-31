@@ -2,14 +2,14 @@
 /**
  * Plugin Name: Airfiber - Centralized
  * Description: Customer, billing, payment, installation, notification, and MikroTik management for Airfiber.
- * Version: 1.6.2
+ * Version: 1.7.0
  * Author: Airfiber
  * Text Domain: airfiber-centralized
  */
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'AFC_VERSION', '1.6.2' );
+define( 'AFC_VERSION', '1.7.0' );
 define( 'AFC_FILE', __FILE__ );
 define( 'AFC_PATH', plugin_dir_path( __FILE__ ) );
 define( 'AFC_URL', plugin_dir_url( __FILE__ ) );
@@ -32,6 +32,7 @@ require_once AFC_PATH . 'includes/class-afc-admin-mode.php';
 require_once AFC_PATH . 'includes/class-afc-basic-payments.php';
 require_once AFC_PATH . 'includes/class-afc-quick-payments.php';
 require_once AFC_PATH . 'includes/class-afc-billing-cycles.php';
+require_once AFC_PATH . 'includes/class-afc-advance-payments.php';
 require_once AFC_PATH . 'includes/class-afc-frontend-page.php';
 require_once AFC_PATH . 'includes/class-afc-pwa.php';
 
@@ -45,6 +46,7 @@ function afc_boot_plugin() {
 	AFC_Comment_Center::init();
 	AFC_Schedulers::init();
 	AFC_Scheduler_Migration_Selection::init();
+	AFC_Advance_Payments::init();
 	AFC_PPP_Users::init();
 	AFC_Comment_Aliases::init();
 	AFC_Area_Manager::init();
