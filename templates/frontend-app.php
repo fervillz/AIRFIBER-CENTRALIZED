@@ -2,6 +2,9 @@
 
 defined( 'ABSPATH' ) || exit;
 
+show_admin_bar( false );
+$afc_frontend_mode = class_exists( 'AFC_Admin_Mode' ) ? AFC_Admin_Mode::current_mode() : 'basic';
+
 ?><!doctype html>
 <html <?php language_attributes(); ?>>
 <head>
@@ -11,7 +14,7 @@ defined( 'ABSPATH' ) || exit;
 	<title><?php echo esc_html( get_the_title() ); ?> — <?php bloginfo( 'name' ); ?></title>
 	<?php wp_head(); ?>
 </head>
-<body <?php body_class( 'afc-frontend-page' ); ?>>
+<body <?php body_class( 'afc-frontend-page afc-admin-mode-' . $afc_frontend_mode ); ?>>
 <?php wp_body_open(); ?>
 <?php echo do_shortcode( '[' . AFC_Frontend_Page::SHORTCODE . ']' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
 <?php wp_footer(); ?>
