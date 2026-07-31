@@ -2,14 +2,14 @@
 /**
  * Plugin Name: Airfiber - Centralized
  * Description: Customer, billing, payment, installation, notification, and MikroTik management for Airfiber.
- * Version: 1.4.1
+ * Version: 1.4.2
  * Author: Airfiber
  * Text Domain: airfiber-centralized
  */
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'AFC_VERSION', '1.4.1' );
+define( 'AFC_VERSION', '1.4.2' );
 define( 'AFC_FILE', __FILE__ );
 define( 'AFC_PATH', plugin_dir_path( __FILE__ ) );
 define( 'AFC_URL', plugin_dir_url( __FILE__ ) );
@@ -17,6 +17,7 @@ define( 'AFC_URL', plugin_dir_url( __FILE__ ) );
 require_once AFC_PATH . 'includes/class-afc-post-types.php';
 require_once AFC_PATH . 'includes/class-afc-mikrotik.php';
 require_once AFC_PATH . 'includes/class-afc-comment-fields.php';
+require_once AFC_PATH . 'includes/class-afc-comment-formatting.php';
 require_once AFC_PATH . 'includes/class-afc-comment-migration.php';
 require_once AFC_PATH . 'includes/class-afc-comment-migration-rules.php';
 require_once AFC_PATH . 'includes/class-afc-ppp-users.php';
@@ -35,6 +36,7 @@ function afc_boot_plugin() {
 	AFC_Post_Types::init();
 	AFC_MikroTik::init();
 	AFC_Comment_Fields::init();
+	AFC_Comment_Formatting::init();
 	AFC_Comment_Migration::init();
 	AFC_Comment_Migration_Rules::init();
 	AFC_PPP_Users::init();
