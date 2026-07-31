@@ -38,6 +38,23 @@
 		return '';
 	}
 
+	function requestIds( options, originalOptions ) {
+		const data = originalOptions && originalOptions.data ? originalOptions.data : options.data;
+		if ( data && 'object' === typeof data ) {
+			const ids = Array.isArray( data.ids ) ? data.ids : ( data.ids ? [ data.ids ] : [] );
+			return ids.map( function ( id ) { return String( id ); } );
+		}
+		if ( 'string' === typeof data ) {
+			try {
+				const params = new URLSearchParams( data );
+				return params.getAll( 'ids[]' ).concat( params.getAll( 'ids' ) ).map( function ( id ) { return String( id ); } );
+			} catch ( error ) {
+				return [];
+			}
+		}
+		return [];
+	}
+
 	function replaceAction( options, originalOptions, action ) {
 		[ originalOptions, options ].forEach( function ( request ) {
 			if ( ! request || ! request.data ) {
@@ -90,8 +107,11 @@
 		const action = requestAction( options, originalOptions );
 
 		if ( 'afc_scheduler_apply' === action && 'sync' === requestOperation( options, originalOptions ) ) {
-			replaceAction( options, originalOptions, 'afc_scheduler_migration_apply' );
-			return;
+			const ids = requestIds( options, originalOptions );
+			if ( ids.length && ids.every( function ( id ) { return candidateIds.has( id ); } ) ) {
+				replaceAction( options, originalOptions, 'afc_scheduler_migration_apply' );
+				return;
+			}
 		}
 
 		if ( 'afc_scheduler_preview' !== action ) {
