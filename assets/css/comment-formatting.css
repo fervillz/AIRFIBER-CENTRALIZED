@@ -1,3 +1,9 @@
+.afc-comment-formatting-actions {
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
+	flex-wrap: wrap;
+}
 .afc-comment-formatting-notice {
 	display: none;
 	margin: 12px 0;
@@ -13,5 +19,10 @@
 .afc-comment-formatting-notice.is-warning { background: #fff7db; border-color: #fde68a; color: #92400e; }
 .afc-comment-formatting-notice.is-error { background: #fef2f2; border-color: #fecaca; color: #991b1b; }
 @media (max-width: 640px) {
-	.afc-fix-comment-lines { width: 100%; }
+	.afc-comment-formatting-actions {
+		display: grid;
+		grid-template-columns: 1fr 1fr;
+		width: 100%;
+	}
+	.afc-comment-formatting-actions .btn { width: 100%; }
 }
