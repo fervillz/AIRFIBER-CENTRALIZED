@@ -1,0 +1,17 @@
+.afc-comment-formatting-notice {
+	display: none;
+	margin: 12px 0;
+	padding: 12px 14px;
+	border: 1px solid transparent;
+	border-radius: 10px;
+	font-size: 13px;
+	font-weight: 600;
+}
+.afc-comment-formatting-notice.is-visible { display: block; }
+.afc-comment-formatting-notice.is-info { background: #eff6ff; border-color: #bfdbfe; color: #1e40af; }
+.afc-comment-formatting-notice.is-success { background: #ecfdf3; border-color: #bbf7d0; color: #166534; }
+.afc-comment-formatting-notice.is-warning { background: #fff7db; border-color: #fde68a; color: #92400e; }
+.afc-comment-formatting-notice.is-error { background: #fef2f2; border-color: #fecaca; color: #991b1b; }
+@media (max-width: 640px) {
+	.afc-fix-comment-lines { width: 100%; }
+}
