@@ -67,7 +67,14 @@
 		const comments = nav.querySelector( '[data-afc-app-panel="comment-fields"]' );
 		const schedulers = nav.querySelector( '[data-afc-app-panel="schedulers"]' );
 		const mikrotik = nav.querySelector( '[data-afc-app-panel="mikrotik"]' );
-		nav.insertBefore( button, comments || schedulers || mikrotik || null );
+		const target = comments || schedulers || mikrotik || null;
+		if ( target ) {
+			if ( button.nextElementSibling !== target ) {
+				nav.insertBefore( button, target );
+			}
+		} else if ( nav.lastElementChild !== button ) {
+			nav.appendChild( button );
+		}
 		return true;
 	}
 
