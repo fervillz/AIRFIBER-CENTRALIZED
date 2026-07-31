@@ -2,14 +2,14 @@
 /**
  * Plugin Name: Airfiber - Centralized
  * Description: Customer, billing, payment, installation, notification, and MikroTik management for Airfiber.
- * Version: 0.9.8
+ * Version: 0.9.9
  * Author: Airfiber
  * Text Domain: airfiber-centralized
  */
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'AFC_VERSION', '0.9.8' );
+define( 'AFC_VERSION', '0.9.9' );
 define( 'AFC_FILE', __FILE__ );
 define( 'AFC_PATH', plugin_dir_path( __FILE__ ) );
 define( 'AFC_URL', plugin_dir_url( __FILE__ ) );
@@ -24,6 +24,7 @@ require_once AFC_PATH . 'includes/class-afc-collection-print.php';
 require_once AFC_PATH . 'includes/class-afc-admin-mode.php';
 require_once AFC_PATH . 'includes/class-afc-basic-payments.php';
 require_once AFC_PATH . 'includes/class-afc-quick-payments.php';
+require_once AFC_PATH . 'includes/class-afc-frontend-page.php';
 
 function afc_boot_plugin() {
 	AFC_Post_Types::init();
@@ -31,6 +32,7 @@ function afc_boot_plugin() {
 	AFC_PPP_Users::init();
 	AFC_Comment_Aliases::init();
 	AFC_Area_Manager::init();
+	AFC_Frontend_Page::init();
 
 	if ( is_admin() ) {
 		AFC_Admin::init();
@@ -46,6 +48,7 @@ add_action( 'plugins_loaded', 'afc_boot_plugin' );
 
 function afc_activate_plugin() {
 	AFC_Post_Types::register();
+	AFC_Frontend_Page::activate();
 	flush_rewrite_rules();
 }
 register_activation_hook( __FILE__, 'afc_activate_plugin' );
