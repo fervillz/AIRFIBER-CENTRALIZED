@@ -52,21 +52,7 @@ class AFC_Quick_Payments {
 	}
 
 	private static function replace_comment_value( $comment, $key, $value ) {
-		$keys    = 'installed|grace|paymentMethod|paymentAmount|paymentDate|name|plan|cp|wifi|password|Address|addr';
-		$pattern = '/(' . preg_quote( $key, '/' ) . '\s*:\s*)(.*?)(?=\s+(?:' . $keys . ')\s*:|$)/is';
-
-		if ( preg_match( $pattern, $comment ) ) {
-			return preg_replace_callback(
-				$pattern,
-				function ( $matches ) use ( $value ) {
-					return $matches[1] . $value;
-				},
-				$comment,
-				1
-			);
-		}
-
-		return rtrim( $comment ) . ( trim( $comment ) ? "\n" : '' ) . $key . ':' . $value;
+		return AFC_Comment_Fields::replace_value( $comment, $key, $value );
 	}
 
 	private static function get_current_secret( $id ) {
