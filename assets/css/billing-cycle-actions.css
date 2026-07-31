@@ -1,0 +1,322 @@
+.afc-quick-payment-dialog .afc-quick-action {
+	position: relative;
+	overflow: visible;
+	touch-action: manipulation;
+	-webkit-user-select: none;
+	user-select: none;
+}
+
+.afc-cycle-pill {
+	position: absolute;
+	top: 7px;
+	right: 8px;
+	z-index: 2;
+	min-width: 34px;
+	padding: 3px 7px;
+	border: 1px solid rgba(255,255,255,.55);
+	border-radius: 999px;
+	background: rgba(255,255,255,.2);
+	box-shadow: 0 2px 8px rgba(15,23,42,.14);
+	color: inherit;
+	font-size: 10px;
+	font-weight: 800;
+	line-height: 1;
+	letter-spacing: .06em;
+	text-align: center;
+	pointer-events: none;
+}
+
+.afc-quick-gcash .afc-cycle-pill,
+.afc-quick-reconnect .afc-cycle-pill {
+	top: 6px;
+	right: 7px;
+}
+
+.afc-quick-action.is-holding::after {
+	content: "";
+	position: absolute;
+	inset: -3px;
+	border: 3px solid rgba(255,255,255,.7);
+	border-radius: inherit;
+	animation: afc-cycle-hold .62s linear forwards;
+	pointer-events: none;
+}
+
+@keyframes afc-cycle-hold {
+	from { clip-path: inset(0 100% 0 0 round 12px); }
+	to { clip-path: inset(0 0 0 0 round 12px); }
+}
+
+.afc-cycle-hold-hint {
+	display: block;
+	margin-top: .7rem;
+	color: #667085;
+	font-size: 11px;
+	text-align: center;
+}
+
+.afc-cycle-override-sheet[hidden] {
+	display: none !important;
+}
+
+.afc-cycle-override-sheet {
+	position: fixed;
+	inset: 0;
+	z-index: 2147483000;
+	display: flex;
+	align-items: flex-end;
+	justify-content: center;
+	padding: 1rem;
+}
+
+.afc-cycle-sheet-backdrop {
+	position: absolute;
+	inset: 0;
+	width: 100%;
+	border: 0;
+	background: rgba(15,23,42,.54);
+	backdrop-filter: blur(4px);
+}
+
+.afc-cycle-sheet-card {
+	position: relative;
+	z-index: 1;
+	width: min(520px, 100%);
+	max-height: min(88vh, 760px);
+	overflow: auto;
+	padding: 1.1rem;
+	border: 1px solid rgba(148,163,184,.28);
+	border-radius: 24px;
+	background: #fff;
+	box-shadow: 0 28px 80px rgba(15,23,42,.34);
+	animation: afc-cycle-sheet-in .18s ease-out both;
+}
+
+@keyframes afc-cycle-sheet-in {
+	from { transform: translateY(24px); opacity: .4; }
+	to { transform: translateY(0); opacity: 1; }
+}
+
+.afc-cycle-sheet-card > header {
+	display: flex;
+	align-items: flex-start;
+	justify-content: space-between;
+	gap: 1rem;
+	margin-bottom: .65rem;
+}
+
+.afc-cycle-sheet-card > header span {
+	display: block;
+	margin-bottom: .15rem;
+	color: #206bc4;
+	font-size: 11px;
+	font-weight: 800;
+	letter-spacing: .08em;
+	text-transform: uppercase;
+}
+
+.afc-cycle-sheet-card > header h4 {
+	margin: 0;
+	font-size: 1.25rem;
+}
+
+.afc-cycle-sheet-help {
+	margin: 0 0 1rem;
+	color: #667085;
+	font-size: 13px;
+	line-height: 1.45;
+}
+
+.afc-cycle-choice-grid {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0,1fr));
+	gap: .7rem;
+	margin-bottom: 1rem;
+}
+
+.afc-cycle-choice-grid label {
+	position: relative;
+	margin: 0;
+	cursor: pointer;
+}
+
+.afc-cycle-choice-grid input {
+	position: absolute;
+	opacity: 0;
+	pointer-events: none;
+}
+
+.afc-cycle-choice-grid span {
+	display: flex;
+	flex-direction: column;
+	gap: .15rem;
+	min-height: 78px;
+	padding: .95rem;
+	border: 2px solid #dbe4ef;
+	border-radius: 16px;
+	background: #f8fafc;
+	transition: border-color .15s ease, background .15s ease, transform .15s ease;
+}
+
+.afc-cycle-choice-grid strong {
+	font-size: 1.25rem;
+}
+
+.afc-cycle-choice-grid small {
+	color: #667085;
+}
+
+.afc-cycle-choice-grid input:checked + span {
+	border-color: #206bc4;
+	background: #edf6ff;
+	transform: translateY(-1px);
+	box-shadow: 0 8px 20px rgba(32,107,196,.12);
+}
+
+.afc-cycle-amount-field {
+	display: block;
+	margin-bottom: 1rem;
+}
+
+.afc-cycle-amount-field > span,
+.afc-promise-block label > span {
+	display: block;
+	margin-bottom: .35rem;
+	color: #344054;
+	font-size: 12px;
+	font-weight: 700;
+}
+
+.afc-cycle-amount-field > span small {
+	color: #98a2b3;
+	font-weight: 500;
+}
+
+.afc-cycle-amount-field > div {
+	display: grid;
+	grid-template-columns: auto minmax(0,1fr) auto;
+	align-items: center;
+	overflow: hidden;
+	border: 1px solid #d0d5dd;
+	border-radius: 14px;
+	background: #fff;
+}
+
+.afc-cycle-amount-field b {
+	padding-left: .8rem;
+	font-size: 1rem;
+}
+
+.afc-cycle-amount-field input {
+	width: 100%;
+	min-width: 0;
+	padding: .75rem .55rem;
+	border: 0;
+	outline: 0;
+	background: transparent;
+	font-size: 1rem;
+}
+
+.afc-cycle-amount-field button {
+	align-self: stretch;
+	padding: 0 .85rem;
+	border: 0;
+	border-left: 1px solid #e4e7ec;
+	background: #f2f4f7;
+	color: #344054;
+	font-weight: 700;
+}
+
+.afc-cycle-sheet-actions {
+	display: grid;
+	grid-template-columns: minmax(0,1fr) auto;
+	gap: .65rem;
+	margin-bottom: 1rem;
+}
+
+.afc-promise-block {
+	padding: .9rem;
+	border: 1px solid #f0d58a;
+	border-radius: 16px;
+	background: #fff9e8;
+}
+
+.afc-promise-block > div:first-child {
+	display: flex;
+	flex-direction: column;
+	gap: .12rem;
+	margin-bottom: .75rem;
+}
+
+.afc-promise-block > div:first-child strong {
+	color: #7a4d00;
+}
+
+.afc-promise-block > div:first-child span {
+	color: #8a6a2a;
+	font-size: 12px;
+}
+
+.afc-promise-block input[type="date"] {
+	width: 100%;
+	padding: .7rem .75rem;
+	border: 1px solid #d8c179;
+	border-radius: 12px;
+	background: #fff;
+}
+
+.afc-promise-actions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: .55rem;
+	margin-top: .7rem;
+}
+
+.afc-promise-block [data-afc-promise-message] {
+	display: none;
+	margin: .65rem 0 0;
+	font-size: 12px;
+	font-weight: 600;
+}
+
+.afc-promise-block [data-afc-promise-message].is-visible {
+	display: block;
+}
+
+.afc-promise-block [data-afc-promise-message].is-error {
+	color: #b42318;
+}
+
+.afc-promise-block [data-afc-promise-message].is-success {
+	color: #067647;
+}
+
+.afc-promise-block [data-afc-promise-message].is-info {
+	color: #475467;
+}
+
+@media (max-width: 640px) {
+	.afc-cycle-override-sheet {
+		padding: 0;
+	}
+
+	.afc-cycle-sheet-card {
+		width: 100%;
+		max-height: calc(100dvh - 1rem);
+		padding: 1rem max(1rem, env(safe-area-inset-right)) calc(1rem + env(safe-area-inset-bottom)) max(1rem, env(safe-area-inset-left));
+		border-radius: 24px 24px 0 0;
+	}
+
+	.afc-cycle-sheet-actions {
+		grid-template-columns: 1fr;
+	}
+
+	.afc-cycle-sheet-actions .btn {
+		min-height: 44px;
+	}
+
+	.afc-cycle-pill {
+		top: 6px;
+		right: 6px;
+	}
+}
