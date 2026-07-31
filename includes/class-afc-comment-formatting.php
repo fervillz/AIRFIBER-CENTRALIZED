@@ -3,12 +3,12 @@
 defined( 'ABSPATH' ) || exit;
 
 /**
- * Bulk repair tool for legacy PPP comments whose fields were joined together.
+ * Bulk repair tool for legacy PPP comments with joined fields or LF-only lines.
  */
 class AFC_Comment_Formatting {
 
-	const NONCE = 'afc_comment_formatting';
-	const MAX_BATCH = 25;
+	const NONCE         = 'afc_comment_formatting';
+	const MAX_BATCH     = 25;
 	const BACKUP_OPTION = 'afc_comment_formatting_backups';
 
 	public static function init() {
@@ -50,8 +50,8 @@ class AFC_Comment_Formatting {
 			'afc-comment-formatting',
 			'afcCommentFormatting',
 			array(
-				'ajaxUrl' => admin_url( 'admin-ajax.php' ),
-				'nonce' => wp_create_nonce( self::NONCE ),
+				'ajaxUrl'   => admin_url( 'admin-ajax.php' ),
+				'nonce'     => wp_create_nonce( self::NONCE ),
 				'batchSize' => 20,
 			)
 		);
@@ -64,8 +64,9 @@ class AFC_Comment_Formatting {
 		check_ajax_referer( self::NONCE, 'nonce' );
 	}
 
+	/** Preserve line-ending differences so LF-only comments are detected. */
 	private static function source_form( $comment ) {
-		return trim( str_replace( array( "\r\n", "\r" ), "\n", (string) $comment ) );
+		return trim( (string) $comment );
 	}
 
 	private static function fetch_secrets() {
@@ -87,12 +88,12 @@ class AFC_Comment_Formatting {
 	private static function customer_id( $username ) {
 		$ids = get_posts(
 			array(
-				'post_type' => 'afc_customer',
-				'post_status' => 'any',
+				'post_type'      => 'afc_customer',
+				'post_status'    => 'any',
 				'posts_per_page' => 1,
-				'fields' => 'ids',
-				'meta_key' => '_afc_ppp_username',
-				'meta_value' => $username,
+				'fields'         => 'ids',
+				'meta_key'       => '_afc_ppp_username',
+				'meta_value'     => $username,
 			)
 		);
 		return $ids ? (int) $ids[0] : 0;
@@ -110,6 +111,23 @@ class AFC_Comment_Formatting {
 		update_option( self::BACKUP_OPTION, $backups, false );
 	}
 
+	private static function classify_comment( $comment, $formatted ) {
+		$raw_without_crlf = str_replace( "\r\n", '', (string) $comment );
+		$has_lf_only     = false !== strpos( $raw_without_crlf, "\n" );
+		$has_cr_only     = false !== strpos( $raw_without_crlf, "\r" );
+		$lf_comment      = str_replace( array( "\r\n", "\r" ), "\n", (string) $comment );
+		$keys            = AFC_Comment_Fields::get_keys_pattern();
+		$is_joined       = $keys && preg_match( '/[^\n](?=(?:' . $keys . ')\s*:)/i', $lf_comment );
+
+		if ( $is_joined ) {
+			return 'joined';
+		}
+		if ( $has_lf_only || $has_cr_only ) {
+			return 'line_endings';
+		}
+		return self::source_form( $comment ) === $formatted ? 'formatted' : 'line_endings';
+	}
+
 	public static function ajax_preview() {
 		self::authorize();
 		$secrets = self::fetch_secrets();
@@ -117,21 +135,35 @@ class AFC_Comment_Formatting {
 			wp_send_json_error( array( 'message' => $secrets->get_error_message() ) );
 		}
 
-		$rows = array();
+		$rows   = array();
+		$counts = array( 'joined' => 0, 'line_endings' => 0 );
 		foreach ( $secrets as $secret ) {
-			$id = isset( $secret['.id'] ) ? (string) $secret['.id'] : '';
-			$name = isset( $secret['name'] ) ? (string) $secret['name'] : '';
+			$id      = isset( $secret['.id'] ) ? (string) $secret['.id'] : '';
+			$name    = isset( $secret['name'] ) ? (string) $secret['name'] : '';
 			$comment = isset( $secret['comment'] ) ? (string) $secret['comment'] : '';
 			if ( ! $id || ! $name || '' === trim( $comment ) ) {
 				continue;
 			}
+
 			$formatted = AFC_Comment_Fields::normalize_comment( $comment );
-			if ( self::source_form( $comment ) !== $formatted ) {
-				$rows[] = array( 'id' => $id, 'name' => $name );
+			if ( self::source_form( $comment ) === $formatted ) {
+				continue;
 			}
+
+			$reason = self::classify_comment( $comment, $formatted );
+			if ( isset( $counts[ $reason ] ) ) {
+				$counts[ $reason ]++;
+			}
+			$rows[] = array( 'id' => $id, 'name' => $name, 'reason' => $reason );
 		}
 
-		wp_send_json_success( array( 'count' => count( $rows ), 'rows' => $rows ) );
+		wp_send_json_success(
+			array(
+				'count'  => count( $rows ),
+				'rows'   => $rows,
+				'counts' => $counts,
+			)
+		);
 	}
 
 	public static function ajax_apply() {
@@ -160,7 +192,7 @@ class AFC_Comment_Formatting {
 
 		$updated = 0;
 		$skipped = 0;
-		$failed = array();
+		$failed  = array();
 		$backups = array();
 
 		foreach ( $ids as $id ) {
@@ -168,10 +200,10 @@ class AFC_Comment_Formatting {
 				$failed[] = $id;
 				continue;
 			}
-			$secret = $by_id[ $id ];
-			$name = isset( $secret['name'] ) ? (string) $secret['name'] : '';
+			$secret  = $by_id[ $id ];
+			$name    = isset( $secret['name'] ) ? (string) $secret['name'] : '';
 			$comment = isset( $secret['comment'] ) ? (string) $secret['comment'] : '';
-			$new = AFC_Comment_Fields::normalize_comment( $comment );
+			$new     = AFC_Comment_Fields::normalize_comment( $comment );
 
 			if ( self::source_form( $comment ) === $new ) {
 				$skipped++;
@@ -191,10 +223,10 @@ class AFC_Comment_Formatting {
 			}
 
 			$backups[] = array(
-				'time' => current_time( 'mysql' ),
-				'operator' => get_current_user_id(),
-				'ppp_id' => $id,
-				'ppp_name' => $name,
+				'time'        => current_time( 'mysql' ),
+				'operator'    => get_current_user_id(),
+				'ppp_id'      => $id,
+				'ppp_name'    => $name,
 				'old_comment' => $comment,
 				'new_comment' => $new,
 			);
@@ -210,7 +242,7 @@ class AFC_Comment_Formatting {
 			array(
 				'updated' => $updated,
 				'skipped' => $skipped,
-				'failed' => $failed,
+				'failed'  => $failed,
 			)
 		);
 	}
