@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 192 192" role="img" aria-label="Airfiber">
+  <rect width="192" height="192" rx="38" fill="#206bc4"/>
+  <circle cx="96" cy="96" r="66" fill="#0f4082"/>
+  <path fill="#ffffff" d="M96 42 53 146h22l10-25h22l10 25h22L96 42Zm0 46 8 21H88l8-21Z"/>
+  <path d="M59 106a52 52 0 0 1 74 0M72 120a34 34 0 0 1 48 0" fill="none" stroke="#68c8f5" stroke-width="8" stroke-linecap="round"/>
+  <circle cx="96" cy="138" r="5" fill="#68c8f5"/>
+</svg>
