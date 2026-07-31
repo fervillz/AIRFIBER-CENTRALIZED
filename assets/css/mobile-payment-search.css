@@ -1,0 +1,151 @@
+/* Mobile-only customer search: results stay above a thumb-friendly bottom dock. */
+@media ( max-width: 640px ) {
+	body.afc-admin-mode-basic {
+		--afc-mobile-keyboard-lift: 0px;
+		--afc-mobile-search-dock-height: 88px;
+		--afc-mobile-results-top: 78px;
+	}
+
+	body.afc-admin-mode-basic .afc-admin-page .container-fluid {
+		padding-bottom: calc( var( --afc-mobile-search-dock-height ) + env( safe-area-inset-bottom, 0px ) + 1.5rem ) !important;
+	}
+
+	body.afc-admin-mode-basic .afc-admin-page .afc-basic-payment-app {
+		min-height: calc( 100svh - 7rem );
+		padding-bottom: calc( var( --afc-mobile-search-dock-height ) + env( safe-area-inset-bottom, 0px ) + 1.5rem );
+	}
+
+	body.afc-admin-mode-basic .afc-admin-page .afc-basic-payment-search-wrap {
+		position: fixed !important;
+		z-index: 1600;
+		top: auto !important;
+		right: max( 0.65rem, env( safe-area-inset-right, 0px ) );
+		bottom: calc( var( --afc-mobile-keyboard-lift ) + max( 0.55rem, env( safe-area-inset-bottom, 0px ) ) );
+		left: max( 0.65rem, env( safe-area-inset-left, 0px ) );
+		margin: 0;
+		padding: 0.5rem;
+		border: 1px solid rgba( 98, 105, 118, 0.2 );
+		border-radius: 18px;
+		background: rgba( 255, 255, 255, 0.97 ) !important;
+		box-shadow: 0 16px 42px rgba( 15, 23, 42, 0.22 );
+		backdrop-filter: blur( 16px );
+		transition: bottom 0.12s ease;
+	}
+
+	body.afc-admin-mode-basic .afc-admin-page .afc-basic-payment-search-box {
+		min-height: 56px;
+		border-width: 1px;
+		border-radius: 14px;
+		box-shadow: none;
+	}
+
+	body.afc-admin-mode-basic .afc-admin-page .afc-basic-payment-search-box:focus-within {
+		box-shadow: 0 7px 20px rgba( 32, 107, 196, 0.15 );
+		transform: none;
+	}
+
+	body.afc-admin-mode-basic .afc-admin-page #afc-basic-payment-search {
+		font-size: 16px;
+	}
+
+	body.afc-admin-mode-basic .afc-admin-page .afc-basic-payment-search-help {
+		min-height: 0;
+		max-height: 22px;
+		padding: 0.28rem 0.35rem 0;
+		overflow: hidden;
+		font-size: 0.68rem;
+		line-height: 1.25;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+
+	body.afc-admin-mode-basic .afc-admin-page .afc-basic-payment-results {
+		scrollbar-width: thin;
+	}
+
+	body.afc-admin-mode-basic .afc-admin-page .afc-basic-payment-app.afc-mobile-search-open .afc-basic-payment-results {
+		position: fixed;
+		z-index: 1590;
+		top: var( --afc-mobile-results-top );
+		right: max( 0.65rem, env( safe-area-inset-right, 0px ) );
+		bottom: calc(
+			var( --afc-mobile-keyboard-lift ) +
+			var( --afc-mobile-search-dock-height ) +
+			max( 0.75rem, env( safe-area-inset-bottom, 0px ) )
+		);
+		left: max( 0.65rem, env( safe-area-inset-left, 0px ) );
+		display: grid;
+		align-content: start;
+		gap: 0.5rem;
+		padding: 0.55rem;
+		overflow-x: hidden;
+		overflow-y: auto;
+		overscroll-behavior: contain;
+		border: 1px solid rgba( 98, 105, 118, 0.19 );
+		border-radius: 18px;
+		background: rgba( 247, 249, 252, 0.98 );
+		box-shadow: 0 18px 48px rgba( 15, 23, 42, 0.2 );
+		backdrop-filter: blur( 16px );
+		-webkit-overflow-scrolling: touch;
+	}
+
+	body.afc-admin-mode-basic .afc-admin-page .afc-basic-payment-app.afc-mobile-search-open .afc-basic-payment-empty {
+		padding: 1.4rem 0.8rem;
+		background: #fff;
+	}
+
+	body.afc-admin-mode-basic .afc-admin-page .afc-basic-payment-app.afc-mobile-search-open .afc-basic-customer-result {
+		min-height: 68px;
+		padding-top: 0.7rem;
+		padding-bottom: 0.7rem;
+		background: #fff;
+		box-shadow: 0 3px 12px rgba( 24, 36, 51, 0.055 );
+	}
+
+	body.afc-admin-mode-basic .afc-admin-page .afc-basic-payment-app.afc-mobile-search-open .afc-basic-payment-heading,
+	body.afc-admin-mode-basic .afc-admin-page .afc-basic-payment-app.afc-mobile-search-open .afc-basic-payment-message,
+	body.afc-admin-mode-basic .afc-admin-page .afc-basic-payment-app.afc-mobile-search-open .afc-basic-payment-selected {
+		pointer-events: none;
+	}
+
+	body.afc-admin-mode-basic.afc-mobile-keyboard-visible .afc-frontend-header {
+		transform: translateY( -110% );
+		transition: transform 0.16s ease;
+	}
+
+	body.afc-admin-mode-basic.afc-mobile-keyboard-visible .afc-admin-page .afc-basic-payment-app.afc-mobile-search-open .afc-basic-payment-results {
+		top: max( 0.55rem, env( safe-area-inset-top, 0px ) );
+	}
+
+	body.afc-admin-mode-basic .afc-frontend-header {
+		transition: transform 0.16s ease;
+	}
+}
+
+@media ( max-width: 380px ) {
+	body.afc-admin-mode-basic .afc-admin-page .afc-basic-payment-search-icon {
+		flex-basis: 44px;
+	}
+
+	body.afc-admin-mode-basic .afc-admin-page .afc-basic-payment-search-icon::before {
+		left: 15px;
+	}
+
+	body.afc-admin-mode-basic .afc-admin-page .afc-basic-payment-search-icon::after {
+		left: 29px;
+	}
+
+	body.afc-admin-mode-basic .afc-admin-page #afc-basic-payment-clear {
+		margin-right: 0.25rem;
+		margin-left: 0.25rem;
+		padding-right: 0.55rem;
+		padding-left: 0.55rem;
+	}
+}
+
+@media ( prefers-reduced-motion: reduce ) {
+	body.afc-admin-mode-basic .afc-admin-page .afc-basic-payment-search-wrap,
+	body.afc-admin-mode-basic .afc-frontend-header {
+		transition: none;
+	}
+}
