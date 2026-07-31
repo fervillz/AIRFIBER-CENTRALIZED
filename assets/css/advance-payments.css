@@ -1,0 +1,173 @@
+.afc-cycle-choice-grid {
+	grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.afc-advance-payment-block {
+	margin: 16px 0;
+	padding: 15px;
+	border: 1px solid #cfe0f5;
+	border-radius: 16px;
+	background: #f7fbff;
+}
+
+.afc-advance-payment-block > header {
+	display: flex;
+	align-items: flex-start;
+	justify-content: space-between;
+	gap: 16px;
+	margin-bottom: 12px;
+}
+
+.afc-advance-payment-block > header div {
+	display: grid;
+	gap: 2px;
+}
+
+.afc-advance-payment-block > header strong {
+	font-size: 15px;
+	color: #16243a;
+}
+
+.afc-advance-payment-block > header span,
+.afc-advance-payment-block > header small {
+	font-size: 11px;
+	line-height: 1.35;
+	color: #65758b;
+}
+
+.afc-advance-payment-block > header small {
+	max-width: 150px;
+	text-align: right;
+}
+
+.afc-advance-presets {
+	display: grid;
+	grid-template-columns: repeat(3, minmax(0, 1fr));
+	gap: 8px;
+}
+
+.afc-advance-presets button {
+	min-height: 58px;
+	padding: 8px;
+	border: 1px solid #c7d8ee;
+	border-radius: 12px;
+	background: #fff;
+	color: #1f3350;
+	cursor: pointer;
+	display: grid;
+	place-items: center;
+	gap: 1px;
+}
+
+.afc-advance-presets button:hover,
+.afc-advance-presets button.is-active {
+	border-color: #1f7bd8;
+	box-shadow: 0 0 0 2px rgba(31, 123, 216, .12);
+	background: #eef7ff;
+}
+
+.afc-advance-presets button strong {
+	font-size: 13px;
+}
+
+.afc-advance-presets button small {
+	font-size: 10px;
+	color: #728198;
+}
+
+.afc-advance-custom {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 12px;
+	margin-top: 10px;
+	font-size: 12px;
+	font-weight: 700;
+	color: #34455f;
+}
+
+.afc-advance-custom input {
+	width: 110px;
+	min-height: 38px;
+	border: 1px solid #c7d3e2;
+	border-radius: 10px;
+	padding: 6px 10px;
+}
+
+.afc-advance-preview {
+	display: grid;
+	grid-template-columns: repeat(3, minmax(0, 1fr));
+	gap: 7px;
+	margin-top: 12px;
+}
+
+.afc-advance-preview > div {
+	padding: 9px;
+	border-radius: 10px;
+	background: #fff;
+	border: 1px solid #dae5f1;
+	display: grid;
+	gap: 2px;
+}
+
+.afc-advance-preview span {
+	font-size: 9px;
+	text-transform: uppercase;
+	letter-spacing: .06em;
+	color: #728198;
+}
+
+.afc-advance-preview strong {
+	font-size: 11px;
+	color: #20334f;
+}
+
+.afc-advance-preview p {
+	grid-column: 1 / -1;
+	margin: 0;
+	font-size: 11px;
+	color: #8b4a15;
+}
+
+.afc-advance-total {
+	display: block;
+	margin-top: 9px;
+	font-size: 13px;
+	color: #116a3d;
+}
+
+.afc-advance-warning {
+	margin: 9px 0 0;
+	padding: 8px 10px;
+	border-radius: 10px;
+	background: #fff4d9;
+	color: #81550b;
+	font-size: 11px;
+	line-height: 1.4;
+}
+
+.afc-advance-payment-block.is-disabled {
+	opacity: .58;
+}
+
+@media (max-width: 520px) {
+	.afc-cycle-choice-grid,
+	.afc-advance-presets,
+	.afc-advance-preview {
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+	}
+
+	.afc-advance-payment-block > header {
+		flex-direction: column;
+		gap: 5px;
+	}
+
+	.afc-advance-payment-block > header small {
+		max-width: none;
+		text-align: left;
+	}
+
+	.afc-advance-preview > div:last-child {
+		grid-column: 1 / -1;
+	}
+}
