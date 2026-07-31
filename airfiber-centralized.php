@@ -2,14 +2,14 @@
 /**
  * Plugin Name: Airfiber - Centralized
  * Description: Customer, billing, payment, installation, notification, and MikroTik management for Airfiber.
- * Version: 1.4.0
+ * Version: 1.4.1
  * Author: Airfiber
  * Text Domain: airfiber-centralized
  */
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'AFC_VERSION', '1.4.0' );
+define( 'AFC_VERSION', '1.4.1' );
 define( 'AFC_FILE', __FILE__ );
 define( 'AFC_PATH', plugin_dir_path( __FILE__ ) );
 define( 'AFC_URL', plugin_dir_url( __FILE__ ) );
@@ -51,10 +51,9 @@ function afc_boot_plugin() {
 		AFC_Quick_Payments::init();
 	}
 
-	// Initialize after the original quick-payment class so the enhanced endpoint
-	// can replace it during admin/AJAX requests while remaining available on the
-	// standalone frontend application.
-	AFC_Billing_Cycles::init();
+	// Billing cycle setup contains translated labels and must run on init or
+	// later. It still runs before AJAX actions and asset enqueue hooks fire.
+	add_action( 'init', array( 'AFC_Billing_Cycles', 'init' ), 1 );
 
 	do_action( 'afc_loaded' );
 }
