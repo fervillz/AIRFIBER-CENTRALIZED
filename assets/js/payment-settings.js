@@ -139,6 +139,11 @@
 			return;
 		}
 		addNavigation();
+		const warningInput = root.querySelector( '[name="warning_months"]' );
+		const warningLabel = warningInput && warningInput.closest( 'label' ) ? warningInput.closest( 'label' ).querySelector( ':scope > span' ) : null;
+		if ( warningLabel ) {
+			warningLabel.textContent = 'Show warning from';
+		}
 		const form = root.querySelector( '[data-afc-payment-settings-form]' );
 		if ( form ) {
 			form.addEventListener( 'submit', function ( event ) {
