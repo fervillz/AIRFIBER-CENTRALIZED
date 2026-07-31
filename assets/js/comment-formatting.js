@@ -6,7 +6,6 @@
 	}
 
 	let rows = [];
-	let readyToApply = false;
 	let busy = false;
 
 	function request( action, data ) {
@@ -24,16 +23,29 @@
 
 	function setup() {
 		const host = document.querySelector( '.afc-comment-migration-head-actions' ) || document.querySelector( '.afc-comment-fields-header' );
-		if ( ! host || document.getElementById( 'afc-fix-comment-lines' ) ) {
+		if ( ! host || document.getElementById( 'afc-recheck-comment-lines' ) ) {
 			return false;
 		}
 
-		const button = document.createElement( 'button' );
-		button.type = 'button';
-		button.id = 'afc-fix-comment-lines';
-		button.className = 'btn btn-outline-primary afc-fix-comment-lines';
-		button.textContent = 'Fix Comment Lines';
-		host.appendChild( button );
+		const actions = document.createElement( 'div' );
+		actions.className = 'afc-comment-formatting-actions';
+
+		const recheck = document.createElement( 'button' );
+		recheck.type = 'button';
+		recheck.id = 'afc-recheck-comment-lines';
+		recheck.className = 'btn btn-outline-primary';
+		recheck.textContent = 'Recheck Comments';
+
+		const fix = document.createElement( 'button' );
+		fix.type = 'button';
+		fix.id = 'afc-fix-comment-lines';
+		fix.className = 'btn btn-warning afc-fix-comment-lines';
+		fix.textContent = 'Fix Comment Lines';
+		fix.disabled = true;
+
+		actions.appendChild( recheck );
+		actions.appendChild( fix );
+		host.appendChild( actions );
 
 		const notice = document.createElement( 'div' );
 		notice.id = 'afc-comment-formatting-notice';
@@ -45,16 +57,17 @@
 			host.insertAdjacentElement( 'afterend', notice );
 		}
 
-		button.addEventListener( 'click', function () {
-			if ( busy ) {
-				return;
-			}
-			if ( readyToApply ) {
-				applyFormatting( button, notice );
-			} else {
-				previewFormatting( button, notice );
+		recheck.addEventListener( 'click', function () {
+			if ( ! busy ) {
+				previewFormatting( recheck, fix, notice );
 			}
 		} );
+		fix.addEventListener( 'click', function () {
+			if ( ! busy && rows.length ) {
+				applyFormatting( recheck, fix, notice );
+			}
+		} );
+
 		return true;
 	}
 
@@ -63,46 +76,61 @@
 		notice.textContent = message || '';
 	}
 
-	function previewFormatting( button, notice ) {
-		busy = true;
-		button.disabled = true;
-		button.textContent = 'Checking comments…';
+	function setBusy( recheck, fix, state ) {
+		busy = state;
+		recheck.disabled = state;
+		fix.disabled = state || ! rows.length;
+	}
+
+	function resetFixButton( fix ) {
+		fix.textContent = rows.length ? 'Fix ' + rows.length + ' Comments' : 'Fix Comment Lines';
+		fix.disabled = busy || ! rows.length;
+	}
+
+	function previewFormatting( recheck, fix, notice, afterApply ) {
+		setBusy( recheck, fix, true );
+		recheck.textContent = 'Checking comments…';
 		showNotice( notice, '', '' );
 
-		request( 'afc_preview_comment_formatting' )
+		return request( 'afc_preview_comment_formatting' )
 			.done( function ( response ) {
 				if ( ! response || ! response.success ) {
 					showNotice( notice, response && response.data && response.data.message ? response.data.message : 'Comments could not be checked.', 'error' );
 					return;
 				}
+
 				rows = response.data.rows || [];
+				const counts = response.data.counts || {};
+				const joined = Number( counts.joined || 0 );
+				const endings = Number( counts.line_endings || 0 );
+
 				if ( ! rows.length ) {
-					readyToApply = false;
-					button.textContent = 'Fix Comment Lines';
-					showNotice( notice, 'All PPP comments already use one field per line.', 'success' );
+					showNotice( notice, afterApply ? 'Recheck complete. All PPP comments now use CRLF and one field per line.' : 'All PPP comments use CRLF and one field per line.', 'success' );
 					return;
 				}
-				readyToApply = true;
-				button.textContent = 'Apply Line Breaks to ' + rows.length + ' Users';
-				button.classList.remove( 'btn-outline-primary' );
-				button.classList.add( 'btn-warning' );
-				showNotice( notice, rows.length + ' PPP comments are compact. Click the button again to format them. Values will not change.', 'warning' );
+
+				const details = [];
+				if ( joined ) {
+					details.push( joined + ' with joined fields' );
+				}
+				if ( endings ) {
+					details.push( endings + ' with LF/incorrect line endings' );
+				}
+				showNotice( notice, rows.length + ' comments need repair' + ( details.length ? ': ' + details.join( ', ' ) : '' ) + '. Click Fix Comments.', 'warning' );
 			} )
 			.fail( function ( xhr ) {
+				rows = [];
 				showNotice( notice, xhr.responseJSON && xhr.responseJSON.data && xhr.responseJSON.data.message ? xhr.responseJSON.data.message : 'Comments could not be checked.', 'error' );
 			} )
 			.always( function () {
-				busy = false;
-				button.disabled = false;
-				if ( ! readyToApply && 'Checking comments…' === button.textContent ) {
-					button.textContent = 'Fix Comment Lines';
-				}
+				recheck.textContent = 'Recheck Comments';
+				setBusy( recheck, fix, false );
+				resetFixButton( fix );
 			} );
 	}
 
-	async function applyFormatting( button, notice ) {
-		busy = true;
-		button.disabled = true;
+	async function applyFormatting( recheck, fix, notice ) {
+		setBusy( recheck, fix, true );
 		const ids = rows.map( function ( row ) { return row.id; } );
 		const batchSize = Number( afcCommentFormatting.batchSize || 20 );
 		let updated = 0;
@@ -111,7 +139,7 @@
 
 		for ( let offset = 0; offset < ids.length; offset += batchSize ) {
 			const batch = ids.slice( offset, offset + batchSize );
-			button.textContent = 'Formatting ' + Math.min( offset + batch.length, ids.length ) + ' / ' + ids.length;
+			fix.textContent = 'Formatting ' + Math.min( offset + batch.length, ids.length ) + ' / ' + ids.length;
 			try {
 				const response = await request( 'afc_apply_comment_formatting', { ids: batch } );
 				if ( ! response || ! response.success ) {
@@ -126,17 +154,17 @@
 		}
 
 		rows = [];
-		readyToApply = false;
-		busy = false;
-		button.disabled = false;
-		button.classList.remove( 'btn-warning' );
-		button.classList.add( 'btn-outline-primary' );
-		button.textContent = 'Fix Comment Lines';
-		showNotice( notice, 'Formatted ' + updated + ' comments. Skipped ' + skipped + '. Failed ' + failed + '.', failed ? 'warning' : 'success' );
+		setBusy( recheck, fix, false );
+		resetFixButton( fix );
+		showNotice( notice, 'Formatted ' + updated + ' comments. Skipped ' + skipped + '. Failed ' + failed + '. Rechecking MikroTik…', failed ? 'warning' : 'info' );
+
+		window.setTimeout( function () {
+			previewFormatting( recheck, fix, notice, true );
+		}, 350 );
 
 		const migrationPreview = document.querySelector( '[data-afc-migration-preview]' );
 		if ( migrationPreview ) {
-			window.setTimeout( function () { migrationPreview.click(); }, 400 );
+			window.setTimeout( function () { migrationPreview.click(); }, 500 );
 		}
 	}
 
