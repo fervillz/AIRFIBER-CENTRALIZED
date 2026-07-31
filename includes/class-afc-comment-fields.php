@@ -3,9 +3,7 @@
 defined( 'ABSPATH' ) || exit;
 
 /**
- * Defines the schema used to read and safely update structured MikroTik PPP
- * comments. Core fields remain protected; administrators may add custom fields
- * for billing and future automation without rewriting existing PPP secrets.
+ * Defines, parses, formats, and safely updates structured MikroTik PPP comments.
  */
 class AFC_Comment_Fields {
 
@@ -94,9 +92,7 @@ class AFC_Comment_Fields {
 			$label = $label ? substr( $label, 0, 60 ) : $key;
 			$type  = isset( $field['type'] ) ? sanitize_key( $field['type'] ) : 'text';
 			$type  = isset( $allowed[ $type ] ) ? $type : 'text';
-
-			$default = isset( $field['default'] ) ? sanitize_text_field( $field['default'] ) : '';
-			$default = substr( $default, 0, 120 );
+			$default = isset( $field['default'] ) ? substr( sanitize_text_field( $field['default'] ), 0, 120 ) : '';
 
 			$clean[] = array(
 				'key'     => $key,
@@ -120,19 +116,16 @@ class AFC_Comment_Fields {
 	}
 
 	public static function get_comment_keys() {
-		$keys = array();
+		$keys = array( 'addr' );
 		foreach ( self::get_fields() as $field ) {
 			$keys[] = $field['key'];
 		}
-		$keys[] = 'addr';
-
 		usort(
 			$keys,
 			function ( $first, $second ) {
 				return strlen( $second ) - strlen( $first );
 			}
 		);
-
 		return array_values( array_unique( $keys ) );
 	}
 
@@ -149,8 +142,44 @@ class AFC_Comment_Fields {
 	}
 
 	/**
-	 * Parse the current core values and expose custom values under custom_fields.
-	 * Password remains deliberately excluded from returned account data.
+	 * Put every recognized key:value field on its own real line.
+	 * Also repairs older compact comments such as Address:...billingDay:21.
+	 */
+	public static function normalize_comment( $comment ) {
+		$comment = str_replace( array( "\r\n", "\r" ), "\n", (string) $comment );
+		$keys    = self::get_keys_pattern();
+
+		if ( '' === trim( $comment ) || '' === $keys ) {
+			return trim( $comment );
+		}
+
+		$comment = preg_replace_callback(
+			'/(^|[^\n])(?=(?:' . $keys . ')\s*:)/im',
+			function ( $matches ) {
+				if ( '' === $matches[0] ) {
+					return '';
+				}
+				return rtrim( $matches[0] ) . "\n";
+			},
+			$comment
+		);
+
+		$lines = preg_split( '/\n+/', (string) $comment );
+		$lines = array_values(
+			array_filter(
+				array_map( 'trim', $lines ),
+				function ( $line ) {
+					return '' !== $line;
+				}
+			)
+		);
+
+		return implode( "\n", $lines );
+	}
+
+	/**
+	 * Parse current core values and expose configured custom values.
+	 * Password is deliberately excluded from returned account data.
 	 */
 	public static function parse_comment( $comment ) {
 		$values = array(
@@ -189,10 +218,9 @@ class AFC_Comment_Fields {
 			}
 		}
 
-		$keys = self::get_keys_pattern();
 		preg_match_all(
-			'/(?:^|\s)(' . $keys . ')\s*:\s*(.*?)(?=\s+(?:' . $keys . ')\s*:|$)/is',
-			trim( (string) $comment ),
+			'/^(' . self::get_keys_pattern() . ')\s*:\s*(.*)$/mi',
+			self::normalize_comment( $comment ),
 			$matches,
 			PREG_SET_ORDER
 		);
@@ -200,7 +228,7 @@ class AFC_Comment_Fields {
 		foreach ( $matches as $match ) {
 			$raw_key   = $match[1];
 			$lower_key = strtolower( $raw_key );
-			$value     = trim( preg_replace( '/\s+/', ' ', $match[2] ) );
+			$value     = trim( $match[2] );
 
 			if ( 'N/A' === strtoupper( $value ) ) {
 				$value = '';
@@ -221,28 +249,32 @@ class AFC_Comment_Fields {
 	}
 
 	/**
-	 * Replace one value while recognizing every configured field as a boundary.
-	 * This prevents payment or address updates from swallowing adjacent custom
-	 * fields in the MikroTik comment.
+	 * Replace or append one value and always return a readable multiline comment.
 	 */
 	public static function replace_value( $comment, $key, $value ) {
-		$key         = self::sanitize_field_key( $key );
-		$keys        = self::get_keys_pattern();
-		$key_pattern = 0 === strcasecmp( $key, 'Address' ) ? '(?:Address|addr)' : preg_quote( $key, '/' );
-		$pattern     = '/(' . $key_pattern . '\s*:\s*)(.*?)(?=\s+(?:' . $keys . ')\s*:|$)/is';
-
-		if ( $key && preg_match( $pattern, (string) $comment ) ) {
-			return preg_replace_callback(
-				$pattern,
-				function ( $matches ) use ( $value ) {
-					return $matches[1] . $value;
-				},
-				(string) $comment,
-				1
-			);
+		$key = self::sanitize_field_key( $key );
+		if ( ! $key ) {
+			return self::normalize_comment( $comment );
 		}
 
-		return rtrim( (string) $comment ) . ( trim( (string) $comment ) ? "\n" : '' ) . $key . ':' . $value;
+		$comment     = self::normalize_comment( $comment );
+		$key_pattern = 0 === strcasecmp( $key, 'Address' ) ? '(?:Address|addr)' : preg_quote( $key, '/' );
+		$pattern     = '/^(' . $key_pattern . ')\s*:\s*.*$/mi';
+
+		if ( preg_match( $pattern, $comment ) ) {
+			$comment = preg_replace_callback(
+				$pattern,
+				function ( $matches ) use ( $value ) {
+					return $matches[1] . ':' . $value;
+				},
+				$comment,
+				1
+			);
+		} else {
+			$comment .= ( '' !== trim( $comment ) ? "\n" : '' ) . $key . ':' . $value;
+		}
+
+		return self::normalize_comment( $comment );
 	}
 
 	public static function enqueue_frontend_assets() {
@@ -250,21 +282,8 @@ class AFC_Comment_Fields {
 			return;
 		}
 
-		wp_enqueue_style(
-			'afc-comment-fields',
-			AFC_URL . 'assets/css/comment-fields.css',
-			array( 'afc-frontend-app' ),
-			AFC_VERSION
-		);
-
-		wp_enqueue_script(
-			'afc-comment-fields',
-			AFC_URL . 'assets/js/comment-fields.js',
-			array( 'afc-frontend-app', 'afc-admin-mode' ),
-			AFC_VERSION,
-			true
-		);
-
+		wp_enqueue_style( 'afc-comment-fields', AFC_URL . 'assets/css/comment-fields.css', array( 'afc-frontend-app' ), AFC_VERSION );
+		wp_enqueue_script( 'afc-comment-fields', AFC_URL . 'assets/js/comment-fields.js', array( 'afc-frontend-app', 'afc-admin-mode' ), AFC_VERSION, true );
 		wp_localize_script(
 			'afc-comment-fields',
 			'afcCommentFields',
@@ -310,10 +329,7 @@ class AFC_Comment_Fields {
 				<div class="afc-comment-fields-layout">
 					<div class="afc-comment-fields-card">
 						<div class="afc-comment-fields-card-head">
-							<div>
-								<h2><?php esc_html_e( 'Field schema', 'airfiber-centralized' ); ?></h2>
-								<p><?php esc_html_e( 'Core fields are locked. Custom fields can be reordered or removed.', 'airfiber-centralized' ); ?></p>
-							</div>
+							<div><h2><?php esc_html_e( 'Field schema', 'airfiber-centralized' ); ?></h2><p><?php esc_html_e( 'Core fields are locked. Custom fields can be reordered or removed.', 'airfiber-centralized' ); ?></p></div>
 							<button class="btn btn-outline-primary" id="afc-comment-fields-add" type="button">+ <?php esc_html_e( 'Add Field', 'airfiber-centralized' ); ?></button>
 						</div>
 						<div class="afc-comment-fields-list" id="afc-comment-fields-list"></div>
@@ -325,7 +341,6 @@ class AFC_Comment_Fields {
 							<p><?php esc_html_e( 'Add these individually now; their calculation rules can be connected later.', 'airfiber-centralized' ); ?></p>
 							<div class="afc-comment-fields-suggestions" id="afc-comment-fields-suggestions"></div>
 						</div>
-
 						<div class="afc-comment-fields-card">
 							<h2><?php esc_html_e( 'Comment preview', 'airfiber-centralized' ); ?></h2>
 							<p><?php esc_html_e( 'This shows the recognized structure only. It is not written to MikroTik when the schema is saved.', 'airfiber-centralized' ); ?></p>
@@ -351,12 +366,6 @@ class AFC_Comment_Fields {
 
 		$fields = self::sanitize_fields( $raw );
 		update_option( self::OPTION_KEY, $fields, false );
-
-		wp_send_json_success(
-			array(
-				'message' => __( 'Comment fields saved.', 'airfiber-centralized' ),
-				'fields'  => self::get_fields(),
-			)
-		);
+		wp_send_json_success( array( 'message' => __( 'Comment fields saved.', 'airfiber-centralized' ), 'fields' => self::get_fields() ) );
 	}
 }
