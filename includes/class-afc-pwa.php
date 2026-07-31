@@ -66,6 +66,21 @@ class AFC_PWA {
 		return trailingslashit( $path ? $path : '/' . AFC_Frontend_Page::PAGE_SLUG . '/' );
 	}
 
+	private static function icon_type() {
+		return function_exists( 'imagecreatetruecolor' ) && function_exists( 'imagepng' )
+			? 'image/png'
+			: 'image/svg+xml';
+	}
+
+	private static function manifest_icon( $asset, $sizes, $purpose = 'any' ) {
+		return array(
+			'src'     => self::get_asset_url( $asset ),
+			'sizes'   => $sizes,
+			'type'    => self::icon_type(),
+			'purpose' => $purpose,
+		);
+	}
+
 	private static function serve_manifest() {
 		$start_url = AFC_Frontend_Page::get_url();
 		$scope     = self::app_path();
@@ -87,43 +102,21 @@ class AFC_PWA {
 			'prefer_related_applications' => false,
 			'launch_handler'              => array( 'client_mode' => array( 'navigate-existing', 'auto' ) ),
 			'icons'                       => array(
-				array(
-					'src'     => self::get_asset_url( 'icon-192' ),
-					'sizes'   => '192x192',
-					'type'    => 'image/png',
-					'purpose' => 'any',
-				),
-				array(
-					'src'     => self::get_asset_url( 'icon-512' ),
-					'sizes'   => '512x512',
-					'type'    => 'image/png',
-					'purpose' => 'any maskable',
-				),
+				self::manifest_icon( 'icon-192', '192x192' ),
+				self::manifest_icon( 'icon-512', '512x512', 'any maskable' ),
 			),
 			'shortcuts'                   => array(
 				array(
 					'name'       => 'Operations',
 					'short_name' => 'Operations',
 					'url'        => $start_url,
-					'icons'      => array(
-						array(
-							'src'   => self::get_asset_url( 'icon-192' ),
-							'sizes' => '192x192',
-							'type'  => 'image/png',
-						),
-					),
+					'icons'      => array( self::manifest_icon( 'icon-192', '192x192' ) ),
 				),
 				array(
 					'name'       => 'MikroTik',
 					'short_name' => 'MikroTik',
 					'url'        => $start_url . '#mikrotik',
-					'icons'      => array(
-						array(
-							'src'   => self::get_asset_url( 'icon-192' ),
-							'sizes' => '192x192',
-							'type'  => 'image/png',
-						),
-					),
+					'icons'      => array( self::manifest_icon( 'icon-192', '192x192' ) ),
 				),
 			),
 		);
@@ -234,21 +227,71 @@ JS,
 			exit;
 		}
 
-		$icon_file = AFC_PATH . 'assets/images/airfiber-icon-' . $size . '.b64';
+		if ( 'image/png' === self::icon_type() ) {
+			self::serve_png_icon( $size );
+		}
+
+		self::serve_svg_icon( $size );
+	}
+
+	private static function serve_png_icon( $size ) {
+		$image = imagecreatetruecolor( $size, $size );
+		if ( ! $image ) {
+			self::serve_svg_icon( $size );
+		}
+
+		$blue  = imagecolorallocate( $image, 32, 107, 196 );
+		$navy  = imagecolorallocate( $image, 15, 64, 130 );
+		$white = imagecolorallocate( $image, 255, 255, 255 );
+		$cyan  = imagecolorallocate( $image, 104, 200, 245 );
+		imagefilledrectangle( $image, 0, 0, $size, $size, $blue );
+		imagefilledellipse( $image, (int) ( $size * 0.5 ), (int) ( $size * 0.5 ), (int) ( $size * 0.70 ), (int) ( $size * 0.70 ), $navy );
+
+		$a_points = array(
+			(int) ( $size * 0.50 ), (int) ( $size * 0.20 ),
+			(int) ( $size * 0.25 ), (int) ( $size * 0.72 ),
+			(int) ( $size * 0.37 ), (int) ( $size * 0.72 ),
+			(int) ( $size * 0.43 ), (int) ( $size * 0.58 ),
+			(int) ( $size * 0.57 ), (int) ( $size * 0.58 ),
+			(int) ( $size * 0.63 ), (int) ( $size * 0.72 ),
+			(int) ( $size * 0.75 ), (int) ( $size * 0.72 ),
+		);
+		imagefilledpolygon( $image, $a_points, 7, $white );
+		imagefilledpolygon(
+			$image,
+			array(
+				(int) ( $size * 0.50 ), (int) ( $size * 0.38 ),
+				(int) ( $size * 0.45 ), (int) ( $size * 0.51 ),
+				(int) ( $size * 0.55 ), (int) ( $size * 0.51 ),
+			),
+			3,
+			$navy
+		);
+
+		imagesetthickness( $image, max( 3, (int) ( $size * 0.024 ) ) );
+		imagearc( $image, (int) ( $size * 0.50 ), (int) ( $size * 0.66 ), (int) ( $size * 0.43 ), (int) ( $size * 0.28 ), 205, 335, $cyan );
+		imagearc( $image, (int) ( $size * 0.50 ), (int) ( $size * 0.70 ), (int) ( $size * 0.26 ), (int) ( $size * 0.18 ), 205, 335, $cyan );
+		imagefilledellipse( $image, (int) ( $size * 0.50 ), (int) ( $size * 0.75 ), max( 6, (int) ( $size * 0.05 ) ), max( 6, (int) ( $size * 0.05 ) ), $cyan );
+
+		status_header( 200 );
+		header( 'Content-Type: image/png' );
+		header( 'Cache-Control: public, max-age=31536000, immutable' );
+		header( 'X-Content-Type-Options: nosniff' );
+		imagepng( $image );
+		imagedestroy( $image );
+		exit;
+	}
+
+	private static function serve_svg_icon( $size ) {
+		$icon_file = AFC_PATH . 'assets/images/airfiber-icon-' . $size . '.svg';
 		if ( ! is_readable( $icon_file ) ) {
 			status_header( 404 );
 			exit;
 		}
 
-		$encoded = trim( (string) file_get_contents( $icon_file ) );
-		$image   = base64_decode( $encoded, true );
-		if ( false === $image ) {
-			status_header( 500 );
-			exit;
-		}
-
+		$image = (string) file_get_contents( $icon_file );
 		status_header( 200 );
-		header( 'Content-Type: image/png' );
+		header( 'Content-Type: image/svg+xml; charset=utf-8' );
 		header( 'Content-Length: ' . strlen( $image ) );
 		header( 'Cache-Control: public, max-age=31536000, immutable' );
 		header( 'X-Content-Type-Options: nosniff' );
@@ -262,7 +305,8 @@ JS,
 		}
 
 		$manifest = self::get_asset_url( 'manifest' );
-		$icon     = self::get_asset_url( 'icon-512' );
+		$icon_192 = self::get_asset_url( 'icon-192' );
+		$icon_512 = self::get_asset_url( 'icon-512' );
 		?>
 		<link rel="manifest" href="<?php echo esc_url( $manifest ); ?>">
 		<meta name="theme-color" content="<?php echo esc_attr( self::THEME_COLOR ); ?>">
@@ -270,8 +314,8 @@ JS,
 		<meta name="apple-mobile-web-app-capable" content="yes">
 		<meta name="apple-mobile-web-app-status-bar-style" content="default">
 		<meta name="apple-mobile-web-app-title" content="Airfiber">
-		<link rel="apple-touch-icon" sizes="512x512" href="<?php echo esc_url( $icon ); ?>">
-		<link rel="icon" type="image/png" sizes="192x192" href="<?php echo esc_url( self::get_asset_url( 'icon-192' ) ); ?>">
+		<link rel="apple-touch-icon" sizes="512x512" href="<?php echo esc_url( $icon_512 ); ?>">
+		<link rel="icon" type="<?php echo esc_attr( self::icon_type() ); ?>" sizes="192x192" href="<?php echo esc_url( $icon_192 ); ?>">
 		<?php
 	}
 
