@@ -1,0 +1,89 @@
+.afc-sms-center .afc-sms-device-summary {
+	line-height: 1.65;
+}
+
+.afc-sms-center .afc-sms-secret {
+	border: 1px solid rgba(32, 107, 196, .25);
+	background: rgba(32, 107, 196, .06);
+	border-radius: .5rem;
+	padding: 1rem;
+}
+
+.afc-sms-center .afc-sms-ppp-list {
+	max-height: 340px;
+	overflow: auto;
+	background: var(--tblr-bg-surface, #fff);
+}
+
+.afc-sms-center .afc-sms-ppp-row {
+	display: grid;
+	grid-template-columns: auto minmax(0, 1fr) auto;
+	gap: .75rem;
+	align-items: center;
+	padding: .8rem 1rem;
+	border-bottom: 1px solid var(--tblr-border-color, #e6e7e9);
+	cursor: pointer;
+}
+
+.afc-sms-center .afc-sms-ppp-row:last-child {
+	border-bottom: 0;
+}
+
+.afc-sms-center .afc-sms-ppp-row:hover {
+	background: rgba(32, 107, 196, .05);
+}
+
+.afc-sms-center .afc-sms-ppp-row:has(input:checked) {
+	background: rgba(32, 107, 196, .1);
+	box-shadow: inset 3px 0 0 #206bc4;
+}
+
+.afc-sms-center .afc-sms-ppp-row.is-unavailable {
+	cursor: not-allowed;
+	opacity: .58;
+}
+
+.afc-sms-center .afc-sms-ppp-main {
+	display: flex;
+	min-width: 0;
+	flex-direction: column;
+}
+
+.afc-sms-center .afc-sms-ppp-main strong,
+.afc-sms-center .afc-sms-ppp-main span {
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.afc-sms-center .afc-sms-ppp-issue {
+	font-size: .75rem;
+	font-weight: 600;
+	color: var(--tblr-danger, #d63939);
+}
+
+.afc-sms-center .afc-sms-detail-cell {
+	min-width: 220px;
+	max-width: 430px;
+	white-space: normal;
+}
+
+.afc-sms-center .afc-sms-event-detail {
+	white-space: pre-wrap;
+	word-break: break-word;
+}
+
+#afc-sms-device-state .badge {
+	font-size: .8rem;
+	text-transform: capitalize;
+}
+
+@media (max-width: 767.98px) {
+	.afc-sms-center .afc-sms-ppp-row {
+		grid-template-columns: auto minmax(0, 1fr);
+	}
+
+	.afc-sms-center .afc-sms-ppp-issue {
+		grid-column: 2;
+	}
+}
