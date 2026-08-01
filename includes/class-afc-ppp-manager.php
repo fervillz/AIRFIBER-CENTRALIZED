@@ -15,14 +15,16 @@ class AFC_PPP_Manager {
 	use AFC_PPP_Manager_Create_Trait;
 	use AFC_PPP_Manager_Save_Trait;
 
-	const NONCE       = 'afc_ppp_manager';
-	const CRON_HOOK   = 'afc_ppp_pre_due_reminder_scan';
-	const SCRIPT_MARKER = 'AFC-MANAGED-SCHEDULER v1';
+	const NONCE                = 'afc_ppp_manager';
+	const CRON_HOOK            = 'afc_ppp_pre_due_reminder_scan';
+	const SCRIPT_MARKER         = 'AFC-MANAGED-SCHEDULER v1';
+	const SERVICE_AREAS_OPTION = 'afc_ppp_service_areas';
 
 	public static function init() {
 		add_action( 'wp_ajax_afc_ppp_manager_bootstrap', array( __CLASS__, 'ajax_bootstrap' ) );
 		add_action( 'wp_ajax_afc_ppp_manager_create', array( __CLASS__, 'ajax_create' ) );
 		add_action( 'wp_ajax_afc_ppp_manager_save', array( __CLASS__, 'ajax_save' ) );
+		add_action( 'wp_ajax_afc_ppp_manager_save_service_areas', array( __CLASS__, 'ajax_save_service_areas' ) );
 
 		add_action( 'wp_enqueue_scripts', array( __CLASS__, 'enqueue_frontend_assets' ), 76 );
 		add_action( 'admin_enqueue_scripts', array( __CLASS__, 'enqueue_admin_assets' ), 76 );
@@ -81,17 +83,135 @@ class AFC_PPP_Manager {
 	}
 
 	private static function enqueue_assets() {
-		wp_enqueue_style( 'afc-ppp-manager', AFC_URL . 'assets/css/ppp-manager.css', array( 'afc-admin-compat' ), AFC_VERSION );
-		wp_enqueue_style( 'afc-ppp-manager-fixes', AFC_URL . 'assets/css/ppp-manager-fixes.css', array( 'afc-ppp-manager' ), AFC_VERSION );
-		wp_enqueue_script( 'afc-ppp-manager', AFC_URL . 'assets/js/ppp-manager.js', array( 'jquery', 'afc-ppp-users' ), AFC_VERSION, true );
+		wp_enqueue_style(
+			'afc-select2',
+			'https://cdn.jsdelivr.net/npm/select2@4.0.13/dist/css/select2.min.css',
+			array(),
+			'4.0.13'
+		);
+		wp_enqueue_script(
+			'afc-select2',
+			'https://cdn.jsdelivr.net/npm/select2@4.0.13/dist/js/select2.full.min.js',
+			array( 'jquery' ),
+			'4.0.13',
+			true
+		);
+		wp_enqueue_style(
+			'afc-ppp-manager',
+			AFC_URL . 'assets/css/ppp-manager.css',
+			array( 'afc-admin-compat', 'afc-select2' ),
+			AFC_VERSION
+		);
+		wp_enqueue_style(
+			'afc-ppp-manager-fixes',
+			AFC_URL . 'assets/css/ppp-manager-fixes.css',
+			array( 'afc-ppp-manager' ),
+			AFC_VERSION
+		);
+		wp_enqueue_script(
+			'afc-ppp-manager',
+			AFC_URL . 'assets/js/ppp-manager.js',
+			array( 'jquery', 'afc-ppp-users', 'afc-select2' ),
+			AFC_VERSION,
+			true
+		);
 		wp_localize_script(
 			'afc-ppp-manager',
 			'afcPPPManager',
 			array(
-				'ajaxUrl'     => admin_url( 'admin-ajax.php' ),
-				'nonce'       => wp_create_nonce( self::NONCE ),
-				'currentDate' => current_time( 'Y-m-d' ),
-				'mode'        => class_exists( 'AFC_Admin_Mode' ) ? AFC_Admin_Mode::current_mode() : 'basic',
+				'ajaxUrl'      => admin_url( 'admin-ajax.php' ),
+				'nonce'        => wp_create_nonce( self::NONCE ),
+				'currentDate'  => current_time( 'Y-m-d' ),
+				'mode'         => class_exists( 'AFC_Admin_Mode' ) ? AFC_Admin_Mode::current_mode() : 'basic',
+				'serviceAreas' => self::get_service_areas(),
+			)
+		);
+	}
+
+	private static function default_service_areas() {
+		$zones = array( '1', '2', '3', '4', '5', '6', '7' );
+		return array(
+			array( 'name' => 'Lingion', 'zones' => $zones, 'latitude' => '', 'longitude' => '' ),
+			array( 'name' => 'Dalirig', 'zones' => $zones, 'latitude' => '', 'longitude' => '' ),
+			array( 'name' => 'Sto. Nino', 'zones' => $zones, 'latitude' => '', 'longitude' => '' ),
+		);
+	}
+
+	public static function get_service_areas() {
+		$stored = get_option( self::SERVICE_AREAS_OPTION, null );
+		if ( null === $stored ) {
+			return self::default_service_areas();
+		}
+		return self::sanitize_service_areas( $stored );
+	}
+
+	private static function sanitize_coordinate( $value, $minimum, $maximum ) {
+		$value = trim( (string) $value );
+		if ( '' === $value || ! is_numeric( $value ) ) {
+			return '';
+		}
+		$number = (float) $value;
+		if ( $number < $minimum || $number > $maximum ) {
+			return '';
+		}
+		return rtrim( rtrim( number_format( $number, 7, '.', '' ), '0' ), '.' );
+	}
+
+	private static function sanitize_service_areas( $areas ) {
+		if ( ! is_array( $areas ) ) {
+			return array();
+		}
+
+		$clean = array();
+		$seen  = array();
+		foreach ( array_slice( $areas, 0, 50 ) as $area ) {
+			if ( ! is_array( $area ) ) {
+				continue;
+			}
+			$name = isset( $area['name'] ) ? sanitize_text_field( $area['name'] ) : '';
+			$name = trim( preg_replace( '/\s+/', ' ', $name ) );
+			$name = substr( $name, 0, 80 );
+			$key  = strtolower( remove_accents( $name ) );
+			if ( '' === $name || isset( $seen[ $key ] ) ) {
+				continue;
+			}
+
+			$raw_zones = isset( $area['zones'] ) ? $area['zones'] : array();
+			if ( is_string( $raw_zones ) ) {
+				$raw_zones = preg_split( '/[,\r\n]+/', $raw_zones );
+			}
+			$zones = array();
+			foreach ( array_slice( (array) $raw_zones, 0, 50 ) as $zone ) {
+				$zone = strtoupper( preg_replace( '/[^A-Za-z0-9-]/', '', sanitize_text_field( $zone ) ) );
+				if ( '' !== $zone && ! in_array( $zone, $zones, true ) ) {
+					$zones[] = $zone;
+				}
+			}
+
+			$clean[] = array(
+				'name'      => $name,
+				'zones'     => $zones,
+				'latitude'  => self::sanitize_coordinate( isset( $area['latitude'] ) ? $area['latitude'] : '', -90, 90 ),
+				'longitude' => self::sanitize_coordinate( isset( $area['longitude'] ) ? $area['longitude'] : '', -180, 180 ),
+			);
+			$seen[ $key ] = true;
+		}
+		return $clean;
+	}
+
+	public static function ajax_save_service_areas() {
+		self::authorize();
+		$raw   = isset( $_POST['areas'] ) ? wp_unslash( $_POST['areas'] ) : '[]';
+		$areas = json_decode( $raw, true );
+		if ( ! is_array( $areas ) ) {
+			wp_send_json_error( array( 'message' => __( 'The service-area list is invalid.', 'airfiber-centralized' ) ), 400 );
+		}
+		$areas = self::sanitize_service_areas( $areas );
+		update_option( self::SERVICE_AREAS_OPTION, $areas, false );
+		wp_send_json_success(
+			array(
+				'message' => __( 'Service areas saved. Address suggestions were refreshed.', 'airfiber-centralized' ),
+				'areas'   => $areas,
 			)
 		);
 	}
@@ -102,5 +222,4 @@ class AFC_PPP_Manager {
 		}
 		check_ajax_referer( self::NONCE, 'nonce' );
 	}
-
 }
