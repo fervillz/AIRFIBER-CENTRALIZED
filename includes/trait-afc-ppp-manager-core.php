@@ -49,12 +49,15 @@ trait AFC_PPP_Manager_Core_Trait {
 	}
 
 	private static function prepare_user( $secret ) {
-		$comment = isset( $secret['comment'] ) ? (string) $secret['comment'] : '';
-		$details = AFC_Comment_Fields::parse_comment( $comment );
+		$comment        = isset( $secret['comment'] ) ? (string) $secret['comment'] : '';
+		$details        = AFC_Comment_Fields::parse_comment( $comment );
+		$actual_profile = isset( $secret['profile'] ) ? (string) $secret['profile'] : '';
+		$saved_profile  = isset( $details['plan'] ) && '' !== trim( (string) $details['plan'] ) ? (string) $details['plan'] : $actual_profile;
 		return array(
 			'id'                => isset( $secret['.id'] ) ? (string) $secret['.id'] : '',
 			'username'          => isset( $secret['name'] ) ? (string) $secret['name'] : '',
-			'profile'           => isset( $secret['profile'] ) ? (string) $secret['profile'] : '',
+			'profile'           => $saved_profile,
+			'actual_profile'    => $actual_profile,
 			'service'           => isset( $secret['service'] ) ? (string) $secret['service'] : 'pppoe',
 			'disabled'          => isset( $secret['disabled'] ) && 'true' === (string) $secret['disabled'],
 			'customer_name'     => isset( $details['name'] ) ? (string) $details['name'] : '',
@@ -224,7 +227,7 @@ trait AFC_PPP_Manager_Core_Trait {
 			'_afc_comment_field_cutoffdate'           => $data['cutoff_date'],
 			'_afc_comment_field_duereminderdate'      => $data['due_reminder_date'],
 			'_afc_sms_due_reminder_days_before'       => 1,
-			'_afc_customer_status'                   => $data['disabled'] ? 'disabled' : 'active',
+			'_afc_customer_status'                   => $data['disabled'] ? 'disabled' : ( 0 === strcasecmp( $data['actual_profile'], 'Expired' ) ? 'expired' : 'active' ),
 		);
 		foreach ( $meta as $key => $value ) {
 			update_post_meta( $customer_id, $key, $value );
