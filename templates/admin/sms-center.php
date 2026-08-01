@@ -31,7 +31,7 @@ $device = isset( $snapshot['device'] ) ? $snapshot['device'] : array();
 			<div class="row row-cards mb-3">
 				<div class="col-xl-5">
 					<div class="card h-100">
-						<div class="card-header"><div><h3 class="card-title"><?php esc_html_e( '1. Connect Android Gateway', 'airfiber-centralized' ); ?></h3><p class="card-subtitle"><?php esc_html_e( 'Generate a private token and paste it into the phone and Windows bridge.', 'airfiber-centralized' ); ?></p></div></div>
+						<div class="card-header"><div><h3 class="card-title"><?php esc_html_e( '1. Connect Android Gateway', 'airfiber-centralized' ); ?></h3><p class="card-subtitle"><?php esc_html_e( 'Generate a private token and paste it into the phone app. The USB bridge forwards it automatically.', 'airfiber-centralized' ); ?></p></div></div>
 						<div class="card-body">
 							<div class="afc-sms-device-summary mb-3">
 								<div><span class="text-secondary"><?php esc_html_e( 'Last seen', 'airfiber-centralized' ); ?>:</span> <strong id="afc-sms-last-seen"><?php echo esc_html( ! empty( $device['last_seen'] ) ? $device['last_seen'] : 'Never' ); ?></strong></div>
@@ -42,7 +42,7 @@ $device = isset( $snapshot['device'] ) ? $snapshot['device'] : array();
 							<div class="afc-sms-secret mt-3" id="afc-sms-token-box" hidden>
 								<label class="form-label" for="afc-sms-device-token"><?php esc_html_e( 'Copy this token now', 'airfiber-centralized' ); ?></label>
 								<div class="input-group"><input class="form-control font-monospace" id="afc-sms-device-token" type="text" readonly><button class="btn btn-outline-secondary" id="afc-sms-copy-token" type="button"><?php esc_html_e( 'Copy', 'airfiber-centralized' ); ?></button></div>
-								<div class="form-hint"><?php esc_html_e( 'Paste it into Android Device token and bridge-config.json. It is shown only after generation.', 'airfiber-centralized' ); ?></div>
+								<div class="form-hint"><?php esc_html_e( 'Paste it into the Android Device token field. It is shown only after generation.', 'airfiber-centralized' ); ?></div>
 							</div>
 							<div class="mt-3"><span class="text-secondary"><?php esc_html_e( 'Saved token', 'airfiber-centralized' ); ?>:</span> <strong id="afc-sms-token-hint"><?php echo esc_html( ! empty( $device['token_hint'] ) ? $device['token_hint'] : 'None' ); ?></strong></div>
 							<div class="mt-3 p-3 bg-light rounded">
