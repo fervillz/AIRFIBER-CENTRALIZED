@@ -37,13 +37,10 @@
 			return;
 		}
 
-		if ( 'mikrotik' === panel && 'advanced' !== currentMode() ) {
+		let target = root.querySelector( '[data-afc-panel="' + panel + '"]' );
+		if ( ! target || ( target.classList.contains( 'afc-advanced-only' ) && 'advanced' !== currentMode() ) ) {
 			panel = 'operations';
-		}
-
-		const target = root.querySelector( '[data-afc-panel="' + panel + '"]' );
-		if ( ! target ) {
-			panel = 'operations';
+			target = root.querySelector( '[data-afc-panel="operations"]' );
 		}
 
 		activePanel = panel;
@@ -80,12 +77,14 @@
 	}
 
 	function initialPanel() {
+		const root = app();
 		const hash = String( window.location.hash || '' ).replace( /^#/, '' );
-		if ( 'mikrotik' === hash ) {
-			return 'mikrotik';
+		if ( hash && root && root.querySelector( '[data-afc-panel="' + hash + '"]' ) ) {
+			return hash;
 		}
 		try {
-			return window.sessionStorage.getItem( 'afcFrontendPanel' ) || 'operations';
+			const stored = window.sessionStorage.getItem( 'afcFrontendPanel' ) || 'operations';
+			return root && root.querySelector( '[data-afc-panel="' + stored + '"]' ) ? stored : 'operations';
 		} catch ( error ) {
 			return 'operations';
 		}
@@ -148,7 +147,8 @@
 		document.addEventListener( 'afc:admin-mode-change', function ( event ) {
 			const mode = event.detail && event.detail.mode ? event.detail.mode : currentMode();
 			syncModeButtons( mode );
-			if ( 'basic' === mode && 'mikrotik' === activePanel ) {
+			const activeTarget = root.querySelector( '[data-afc-panel="' + activePanel + '"]' );
+			if ( 'basic' === mode && activeTarget && activeTarget.classList.contains( 'afc-advanced-only' ) ) {
 				setPanel( 'operations', true );
 			}
 		} );
