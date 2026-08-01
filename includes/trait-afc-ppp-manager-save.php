@@ -92,8 +92,9 @@ trait AFC_PPP_Manager_Save_Trait {
 		if ( $billing_ready ) {
 			$comment_values = array_merge( $dates, $comment_values );
 		}
-		$comment = self::build_comment( $base, $comment_values );
-		$command = array( '/ppp/secret/set', '=.id=' . $id, '=name=' . $new_username, '=profile=' . $profile, '=comment=' . $comment );
+		$comment        = self::build_comment( $base, $comment_values );
+		$router_profile = 0 === strcasecmp( $old['actual_profile'], 'Expired' ) ? $old['actual_profile'] : $profile;
+		$command        = array( '/ppp/secret/set', '=.id=' . $id, '=name=' . $new_username, '=profile=' . $router_profile, '=comment=' . $comment );
 		if ( 'advanced' === $mode && ! empty( $_POST['new_password'] ) ) {
 			$command[] = '=password=' . sanitize_text_field( wp_unslash( $_POST['new_password'] ) );
 		}
@@ -104,7 +105,7 @@ trait AFC_PPP_Manager_Save_Trait {
 		if ( $billing_ready ) {
 			$scheduler = self::sync_scheduler( $new_username, $dates['nextDue'], $dates['cutoffDate'], $old['username'] );
 			if ( is_wp_error( $scheduler ) ) {
-				AFC_MikroTik::run_command( array( '/ppp/secret/set', '=.id=' . $id, '=name=' . $old['username'], '=profile=' . $old['profile'], '=comment=' . $old['comment'] ) );
+				AFC_MikroTik::run_command( array( '/ppp/secret/set', '=.id=' . $id, '=name=' . $old['username'], '=profile=' . $old['actual_profile'], '=comment=' . $old['comment'] ) );
 				wp_send_json_error( array( 'message' => $scheduler->get_error_message() ) );
 			}
 		}
