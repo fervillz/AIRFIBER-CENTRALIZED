@@ -10,6 +10,7 @@
 	let conversations = [];
 	let activeConversationKey = '';
 	let drawerView = 'menu';
+	let composerOpen = false;
 
 	function byId( id ) {
 		return document.getElementById( id );
@@ -21,13 +22,9 @@
 
 	function injectNavigation() {
 		const root = document.getElementById( 'afc-frontend-app' );
-		if ( ! root || root.querySelector( '[data-afc-app-panel="sms"]' ) ) {
-			return;
-		}
+		if ( ! root || root.querySelector( '[data-afc-app-panel="sms"]' ) ) return;
 		const nav = root.querySelector( '.afc-frontend-nav' );
-		if ( ! nav ) {
-			return;
-		}
+		if ( ! nav ) return;
 		const button = document.createElement( 'button' );
 		button.type = 'button';
 		button.className = 'afc-advanced-only';
@@ -69,7 +66,7 @@
 		target.replaceChildren();
 		if ( ! message ) return;
 		const item = document.createElement( 'div' );
-		item.className = 'alert alert-' + ( type || 'info' );
+		item.className = 'alert alert-' + ( type || 'info' ) + ' py-2 mb-2';
 		item.textContent = message;
 		target.appendChild( item );
 	}
@@ -152,7 +149,7 @@
 	}
 
 	function formatTime( value, includeDate ) {
-		const timestamp = timestampValue( value );
+		const timestamp = typeof value === 'number' ? value : timestampValue( value );
 		if ( ! timestamp ) return text( value );
 		const date = new Date( timestamp );
 		const now = new Date();
@@ -229,10 +226,24 @@
 		return conversations.find( function ( item ) { return item.key === activeConversationKey; } ) || null;
 	}
 
+	function candidateAvailable( candidate ) {
+		return candidate && candidate.phone_normalized && ! candidate.do_not_text;
+	}
+
+	function candidateForConversation( conversation ) {
+		if ( ! conversation ) return null;
+		return candidates.find( function ( candidate ) {
+			if ( conversation.ppp && candidate.ppp_username && conversation.ppp.toLowerCase() === candidate.ppp_username.toLowerCase() ) return true;
+			return conversation.phone && candidate.phone_normalized && phoneKey( conversation.phone ) === phoneKey( candidate.phone_normalized );
+		} ) || null;
+	}
+
 	function selectConversation( key, closeOptions ) {
 		activeConversationKey = key;
+		selected = candidateForConversation( activeConversation() );
 		renderConversationList();
 		renderConversation();
+		updateComposerRecipient();
 		if ( closeOptions ) closeDrawer();
 		else if ( byId( 'afc-sms-chat-layout' ) && byId( 'afc-sms-chat-layout' ).classList.contains( 'is-drawer-open' ) ) renderDrawer();
 	}
@@ -249,40 +260,48 @@
 		if ( count ) count.textContent = conversations.length + ( conversations.length === 1 ? ' conversation' : ' conversations' );
 		target.replaceChildren();
 		if ( ! filtered.length ) {
-			const empty = document.createElement( 'div' );
-			empty.className = 'afc-sms-chat-empty';
-			empty.textContent = conversations.length ? 'No conversation matches your search.' : 'No messages yet.';
-			target.appendChild( empty );
+			appendEmpty( target, conversations.length ? 'No conversation matches your search.' : 'No messages yet.' );
 			return;
 		}
 		filtered.forEach( function ( conversation ) {
 			const item = document.createElement( 'div' );
 			item.className = 'afc-sms-conversation-item';
 			if ( conversation.key === activeConversationKey ) item.classList.add( 'is-active' );
+
 			const select = document.createElement( 'button' );
 			select.type = 'button';
 			select.className = 'afc-sms-conversation-select';
 			select.setAttribute( 'data-afc-sms-conversation', conversation.key );
+
 			const avatar = document.createElement( 'span' );
 			avatar.className = 'afc-sms-list-avatar';
 			avatar.textContent = initials( conversation.name );
-			const main = document.createElement( 'span' );
-			main.className = 'afc-sms-list-main';
+
+			const identity = document.createElement( 'span' );
+			identity.className = 'afc-sms-list-identity';
 			const name = document.createElement( 'strong' );
 			name.textContent = conversation.name;
+			const phone = document.createElement( 'small' );
+			phone.textContent = [ conversation.phone, conversation.ppp ].filter( Boolean ).join( ' · ' ) || 'Unknown sender';
+			identity.append( name, phone );
+
 			const excerpt = document.createElement( 'span' );
+			excerpt.className = 'afc-sms-list-excerpt';
 			excerpt.textContent = conversation.lastExcerpt;
-			main.append( name, excerpt );
-			const meta = document.createElement( 'span' );
-			meta.className = 'afc-sms-list-meta';
-			meta.textContent = formatTime( conversation.lastAt );
-			select.append( avatar, main, meta );
+
+			const time = document.createElement( 'span' );
+			time.className = 'afc-sms-list-meta';
+			time.textContent = formatTime( conversation.lastAt );
+
+			select.append( avatar, identity, excerpt, time );
+
 			const menu = document.createElement( 'button' );
 			menu.type = 'button';
 			menu.className = 'afc-sms-conversation-menu';
 			menu.setAttribute( 'data-afc-sms-conversation-menu', conversation.key );
 			menu.setAttribute( 'aria-label', 'Open options for ' + conversation.name );
 			menu.textContent = '⋮';
+
 			item.append( select, menu );
 			target.appendChild( item );
 		} );
@@ -355,23 +374,23 @@
 	function renderConversation() {
 		const conversation = activeConversation();
 		const timeline = byId( 'afc-sms-chat-timeline' );
+		const compose = byId( 'afc-sms-compose-selected' );
 		if ( ! timeline ) return;
 		timeline.replaceChildren();
 		if ( ! conversation ) {
 			if ( byId( 'afc-sms-chat-name' ) ) byId( 'afc-sms-chat-name' ).textContent = 'Select a conversation';
-			if ( byId( 'afc-sms-chat-meta' ) ) byId( 'afc-sms-chat-meta' ).textContent = 'Delivery updates and replies will appear here.';
+			if ( byId( 'afc-sms-chat-meta' ) ) byId( 'afc-sms-chat-meta' ).textContent = 'Click a customer to view the thread and queue another SMS.';
 			if ( byId( 'afc-sms-chat-avatar' ) ) byId( 'afc-sms-chat-avatar' ).textContent = 'A';
+			if ( compose ) compose.hidden = true;
 			appendEmpty( timeline, 'Choose a customer from the list to open the conversation.' );
 			return;
 		}
 		if ( byId( 'afc-sms-chat-name' ) ) byId( 'afc-sms-chat-name' ).textContent = conversation.name;
-		if ( byId( 'afc-sms-chat-meta' ) ) byId( 'afc-sms-chat-meta' ).textContent = [ conversation.ppp, conversation.phone ].filter( Boolean ).join( ' · ' ) || 'SMS conversation';
+		if ( byId( 'afc-sms-chat-meta' ) ) byId( 'afc-sms-chat-meta' ).textContent = [ conversation.phone, conversation.ppp ].filter( Boolean ).join( ' · ' ) || 'SMS conversation';
 		if ( byId( 'afc-sms-chat-avatar' ) ) byId( 'afc-sms-chat-avatar' ).textContent = initials( conversation.name );
-		if ( ! conversation.messages.length ) {
-			appendEmpty( timeline, 'No messages in this conversation yet.' );
-			return;
-		}
-		conversation.messages.forEach( function ( message ) {
+		if ( compose ) compose.hidden = ! candidateAvailable( candidateForConversation( conversation ) );
+		if ( ! conversation.messages.length ) appendEmpty( timeline, 'No messages in this conversation yet.' );
+		else conversation.messages.forEach( function ( message ) {
 			if ( message.type === 'incoming' ) renderIncomingMessage( timeline, message );
 			else renderOutgoingMessage( timeline, message, conversation );
 		} );
@@ -380,7 +399,9 @@
 
 	function openDrawer( conversation, view ) {
 		if ( ! conversation ) return;
+		closeComposer();
 		activeConversationKey = conversation.key;
+		selected = candidateForConversation( conversation );
 		drawerView = view || 'menu';
 		const layout = byId( 'afc-sms-chat-layout' );
 		const drawer = byId( 'afc-sms-chat-drawer' );
@@ -416,9 +437,9 @@
 		intro.textContent = 'Choose what to show for this customer.';
 		target.appendChild( intro );
 		[
-			[ 'conversation', 'Conversation', 'Return to the message and reply timeline.' ],
-			[ 'delivery', 'Queue & Delivery', 'Show every queued SMS, status and delivery update for this customer.' ],
-			[ 'details', 'Customer Details', 'Show the PPP username, phone and conversation totals.' ],
+			[ 'conversation', 'Conversation', 'Return to the full message and reply timeline.' ],
+			[ 'delivery', 'Queue & Delivery', 'Show every queued SMS and delivery update.' ],
+			[ 'details', 'Customer Details', 'Show PPP username, phone and conversation totals.' ],
 		].forEach( function ( option ) {
 			const button = document.createElement( 'button' );
 			button.type = 'button';
@@ -536,9 +557,10 @@
 		renderCounts( latestState.counts );
 		conversations = buildConversations( latestState );
 		if ( activeConversationKey && ! conversations.some( function ( item ) { return item.key === activeConversationKey; } ) ) activeConversationKey = '';
-		if ( ! activeConversationKey && conversations.length ) activeConversationKey = conversations[ 0 ].key;
+		if ( activeConversationKey ) selected = candidateForConversation( activeConversation() );
 		renderConversationList();
 		renderConversation();
+		updateComposerRecipient();
 		if ( byId( 'afc-sms-chat-layout' ) && byId( 'afc-sms-chat-layout' ).classList.contains( 'is-drawer-open' ) ) renderDrawer();
 	}
 
@@ -555,19 +577,18 @@
 		} );
 	}
 
-	function candidateAvailable( candidate ) {
-		return candidate && candidate.phone_normalized && ! candidate.do_not_text;
-	}
-
-	function updateSelected() {
+	function updateComposerRecipient() {
 		const label = byId( 'afc-sms-selected-label' );
+		const recipient = byId( 'afc-sms-composer-recipient' );
 		const queue = byId( 'afc-sms-queue-test' );
 		if ( ! selected ) {
+			if ( recipient ) recipient.textContent = 'Choose a PPP customer';
 			if ( label ) label.textContent = 'No PPP customer selected.';
 			if ( queue ) queue.disabled = true;
 			return;
 		}
-		if ( label ) label.textContent = text( selected.customer_name, selected.ppp_username ) + ' · ' + text( selected.phone_normalized || selected.phone, 'No valid phone' );
+		if ( recipient ) recipient.textContent = text( selected.customer_name, selected.ppp_username );
+		if ( label ) label.textContent = selected.ppp_username + ' · ' + text( selected.phone_normalized || selected.phone, 'No valid phone' );
 		if ( queue ) queue.disabled = ! candidateAvailable( selected );
 	}
 
@@ -575,10 +596,17 @@
 		const target = byId( 'afc-sms-ppp-list' );
 		if ( ! target ) return;
 		const query = text( byId( 'afc-sms-ppp-search' ) && byId( 'afc-sms-ppp-search' ).value ).toLowerCase();
-		const filtered = candidates.filter( function ( candidate ) {
+		let filtered = candidates.filter( function ( candidate ) {
 			const haystack = [ candidate.ppp_username, candidate.customer_name, candidate.phone, candidate.profile ].join( ' ' ).toLowerCase();
 			return ! query || haystack.includes( query );
 		} );
+		if ( ! query && selected ) {
+			filtered = filtered.filter( function ( candidate ) { return candidate.ppp_username === selected.ppp_username; } ).concat(
+				filtered.filter( function ( candidate ) { return candidate.ppp_username !== selected.ppp_username; } ).slice( 0, 5 )
+			);
+		} else {
+			filtered = filtered.slice( 0, 8 );
+		}
 		target.replaceChildren();
 		if ( ! filtered.length ) {
 			const empty = document.createElement( 'div' );
@@ -604,7 +632,7 @@
 			heading.textContent = text( candidate.customer_name, candidate.ppp_username );
 			const meta = document.createElement( 'span' );
 			meta.className = 'text-secondary';
-			meta.textContent = candidate.ppp_username + ' · ' + text( candidate.phone_normalized || candidate.phone, 'No valid mobile number' ) + ( candidate.profile ? ' · ' + candidate.profile : '' );
+			meta.textContent = candidate.ppp_username + ' · ' + text( candidate.phone_normalized || candidate.phone, 'No valid mobile number' );
 			main.append( heading, meta );
 			const issue = document.createElement( 'span' );
 			issue.className = 'afc-sms-ppp-issue';
@@ -621,9 +649,11 @@
 		if ( target ) target.innerHTML = '<div class="text-secondary p-3">Loading PPP customers…</div>';
 		return ajax( 'afc_sms_list_ppp' ).then( function ( response ) {
 			candidates = Array.isArray( response.users ) ? response.users : [];
+			if ( activeConversationKey ) selected = candidateForConversation( activeConversation() ) || selected;
 			if ( selected ) selected = candidates.find( function ( item ) { return item.ppp_username === selected.ppp_username; } ) || null;
 			renderCandidates();
-			updateSelected();
+			updateComposerRecipient();
+			renderConversation();
 			if ( response.warning ) notice( 'PPP list loaded from WordPress fallback: ' + response.warning, 'warning' );
 		} ).catch( function ( error ) {
 			candidates = [];
@@ -632,6 +662,43 @@
 		} ).finally( function () {
 			setBusy( button, false );
 		} );
+	}
+
+	function openComposer( useConversation ) {
+		closeDrawer();
+		if ( useConversation ) selected = candidateForConversation( activeConversation() );
+		if ( ! useConversation && ! selected ) selected = null;
+		composerOpen = true;
+		const layout = byId( 'afc-sms-chat-layout' );
+		const composer = byId( 'afc-sms-composer' );
+		const backdrop = byId( 'afc-sms-composer-backdrop' );
+		if ( layout ) layout.classList.add( 'is-composer-open' );
+		if ( composer ) {
+			composer.hidden = false;
+			composer.setAttribute( 'aria-hidden', 'false' );
+		}
+		if ( backdrop ) backdrop.hidden = false;
+		if ( byId( 'afc-sms-ppp-search' ) ) byId( 'afc-sms-ppp-search' ).value = '';
+		renderCandidates();
+		updateComposerRecipient();
+		window.setTimeout( function () {
+			const message = byId( 'afc-sms-message' );
+			if ( message ) message.focus();
+		}, 180 );
+	}
+
+	function closeComposer() {
+		if ( ! composerOpen ) return;
+		composerOpen = false;
+		const layout = byId( 'afc-sms-chat-layout' );
+		const composer = byId( 'afc-sms-composer' );
+		const backdrop = byId( 'afc-sms-composer-backdrop' );
+		if ( layout ) layout.classList.remove( 'is-composer-open' );
+		if ( composer ) {
+			composer.hidden = true;
+			composer.setAttribute( 'aria-hidden', 'true' );
+		}
+		if ( backdrop ) backdrop.hidden = true;
 	}
 
 	function generateToken() {
@@ -675,7 +742,7 @@
 			notice( 'Select a PPP customer with a valid mobile number.', 'warning' );
 			return;
 		}
-		const confirmation = config.labels && config.labels.confirmQueue ? config.labels.confirmQueue : 'Queue this test SMS?';
+		const confirmation = config.labels && config.labels.confirmQueue ? config.labels.confirmQueue : 'Queue this SMS?';
 		if ( ! window.confirm( confirmation + '\n\nRecipient: ' + text( selected.customer_name, selected.ppp_username ) + ' (' + selected.phone_normalized + ')' ) ) return;
 		const button = byId( 'afc-sms-queue-test' );
 		setBusy( button, true, 'Queueing…' );
@@ -683,13 +750,14 @@
 			ppp_username: selected.ppp_username,
 			message: byId( 'afc-sms-message' ) ? byId( 'afc-sms-message' ).value : '',
 		} ).then( function ( response ) {
-			notice( response.message || 'Test SMS queued.', 'success' );
+			notice( response.message || 'SMS queued.', 'success' );
+			closeComposer();
 			loadState( true );
 		} ).catch( function ( error ) {
 			notice( error.message, 'danger' );
 		} ).finally( function () {
 			setBusy( button, false );
-			updateSelected();
+			updateComposerRecipient();
 		} );
 	}
 
@@ -716,23 +784,30 @@
 				if ( radio && ! radio.disabled ) {
 					radio.checked = true;
 					selected = candidates.find( function ( item ) { return item.ppp_username === radio.value; } ) || null;
-					updateSelected();
+					updateComposerRecipient();
+					renderCandidates();
 				}
 			}
 			if ( event.target.closest( '#afc-sms-refresh' ) ) loadState( false );
 			if ( event.target.closest( '#afc-sms-generate-token' ) ) generateToken();
 			if ( event.target.closest( '#afc-sms-copy-token' ) ) copyToken();
 			if ( event.target.closest( '#afc-sms-load-ppp' ) ) loadCandidates();
+			if ( event.target.closest( '#afc-sms-new-message' ) ) openComposer( false );
+			if ( event.target.closest( '#afc-sms-compose-selected' ) ) openComposer( true );
+			if ( event.target.closest( '#afc-sms-composer-close, #afc-sms-composer-cancel, #afc-sms-composer-backdrop' ) ) closeComposer();
 			if ( event.target.closest( '#afc-sms-queue-test' ) ) queueTest();
 			if ( event.target.closest( '#afc-sms-drawer-close, #afc-sms-close-drawer' ) ) closeDrawer();
+
 			const conversationButton = event.target.closest( '[data-afc-sms-conversation]' );
 			if ( conversationButton ) selectConversation( conversationButton.getAttribute( 'data-afc-sms-conversation' ), true );
+
 			const conversationMenu = event.target.closest( '[data-afc-sms-conversation-menu]' );
 			if ( conversationMenu ) {
 				const key = conversationMenu.getAttribute( 'data-afc-sms-conversation-menu' );
 				const conversation = conversations.find( function ( item ) { return item.key === key; } );
 				openDrawer( conversation, 'menu' );
 			}
+
 			const drawerButton = event.target.closest( '[data-afc-sms-drawer-view]' );
 			if ( drawerButton ) {
 				const view = drawerButton.getAttribute( 'data-afc-sms-drawer-view' );
@@ -742,14 +817,20 @@
 					renderDrawer();
 				}
 			}
+
 			const cancel = event.target.closest( '[data-afc-cancel-job]' );
 			if ( cancel ) cancelJob( cancel.getAttribute( 'data-afc-cancel-job' ), cancel );
 		} );
+
 		const pppSearch = byId( 'afc-sms-ppp-search' );
 		if ( pppSearch ) pppSearch.addEventListener( 'input', renderCandidates );
 		const conversationSearch = byId( 'afc-sms-conversation-search' );
 		if ( conversationSearch ) conversationSearch.addEventListener( 'input', renderConversationList );
-		document.addEventListener( 'keydown', function ( event ) { if ( event.key === 'Escape' ) closeDrawer(); } );
+		document.addEventListener( 'keydown', function ( event ) {
+			if ( event.key !== 'Escape' ) return;
+			if ( composerOpen ) closeComposer();
+			else closeDrawer();
+		} );
 	}
 
 	function startPolling() {
