@@ -102,11 +102,35 @@ class AFC_SMS_Payer_Hooks {
 		}
 		$status = $response instanceof WP_REST_Response ? $response->get_status() : 200;
 		if ( $status >= 200 && $status < 300 ) {
-			AFC_SMS_Payer_Ratings::record_reply(
-				sanitize_text_field( (string) $request->get_param( 'phone' ) ),
-				sanitize_text_field( (string) $request->get_param( 'received_at' ) )
-			);
+			$phone       = sanitize_text_field( (string) $request->get_param( 'phone' ) );
+			$received_at = sanitize_text_field( (string) $request->get_param( 'received_at' ) );
+			AFC_SMS_Payer_Ratings::record_reply( $phone, $received_at );
+			self::pause_customer_from_recent_job( $phone, $received_at );
 		}
 		return $response;
+	}
+
+	private static function pause_customer_from_recent_job( $phone, $received_at ) {
+		global $wpdb;
+		$normalized = AFC_SMS_Payer_Ratings::phone( $phone );
+		if ( ! $normalized ) {
+			return;
+		}
+		$jobs = $wpdb->prefix . 'afc_sms_jobs';
+		$row  = $wpdb->get_row(
+			$wpdb->prepare(
+				"SELECT customer_id FROM {$jobs} WHERE phone = %s AND customer_id > 0 ORDER BY id DESC LIMIT 1",
+				$normalized
+			)
+		); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		if ( ! $row || ! $row->customer_id ) {
+			return;
+		}
+		$customer_id = (int) $row->customer_id;
+		update_post_meta( $customer_id, '_afc_sms_last_reply_at', $received_at ? $received_at : current_time( 'mysql' ) );
+		if ( AFC_SMS_Payer_Ratings::rules()['pause_on_reply'] ) {
+			update_post_meta( $customer_id, '_afc_sms_contact_paused', '1' );
+			update_post_meta( $customer_id, '_afc_sms_contact_note', 'Automatic due reminders paused because the customer replied.' );
+		}
 	}
 }
