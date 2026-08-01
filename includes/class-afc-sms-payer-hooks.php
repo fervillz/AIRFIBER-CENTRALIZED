@@ -36,9 +36,57 @@ class AFC_SMS_Payer_Hooks {
 		if ( ! $due_date || ! $paid_date ) {
 			return;
 		}
+
 		self::$recording_payment = true;
 		AFC_SMS_Payer_Ratings::record_payment( $customer_id, $due_date, $paid_date );
+		self::cancel_queued_due_reminders( $customer_id, $paid_date );
 		self::$recording_payment = false;
+	}
+
+	private static function cancel_queued_due_reminders( $customer_id, $paid_date ) {
+		global $wpdb;
+		$jobs   = $wpdb->prefix . 'afc_sms_jobs';
+		$events = $wpdb->prefix . 'afc_sms_events';
+		$rows   = $wpdb->get_results(
+			$wpdb->prepare(
+				"SELECT id FROM {$jobs} WHERE customer_id = %d AND reminder_type = 'due-auto' AND status = 'queued'",
+				$customer_id
+			)
+		); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		if ( ! $rows ) {
+			return;
+		}
+		$now    = current_time( 'mysql' );
+		$detail = sprintf( 'Cancelled automatically because payment was recorded on %s.', $paid_date );
+		foreach ( $rows as $row ) {
+			$updated = $wpdb->update(
+				$jobs,
+				array(
+					'status'       => 'cancelled',
+					'last_detail'  => $detail,
+					'cancelled_at' => $now,
+					'updated_at'   => $now,
+				),
+				array( 'id' => (int) $row->id, 'status' => 'queued' ),
+				array( '%s', '%s', '%s', '%s' ),
+				array( '%d', '%s' )
+			);
+			if ( ! $updated ) {
+				continue;
+			}
+			$wpdb->insert(
+				$events,
+				array(
+					'job_id'     => (int) $row->id,
+					'device_id'  => '',
+					'status'     => 'cancelled',
+					'detail'     => $detail,
+					'event_time' => $now,
+					'created_at' => $now,
+				),
+				array( '%d', '%s', '%s', '%s', '%s', '%s' )
+			);
+		}
 	}
 
 	/**
