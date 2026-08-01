@@ -1,69 +1,118 @@
-.afc-sms-center .afc-sms-device-summary {
-	line-height: 1.65;
+.afc-sms-center .afc-sms-page-header .page-title {
+	font-size: 1.35rem;
+}
+
+.afc-sms-center .afc-sms-overview-card {
+	overflow: visible;
+}
+
+.afc-sms-overview-row {
+	display: grid;
+	grid-template-columns: minmax(190px, 1.35fr) repeat(3, minmax(80px, .55fr)) auto;
+	align-items: stretch;
+	min-height: 62px;
+}
+
+.afc-sms-overview-status,
+.afc-sms-overview-count {
+	display: flex;
+	align-items: center;
+	gap: .55rem;
+	padding: .65rem .9rem;
+	border-right: 1px solid var(--tblr-border-color, #e6e7e9);
+}
+
+.afc-sms-overview-status {
+	flex-wrap: wrap;
+}
+
+.afc-sms-overview-status > span,
+.afc-sms-overview-count > span {
+	color: var(--tblr-secondary, #667382);
+	font-size: .76rem;
+	text-transform: uppercase;
+	letter-spacing: .04em;
+}
+
+.afc-sms-overview-status small {
+	margin-left: auto;
+	color: var(--tblr-secondary, #667382);
+	font-size: .72rem;
+}
+
+.afc-sms-overview-count {
+	justify-content: center;
+}
+
+.afc-sms-overview-count strong {
+	font-size: 1.15rem;
+}
+
+.afc-sms-gateway-details {
+	position: relative;
+	display: flex;
+	align-items: stretch;
+}
+
+.afc-sms-gateway-details > summary {
+	display: flex;
+	align-items: center;
+	padding: .65rem 1rem;
+	color: #206bc4;
+	font-size: .78rem;
+	font-weight: 600;
+	cursor: pointer;
+	list-style: none;
+	white-space: nowrap;
+}
+
+.afc-sms-gateway-details > summary::-webkit-details-marker {
+	display: none;
+}
+
+.afc-sms-gateway-popover {
+	position: absolute;
+	top: calc(100% + 8px);
+	right: 0;
+	z-index: 20;
+	display: grid;
+	width: min(430px, 88vw);
+	gap: .7rem;
+	padding: 1rem;
+	border: 1px solid #dce3ea;
+	border-radius: 12px;
+	background: #fff;
+	box-shadow: 0 18px 50px rgba(30, 41, 59, .18);
+}
+
+.afc-sms-gateway-popover > div:not(.afc-sms-secret) {
+	display: grid;
+	grid-template-columns: 110px minmax(0, 1fr);
+	gap: .75rem;
+	align-items: start;
+}
+
+.afc-sms-gateway-popover span {
+	color: #64748b;
+	font-size: .75rem;
+}
+
+.afc-sms-gateway-popover strong,
+.afc-sms-gateway-popover code {
+	min-width: 0;
+	font-size: .78rem;
+	word-break: break-word;
 }
 
 .afc-sms-center .afc-sms-secret {
 	border: 1px solid rgba(32, 107, 196, .25);
-	background: rgba(32, 107, 196, .06);
 	border-radius: .5rem;
-	padding: 1rem;
-}
-
-.afc-sms-center .afc-sms-ppp-list {
-	max-height: 340px;
-	overflow: auto;
-	background: var(--tblr-bg-surface, #fff);
-}
-
-.afc-sms-center .afc-sms-ppp-row {
-	display: grid;
-	grid-template-columns: auto minmax(0, 1fr) auto;
-	gap: .75rem;
-	align-items: center;
-	padding: .8rem 1rem;
-	border-bottom: 1px solid var(--tblr-border-color, #e6e7e9);
-	cursor: pointer;
-}
-
-.afc-sms-center .afc-sms-ppp-row:last-child {
-	border-bottom: 0;
-}
-
-.afc-sms-center .afc-sms-ppp-row:hover {
-	background: rgba(32, 107, 196, .05);
-}
-
-.afc-sms-center .afc-sms-ppp-row:has(input:checked) {
-	background: rgba(32, 107, 196, .1);
-	box-shadow: inset 3px 0 0 #206bc4;
-}
-
-.afc-sms-center .afc-sms-ppp-row.is-unavailable {
-	cursor: not-allowed;
-	opacity: .58;
-}
-
-.afc-sms-center .afc-sms-ppp-main {
-	display: flex;
-	min-width: 0;
-	flex-direction: column;
-}
-
-.afc-sms-center .afc-sms-ppp-main strong,
-.afc-sms-center .afc-sms-ppp-main span {
-	overflow: hidden;
-	text-overflow: ellipsis;
-	white-space: nowrap;
-}
-
-.afc-sms-center .afc-sms-ppp-issue {
-	font-size: .75rem;
-	font-weight: 600;
-	color: var(--tblr-danger, #d63939);
+	background: rgba(32, 107, 196, .06);
+	padding: .75rem;
 }
 
 #afc-sms-device-state .badge {
-	font-size: .8rem;
+	font-size: .75rem;
 	text-transform: capitalize;
 }
 
@@ -73,8 +122,9 @@
 
 .afc-sms-chat-layout {
 	display: grid;
-	grid-template-columns: minmax(280px, 34%) minmax(0, 1fr);
-	min-height: 660px;
+	grid-template-columns: minmax(390px, 42%) minmax(0, 1fr);
+	height: clamp(520px, calc(100vh - 235px), 760px);
+	min-height: 520px;
 	background: #fff;
 }
 
@@ -88,15 +138,16 @@
 
 .afc-sms-conversation-heading {
 	display: flex;
-	min-height: 76px;
+	min-height: 62px;
 	align-items: center;
 	justify-content: space-between;
-	padding: 1rem 1.1rem;
+	gap: .75rem;
+	padding: .65rem .85rem;
 	border-bottom: 1px solid var(--tblr-border-color, #e6e7e9);
 }
 
 .afc-sms-conversation-search {
-	padding: .75rem 1rem;
+	padding: .55rem .75rem;
 	border-bottom: 1px solid var(--tblr-border-color, #e6e7e9);
 	background: #f8fafc;
 }
@@ -108,9 +159,8 @@
 }
 
 .afc-sms-conversation-item {
-	position: relative;
 	display: grid;
-	grid-template-columns: minmax(0, 1fr) 42px;
+	grid-template-columns: minmax(0, 1fr) 38px;
 	align-items: stretch;
 	border-bottom: 1px solid var(--tblr-border-color, #edf0f3);
 	background: #fff;
@@ -135,13 +185,13 @@
 
 .afc-sms-conversation-select {
 	display: grid;
-	grid-template-columns: 42px minmax(0, 1fr) auto;
-	gap: .75rem;
+	grid-template-columns: 38px minmax(105px, .8fr) minmax(120px, 1.25fr) auto;
+	gap: .6rem;
 	align-items: center;
 	min-width: 0;
-	padding: .9rem .25rem .9rem 1rem;
-	text-align: left;
+	padding: .68rem .15rem .68rem .75rem;
 	color: inherit;
+	text-align: left;
 }
 
 .afc-sms-conversation-select:focus-visible,
@@ -166,39 +216,46 @@
 }
 
 .afc-sms-list-avatar {
-	width: 42px;
-	height: 42px;
-	font-size: .78rem;
+	width: 38px;
+	height: 38px;
+	font-size: .72rem;
 }
 
-.afc-sms-list-main {
+.afc-sms-list-identity,
+.afc-sms-list-excerpt {
 	display: flex;
 	min-width: 0;
 	flex-direction: column;
-	gap: .2rem;
 }
 
-.afc-sms-list-main strong,
-.afc-sms-list-main span {
+.afc-sms-list-identity strong,
+.afc-sms-list-identity small,
+.afc-sms-list-excerpt {
 	overflow: hidden;
 	text-overflow: ellipsis;
 	white-space: nowrap;
 }
 
-.afc-sms-list-main strong {
-	font-size: .94rem;
+.afc-sms-list-identity strong {
+	font-size: .9rem;
+	font-weight: 700;
 }
 
-.afc-sms-list-main span {
-	color: var(--tblr-secondary, #667382);
-	font-size: .82rem;
+.afc-sms-list-identity small {
+	color: #64748b;
+	font-size: .7rem;
+}
+
+.afc-sms-list-excerpt {
+	color: #5f6b7a;
+	font-size: .8rem;
 }
 
 .afc-sms-list-meta {
 	align-self: start;
-	padding-top: .12rem;
-	color: var(--tblr-secondary, #667382);
-	font-size: .7rem;
+	padding-top: .08rem;
+	color: #7b8794;
+	font-size: .67rem;
 	white-space: nowrap;
 }
 
@@ -206,10 +263,10 @@
 	display: flex;
 	align-items: center;
 	justify-content: center;
-	width: 42px;
+	width: 38px;
 	padding: 0;
 	color: #667382;
-	font-size: 1.6rem;
+	font-size: 1.45rem;
 	line-height: 1;
 	cursor: pointer;
 }
@@ -232,19 +289,27 @@
 	min-width: 0;
 	flex-direction: column;
 	background: #eef2f7;
-	transition: transform .28s ease;
+	transition: transform .28s ease, filter .2s ease, opacity .2s ease;
 }
 
 .afc-sms-chat-layout.is-drawer-open .afc-sms-chat-main {
 	transform: translateX(-80px);
 }
 
+.afc-sms-chat-layout.is-composer-open .afc-sms-chat-main {
+	filter: blur(4px);
+	opacity: .65;
+	transform: scale(.995);
+	pointer-events: none;
+	user-select: none;
+}
+
 .afc-sms-chat-header {
 	display: flex;
-	min-height: 76px;
+	min-height: 62px;
 	align-items: center;
-	gap: .8rem;
-	padding: .9rem 1.25rem;
+	gap: .7rem;
+	padding: .65rem .9rem;
 	border-bottom: 1px solid var(--tblr-border-color, #dde3ea);
 	background: rgba(255, 255, 255, .96);
 	box-shadow: 0 2px 10px rgba(25, 42, 62, .04);
@@ -252,9 +317,9 @@
 }
 
 .afc-sms-chat-avatar {
-	width: 44px;
-	height: 44px;
-	font-size: .82rem;
+	width: 40px;
+	height: 40px;
+	font-size: .75rem;
 }
 
 .afc-sms-chat-contact {
@@ -272,18 +337,22 @@
 }
 
 .afc-sms-chat-contact span {
-	color: var(--tblr-secondary, #667382);
-	font-size: .82rem;
+	color: #667382;
+	font-size: .76rem;
+}
+
+.afc-sms-compose-selected[hidden] {
+	display: none !important;
 }
 
 .afc-sms-chat-close-drawer {
-	width: 36px;
-	height: 36px;
+	width: 34px;
+	height: 34px;
 	border: 0;
 	border-radius: 50%;
 	background: #edf2f7;
 	color: #475569;
-	font-size: 1.4rem;
+	font-size: 1.3rem;
 	line-height: 1;
 }
 
@@ -292,9 +361,9 @@
 	min-height: 0;
 	flex: 1;
 	flex-direction: column;
-	gap: .65rem;
+	gap: .58rem;
 	overflow-y: auto;
-	padding: 1.35rem clamp(1rem, 3vw, 2.2rem) 2rem;
+	padding: 1rem clamp(.85rem, 2.5vw, 1.8rem) 1.4rem;
 	background:
 		radial-gradient(circle at 16% 16%, rgba(32, 107, 196, .05), transparent 24%),
 		linear-gradient(180deg, #f5f7fa 0%, #eef2f7 100%);
@@ -315,9 +384,9 @@
 
 .afc-sms-message-bubble {
 	width: fit-content;
-	max-width: min(76%, 680px);
-	padding: .8rem .95rem .7rem;
-	border-radius: 18px;
+	max-width: min(78%, 680px);
+	padding: .72rem .85rem .62rem;
+	border-radius: 17px;
 	box-shadow: 0 5px 18px rgba(37, 51, 66, .08);
 	word-break: break-word;
 }
@@ -343,9 +412,9 @@
 	display: flex;
 	align-items: center;
 	justify-content: flex-end;
-	gap: .45rem;
-	margin-top: .45rem;
-	font-size: .7rem;
+	gap: .4rem;
+	margin-top: .4rem;
+	font-size: .68rem;
 	opacity: .9;
 }
 
@@ -360,26 +429,26 @@
 }
 
 .afc-sms-message-detail {
-	margin-top: .45rem;
-	padding-top: .45rem;
+	margin-top: .4rem;
+	padding-top: .4rem;
 	border-top: 1px solid rgba(255, 255, 255, .2);
-	font-size: .72rem;
+	font-size: .7rem;
 	opacity: .86;
 }
 
 .afc-sms-status-line {
 	display: grid;
 	grid-template-columns: auto minmax(0, 1fr) auto;
-	gap: .5rem;
+	gap: .45rem;
 	align-items: center;
 	align-self: center;
-	max-width: 80%;
-	padding: .35rem .65rem;
+	max-width: 84%;
+	padding: .3rem .55rem;
 	border: 1px solid #dde4eb;
 	border-radius: 999px;
 	background: rgba(255, 255, 255, .78);
 	color: #64748b;
-	font-size: .72rem;
+	font-size: .68rem;
 	box-shadow: 0 2px 8px rgba(30, 41, 59, .04);
 }
 
@@ -395,12 +464,152 @@
 
 .afc-sms-chat-empty {
 	display: flex;
-	min-height: 150px;
+	min-height: 120px;
 	align-items: center;
 	justify-content: center;
-	padding: 1.5rem;
-	color: var(--tblr-secondary, #667382);
+	padding: 1.2rem;
+	color: #667382;
 	text-align: center;
+}
+
+.afc-sms-composer-backdrop {
+	position: absolute;
+	inset: 0;
+	z-index: 7;
+	background: rgba(15, 23, 42, .22);
+	backdrop-filter: blur(1px);
+}
+
+.afc-sms-composer {
+	position: absolute;
+	top: 50%;
+	left: 50%;
+	z-index: 8;
+	display: flex;
+	width: min(620px, calc(100% - 34px));
+	max-height: calc(100% - 34px);
+	flex-direction: column;
+	border: 1px solid #dce3ea;
+	border-radius: 16px;
+	background: #fff;
+	box-shadow: 0 26px 70px rgba(15, 23, 42, .28);
+	transform: translate(-50%, -48%) scale(.98);
+	opacity: 0;
+	transition: transform .2s ease, opacity .2s ease;
+}
+
+.afc-sms-chat-layout.is-composer-open .afc-sms-composer {
+	transform: translate(-50%, -50%) scale(1);
+	opacity: 1;
+}
+
+.afc-sms-composer-header,
+.afc-sms-composer-footer {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 1rem;
+	padding: .8rem 1rem;
+}
+
+.afc-sms-composer-header {
+	border-bottom: 1px solid #e6eaf0;
+}
+
+.afc-sms-composer-header > div {
+	display: flex;
+	min-width: 0;
+	flex-direction: column;
+}
+
+.afc-sms-composer-header strong,
+.afc-sms-composer-header span {
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.afc-sms-composer-header span {
+	color: #64748b;
+	font-size: .75rem;
+}
+
+.afc-sms-composer-body {
+	min-height: 0;
+	overflow-y: auto;
+	padding: .9rem 1rem;
+}
+
+.afc-sms-composer-search-row {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) auto;
+	gap: .55rem;
+}
+
+.afc-sms-center .afc-sms-ppp-list {
+	max-height: 150px;
+	overflow: auto;
+	background: #fff;
+}
+
+.afc-sms-center .afc-sms-ppp-row {
+	display: grid;
+	grid-template-columns: auto minmax(0, 1fr) auto;
+	gap: .65rem;
+	align-items: center;
+	padding: .55rem .7rem;
+	border-bottom: 1px solid #e6e7e9;
+	cursor: pointer;
+}
+
+.afc-sms-center .afc-sms-ppp-row:last-child {
+	border-bottom: 0;
+}
+
+.afc-sms-center .afc-sms-ppp-row:hover,
+.afc-sms-center .afc-sms-ppp-row:has(input:checked) {
+	background: rgba(32, 107, 196, .07);
+}
+
+.afc-sms-center .afc-sms-ppp-row:has(input:checked) {
+	box-shadow: inset 3px 0 0 #206bc4;
+}
+
+.afc-sms-center .afc-sms-ppp-row.is-unavailable {
+	cursor: not-allowed;
+	opacity: .55;
+}
+
+.afc-sms-center .afc-sms-ppp-main {
+	display: flex;
+	min-width: 0;
+	flex-direction: column;
+}
+
+.afc-sms-center .afc-sms-ppp-main strong,
+.afc-sms-center .afc-sms-ppp-main span {
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.afc-sms-center .afc-sms-ppp-main strong {
+	font-size: .82rem;
+}
+
+.afc-sms-center .afc-sms-ppp-main span {
+	font-size: .72rem;
+}
+
+.afc-sms-center .afc-sms-ppp-issue {
+	color: var(--tblr-danger, #d63939);
+	font-size: .7rem;
+	font-weight: 600;
+}
+
+.afc-sms-composer-footer {
+	border-top: 1px solid #e6eaf0;
+	background: #f8fafc;
 }
 
 .afc-sms-chat-drawer {
@@ -425,11 +634,11 @@
 
 .afc-sms-drawer-header {
 	display: flex;
-	min-height: 76px;
+	min-height: 62px;
 	align-items: center;
 	justify-content: space-between;
 	gap: 1rem;
-	padding: 1rem 1.1rem;
+	padding: .75rem .9rem;
 	border-bottom: 1px solid #e6eaf0;
 }
 
@@ -441,13 +650,13 @@
 }
 
 .afc-sms-drawer-tabs button {
-	min-height: 52px;
-	padding: .55rem .4rem;
+	min-height: 46px;
+	padding: .45rem .35rem;
 	border: 0;
 	border-right: 1px solid #e6eaf0;
 	background: transparent;
 	color: #475569;
-	font-size: .72rem;
+	font-size: .68rem;
 	font-weight: 600;
 }
 
@@ -464,11 +673,11 @@
 	min-height: 0;
 	flex: 1;
 	overflow-y: auto;
-	padding: 1rem;
+	padding: .85rem;
 }
 
 .afc-sms-drawer-content h4 {
-	margin: .5rem 0 1rem;
+	margin: .45rem 0 .85rem;
 }
 
 .afc-sms-drawer-option {
@@ -476,25 +685,23 @@
 	width: 100%;
 	flex-direction: column;
 	gap: .2rem;
-	margin-bottom: .65rem;
-	padding: .9rem;
+	margin-bottom: .55rem;
+	padding: .75rem;
 	border: 1px solid #dfe5ec;
-	border-radius: 12px;
+	border-radius: 10px;
 	background: #fff;
 	color: inherit;
 	text-align: left;
-	transition: border-color .15s ease, background .15s ease, transform .15s ease;
 }
 
 .afc-sms-drawer-option:hover {
 	border-color: rgba(32, 107, 196, .45);
 	background: rgba(32, 107, 196, .05);
-	transform: translateY(-1px);
 }
 
 .afc-sms-drawer-option span {
 	color: #64748b;
-	font-size: .78rem;
+	font-size: .75rem;
 }
 
 .afc-sms-drawer-back {
@@ -506,10 +713,10 @@
 }
 
 .afc-sms-delivery-card {
-	margin-bottom: .8rem;
-	padding: .9rem;
+	margin-bottom: .7rem;
+	padding: .75rem;
 	border: 1px solid #dfe5ec;
-	border-radius: 12px;
+	border-radius: 10px;
 	background: #fff;
 }
 
@@ -521,19 +728,19 @@
 }
 
 .afc-sms-delivery-card p {
-	margin: .65rem 0 .45rem;
+	margin: .55rem 0 .4rem;
 	white-space: pre-wrap;
 }
 
 .afc-sms-delivery-meta,
 .afc-sms-delivery-detail {
 	color: #64748b;
-	font-size: .74rem;
+	font-size: .72rem;
 }
 
 .afc-sms-delivery-detail {
-	margin-top: .45rem;
-	padding: .55rem;
+	margin-top: .4rem;
+	padding: .5rem;
 	border-radius: 8px;
 	background: #f3f6f9;
 }
@@ -541,18 +748,18 @@
 .afc-sms-delivery-history {
 	display: flex;
 	flex-direction: column;
-	gap: .35rem;
-	margin-top: .65rem;
-	padding-top: .65rem;
+	gap: .32rem;
+	margin-top: .55rem;
+	padding-top: .55rem;
 	border-top: 1px dashed #dce3ea;
 }
 
 .afc-sms-delivery-history > div {
 	display: grid;
 	grid-template-columns: auto minmax(0, 1fr);
-	gap: .45rem;
+	gap: .4rem;
 	align-items: start;
-	font-size: .74rem;
+	font-size: .72rem;
 }
 
 .afc-sms-delivery-history small {
@@ -564,7 +771,7 @@
 	display: flex;
 	flex-direction: column;
 	border: 1px solid #dfe5ec;
-	border-radius: 12px;
+	border-radius: 10px;
 	overflow: hidden;
 }
 
@@ -573,7 +780,7 @@
 	align-items: flex-start;
 	justify-content: space-between;
 	gap: 1rem;
-	padding: .8rem .9rem;
+	padding: .7rem .8rem;
 	border-bottom: 1px solid #edf0f3;
 }
 
@@ -583,7 +790,7 @@
 
 .afc-sms-detail-row span {
 	color: #64748b;
-	font-size: .78rem;
+	font-size: .75rem;
 }
 
 .afc-sms-detail-row strong {
@@ -592,39 +799,74 @@
 	word-break: break-word;
 }
 
+@media (max-width: 1199.98px) {
+	.afc-sms-chat-layout {
+		grid-template-columns: minmax(330px, 42%) minmax(0, 1fr);
+	}
+
+	.afc-sms-conversation-select {
+		grid-template-columns: 36px minmax(100px, .9fr) minmax(90px, 1fr) auto;
+	}
+}
+
 @media (max-width: 991.98px) {
+	.afc-sms-overview-row {
+		grid-template-columns: 1.4fr repeat(3, .55fr) auto;
+	}
+
 	.afc-sms-chat-layout {
 		grid-template-columns: 310px minmax(0, 1fr);
-		min-height: 620px;
+		height: 650px;
+	}
+
+	.afc-sms-list-excerpt {
+		display: none;
+	}
+
+	.afc-sms-conversation-select {
+		grid-template-columns: 36px minmax(0, 1fr) auto;
 	}
 
 	.afc-sms-message-bubble {
-		max-width: 86%;
+		max-width: 88%;
 	}
 }
 
 @media (max-width: 767.98px) {
-	.afc-sms-center .afc-sms-ppp-row {
-		grid-template-columns: auto minmax(0, 1fr);
+	.afc-sms-overview-row {
+		grid-template-columns: 1fr repeat(3, auto);
 	}
 
-	.afc-sms-center .afc-sms-ppp-issue {
-		grid-column: 2;
+	.afc-sms-overview-status {
+		grid-column: 1 / -1;
+		border-right: 0;
+		border-bottom: 1px solid #e6e7e9;
+	}
+
+	.afc-sms-overview-count {
+		padding: .5rem;
+	}
+
+	.afc-sms-gateway-details {
+		grid-column: 1 / -1;
+		justify-content: center;
+		border-top: 1px solid #e6e7e9;
 	}
 
 	.afc-sms-chat-layout {
 		display: block;
+		height: auto;
 		min-height: auto;
 	}
 
 	.afc-sms-conversation-column {
-		height: 360px;
+		height: 330px;
 		border-right: 0;
-		border-bottom: 1px solid var(--tblr-border-color, #e6e7e9);
+		border-bottom: 1px solid #e6e7e9;
 	}
 
 	.afc-sms-chat-column {
-		height: 620px;
+		height: 600px;
 	}
 
 	.afc-sms-chat-layout.is-drawer-open .afc-sms-chat-main {
@@ -635,8 +877,21 @@
 		width: min(360px, 92%);
 	}
 
+	.afc-sms-composer {
+		width: calc(100% - 20px);
+		max-height: calc(100% - 20px);
+	}
+
 	.afc-sms-message-bubble,
 	.afc-sms-status-line {
-		max-width: 92%;
+		max-width: 94%;
+	}
+
+	.afc-sms-center .afc-sms-ppp-row {
+		grid-template-columns: auto minmax(0, 1fr);
+	}
+
+	.afc-sms-center .afc-sms-ppp-issue {
+		grid-column: 2;
 	}
 }
