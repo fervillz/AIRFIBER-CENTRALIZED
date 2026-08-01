@@ -3,6 +3,7 @@
 
 	let profiles = [];
 	let users = [];
+	let serviceAreas = Array.isArray( afcPPPManager.serviceAreas ) ? afcPPPManager.serviceAreas : [];
 	let loaded = false;
 	let loadingPromise = null;
 	let createStep = 1;
@@ -108,6 +109,69 @@
 		} ).join( '' ) );
 	}
 
+	function addressSuggestions() {
+		const suggestions = [];
+		const seen = new Set();
+		serviceAreas.forEach( function ( area ) {
+			const name = String( area.name || '' ).trim();
+			if ( ! name ) {
+				return;
+			}
+			if ( ! seen.has( name.toLowerCase() ) ) {
+				suggestions.push( name );
+				seen.add( name.toLowerCase() );
+			}
+			( Array.isArray( area.zones ) ? area.zones : [] ).forEach( function ( zone ) {
+				const text = 'Zone ' + zone + ', ' + name;
+				if ( ! seen.has( text.toLowerCase() ) ) {
+					suggestions.push( text );
+					seen.add( text.toLowerCase() );
+				}
+			} );
+		} );
+		return suggestions;
+	}
+
+	function initializeAddressSelect( element, selectedValue ) {
+		const $select = $( element );
+		if ( ! $select.length ) {
+			return;
+		}
+		const value = undefined === selectedValue ? String( $select.val() || '' ) : String( selectedValue || '' );
+		if ( $select.hasClass( 'select2-hidden-accessible' ) ) {
+			$select.select2( 'destroy' );
+		}
+		$select.empty().append( $( '<option>', { value: '', text: '' } ) );
+		addressSuggestions().forEach( function ( suggestion ) {
+			$select.append( $( '<option>', { value: suggestion, text: suggestion } ) );
+		} );
+		if ( value && ! $select.find( 'option' ).filter( function () { return this.value === value; } ).length ) {
+			$select.append( $( '<option>', { value: value, text: value } ) );
+		}
+		$select.val( value );
+
+		if ( $.fn.select2 ) {
+			const $dialog = $select.closest( 'dialog' );
+			$select.select2( {
+				width: '100%',
+				tags: true,
+				placeholder: $select.data( 'placeholder' ) || 'Type zone, barangay, or complete address',
+				allowClear: true,
+				dropdownParent: $dialog.length ? $dialog : $( document.body ),
+				createTag: function ( params ) {
+					const term = String( params.term || '' ).trim();
+					return term ? { id: term, text: term, newTag: true } : null;
+				}
+			} );
+		}
+	}
+
+	function initializeAddressSelects() {
+		$( '.afc-address-select' ).each( function () {
+			initializeAddressSelect( this );
+		} );
+	}
+
 	function pascalName( value ) {
 		return String( value || '' ).normalize( 'NFD' ).replace( /[\u0300-\u036f]/g, '' )
 			.split( /[^A-Za-z0-9]+/ ).filter( Boolean )
@@ -129,11 +193,18 @@
 		createStep = 1;
 		selectedPlan = '';
 		installerLogin = '';
-		$( '#afc-ppp-create-form' )[ 0 ].reset();
+		const form = $( '#afc-ppp-create-form' )[ 0 ];
+		if ( form ) {
+			form.reset();
+		}
 		$( '#afc-new-ppp-installed-advanced' ).val( afcPPPManager.currentDate );
 		$( '#afc-ppp-create-success' ).prop( 'hidden', true );
 		$( '#afc-created-ppp-username' ).text( '' );
+		$( '#afc-copy-installer-login' ).text( 'Copy installer login' );
 		clearNotice( '#afc-ppp-create-notice' );
+		$( '#afc-ppp-create-dialog .afc-created-hidden' ).removeClass( 'afc-created-hidden' );
+		initializeAddressSelect( '#afc-new-ppp-address', '' );
+		initializeAddressSelect( '#afc-new-ppp-address-advanced', '' );
 		renderPlanCards();
 		showCreateStep();
 	}
@@ -153,14 +224,18 @@
 	}
 
 	function basicCreateFieldsValid() {
-		const fields = [ '#afc-new-ppp-name', '#afc-new-ppp-phone', '#afc-new-ppp-address' ];
+		const fields = [ '#afc-new-ppp-name', '#afc-new-ppp-phone' ];
 		let valid = true;
 		fields.forEach( function ( selector ) {
 			const element = $( selector )[ 0 ];
-			if ( ! element.reportValidity() ) {
+			if ( element && ! element.reportValidity() ) {
 				valid = false;
 			}
 		} );
+		if ( ! $( '#afc-new-ppp-address' ).val() ) {
+			showNotice( '#afc-ppp-create-notice', 'Choose or type the customer address.', 'warning' );
+			valid = false;
+		}
 		return valid;
 	}
 
@@ -213,7 +288,7 @@
 			installerLogin = 'PPP username: ' + user.username + '\nPPP password: ' + response.data.password;
 			$( '#afc-created-ppp-username' ).text( user.username );
 			$( '#afc-ppp-create-success' ).prop( 'hidden', false );
-			$( '.afc-ppp-wizard, .afc-ppp-advanced-grid, .afc-ppp-wizard-actions, #afc-ppp-create-submit-advanced' ).addClass( 'afc-created-hidden' );
+			$( '#afc-ppp-create-dialog' ).find( '.afc-ppp-wizard, .afc-ppp-advanced-grid, .afc-ppp-wizard-actions, #afc-ppp-create-submit-advanced' ).addClass( 'afc-created-hidden' );
 			showNotice( '#afc-ppp-create-notice', response.data.message, 'success' );
 			loadData( true );
 			$( '#afc-refresh-ppp' ).trigger( 'click' );
@@ -255,7 +330,7 @@
 		$( '#afc-edit-heading-profile' ).text( selectedUser.profile );
 		$( '#afc-edit-ppp-name' ).val( selectedUser.customer_name );
 		$( '#afc-edit-ppp-phone' ).val( selectedUser.phone );
-		$( '#afc-edit-ppp-address' ).val( selectedUser.address );
+		initializeAddressSelect( '#afc-edit-ppp-address', selectedUser.address );
 		populateProfileSelects();
 		$( '#afc-edit-ppp-profile' ).val( selectedUser.profile );
 		$( '#afc-edit-ppp-installed-basic, #afc-edit-ppp-installed' ).val( selectedUser.installed );
@@ -352,6 +427,60 @@
 		} );
 	}
 
+	function serviceAreaRow( area ) {
+		area = area || {};
+		return '<div class="afc-service-area-row">' +
+			'<input class="form-control" data-area-field="name" type="text" value="' + escapeAttr( area.name || '' ) + '" placeholder="Lingion">' +
+			'<input class="form-control" data-area-field="zones" type="text" value="' + escapeAttr( ( area.zones || [] ).join( ', ' ) ) + '" placeholder="1, 2, 3">' +
+			'<input class="form-control" data-area-field="latitude" type="number" step="0.0000001" value="' + escapeAttr( area.latitude || '' ) + '" placeholder="Optional">' +
+			'<input class="form-control" data-area-field="longitude" type="number" step="0.0000001" value="' + escapeAttr( area.longitude || '' ) + '" placeholder="Optional">' +
+			'<button class="btn btn-outline-danger btn-sm afc-remove-service-area" type="button" aria-label="Remove service area">×</button>' +
+			'</div>';
+	}
+
+	function renderServiceAreas() {
+		const rows = serviceAreas.length ? serviceAreas : [ { name: '', zones: [], latitude: '', longitude: '' } ];
+		$( '#afc-service-area-rows' ).html( rows.map( serviceAreaRow ).join( '' ) );
+	}
+
+	function collectServiceAreas() {
+		const areas = [];
+		$( '#afc-service-area-rows .afc-service-area-row' ).each( function () {
+			const $row = $( this );
+			const name = String( $row.find( '[data-area-field="name"]' ).val() || '' ).trim();
+			if ( ! name ) {
+				return;
+			}
+			areas.push( {
+				name: name,
+				zones: String( $row.find( '[data-area-field="zones"]' ).val() || '' ).split( ',' ).map( function ( zone ) { return zone.trim(); } ).filter( Boolean ),
+				latitude: $row.find( '[data-area-field="latitude"]' ).val(),
+				longitude: $row.find( '[data-area-field="longitude"]' ).val()
+			} );
+		} );
+		return areas;
+	}
+
+	function saveServiceAreas() {
+		const $button = $( '#afc-save-service-areas' );
+		$button.prop( 'disabled', true ).text( 'Saving…' );
+		clearNotice( '#afc-service-areas-notice' );
+		api( 'afc_ppp_manager_save_service_areas', { areas: JSON.stringify( collectServiceAreas() ) } ).done( function ( response ) {
+			if ( ! response.success ) {
+				showNotice( '#afc-service-areas-notice', errorMessage( response, 'Service areas could not be saved.' ), 'danger' );
+				return;
+			}
+			serviceAreas = response.data.areas || [];
+			renderServiceAreas();
+			initializeAddressSelects();
+			showNotice( '#afc-service-areas-notice', response.data.message, 'success' );
+		} ).fail( function () {
+			showNotice( '#afc-service-areas-notice', 'The request failed while saving service areas.', 'danger' );
+		} ).always( function () {
+			$button.prop( 'disabled', false ).text( 'Save Service Areas' );
+		} );
+	}
+
 	function openDialog( selector ) {
 		const dialog = document.querySelector( selector );
 		if ( ! dialog ) {
@@ -361,15 +490,27 @@
 			populateProfileSelects();
 			if ( '#afc-ppp-create-dialog' === selector ) {
 				resetCreate();
-				$( '.afc-created-hidden' ).removeClass( 'afc-created-hidden' );
 			} else {
 				renderManagerList();
 			}
 			dialog.showModal();
+			initializeAddressSelects();
 		} ).fail( function ( response ) {
 			window.alert( errorMessage( response, 'Could not load MikroTik PPP accounts.' ) );
 		} );
 	}
+
+	$( document ).on( 'submit', '#afc-ppp-create-form, #afc-ppp-manage-form, #afc-service-areas-form', function ( event ) {
+		event.preventDefault();
+	} );
+
+	$( document ).on( 'click', '[data-afc-dialog-close]', function ( event ) {
+		event.preventDefault();
+		const dialog = this.closest( 'dialog' );
+		if ( dialog && dialog.open ) {
+			dialog.close();
+		}
+	} );
 
 	$( document ).on( 'click', '#afc-add-ppp-account', function () {
 		openDialog( '#afc-ppp-create-dialog' );
@@ -378,6 +519,28 @@
 	$( document ).on( 'click', '#afc-find-edit-ppp', function () {
 		openDialog( '#afc-ppp-manage-dialog' );
 	} );
+
+	$( document ).on( 'click', '#afc-manage-service-areas', function () {
+		renderServiceAreas();
+		clearNotice( '#afc-service-areas-notice' );
+		const dialog = document.getElementById( 'afc-service-areas-dialog' );
+		if ( dialog ) {
+			dialog.showModal();
+		}
+	} );
+
+	$( document ).on( 'click', '#afc-add-service-area-row', function () {
+		$( '#afc-service-area-rows' ).append( serviceAreaRow( {} ) );
+	} );
+
+	$( document ).on( 'click', '.afc-remove-service-area', function () {
+		$( this ).closest( '.afc-service-area-row' ).remove();
+		if ( ! $( '#afc-service-area-rows .afc-service-area-row' ).length ) {
+			$( '#afc-service-area-rows' ).append( serviceAreaRow( {} ) );
+		}
+	} );
+
+	$( document ).on( 'click', '#afc-save-service-areas', saveServiceAreas );
 
 	$( document ).on( 'click', '.afc-ppp-plan-card', function () {
 		selectedPlan = this.dataset.profile || '';
@@ -419,8 +582,15 @@
 	$( document ).on( 'click', '.afc-ppp-manager-person', function () { selectUser( this.dataset.id ); } );
 	$( document ).on( 'click', '#afc-save-ppp-details', saveUser );
 
+	$( '#afc-ppp-create-dialog' ).on( 'close', function () {
+		resetCreate();
+	} );
+
 	const shell = document.getElementById( 'afc-frontend-app' );
 	if ( shell && window.MutationObserver ) {
-		new MutationObserver( function () { populateProfileSelects(); } ).observe( shell, { attributes: true, attributeFilter: [ 'data-afc-mode' ] } );
+		new MutationObserver( function () {
+			populateProfileSelects();
+			initializeAddressSelects();
+		} ).observe( shell, { attributes: true, attributeFilter: [ 'data-afc-mode' ] } );
 	}
 } )( jQuery );
