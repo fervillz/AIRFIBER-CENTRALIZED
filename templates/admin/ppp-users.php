@@ -12,8 +12,12 @@ defined( 'ABSPATH' ) || exit;
 					<p class="text-secondary mb-0"><?php esc_html_e( 'Record payments, add or edit PPP accounts, expire accounts, and restore service from one screen.', 'airfiber-centralized' ); ?></p>
 				</div>
 				<div class="col-auto ms-auto afc-ppp-header-actions">
-					<button class="btn btn-primary" id="afc-add-ppp-account" type="button"><?php esc_html_e( 'Add PPP', 'airfiber-centralized' ); ?></button>
+					<button class="btn btn-primary" id="afc-add-ppp-account" type="button" title="<?php esc_attr_e( 'Add PPP Account', 'airfiber-centralized' ); ?>" aria-label="<?php esc_attr_e( 'Add PPP Account', 'airfiber-centralized' ); ?>">
+						<span class="afc-add-ppp-basic-icon" aria-hidden="true">+</span>
+						<span class="afc-add-ppp-advanced-label"><?php esc_html_e( 'Add PPP', 'airfiber-centralized' ); ?></span>
+					</button>
 					<button class="btn btn-outline-primary" id="afc-find-edit-ppp" type="button"><?php esc_html_e( 'Find / Edit PPP', 'airfiber-centralized' ); ?></button>
+					<button class="btn btn-outline-primary afc-advanced-only" id="afc-manage-service-areas" type="button"><?php esc_html_e( 'Service Areas', 'airfiber-centralized' ); ?></button>
 					<button class="btn btn-outline-secondary" id="afc-refresh-ppp" type="button"><?php esc_html_e( 'Refresh MikroTik', 'airfiber-centralized' ); ?></button>
 				</div>
 			</div>
