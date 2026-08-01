@@ -3,13 +3,13 @@
 defined( 'ABSPATH' ) || exit;
 ?>
 <dialog id="afc-ppp-create-dialog" class="afc-dialog afc-ppp-manager-dialog">
-	<form method="dialog" id="afc-ppp-create-form">
+	<form id="afc-ppp-create-form">
 		<div class="afc-dialog-header">
 			<div>
 				<div class="text-secondary small"><?php esc_html_e( 'New internet customer', 'airfiber-centralized' ); ?></div>
 				<h3 class="mb-0"><?php esc_html_e( 'Add PPP Account', 'airfiber-centralized' ); ?></h3>
 			</div>
-			<button class="btn-close" value="cancel" aria-label="<?php esc_attr_e( 'Close', 'airfiber-centralized' ); ?>"></button>
+			<button class="btn-close" type="button" data-afc-dialog-close aria-label="<?php esc_attr_e( 'Close', 'airfiber-centralized' ); ?>"></button>
 		</div>
 
 		<div class="afc-dialog-body">
@@ -31,7 +31,8 @@ defined( 'ABSPATH' ) || exit;
 					<input class="form-control form-control-lg" id="afc-new-ppp-phone" name="phone" type="tel" inputmode="tel" autocomplete="tel" required>
 
 					<label class="form-label mt-3" for="afc-new-ppp-address"><?php esc_html_e( 'Address', 'airfiber-centralized' ); ?></label>
-					<textarea class="form-control form-control-lg" id="afc-new-ppp-address" name="address" rows="3" autocomplete="street-address" required></textarea>
+					<select class="form-select afc-address-select" id="afc-new-ppp-address" name="address" data-placeholder="<?php esc_attr_e( 'Type zone, barangay, or complete address', 'airfiber-centralized' ); ?>"><option value=""></option></select>
+					<p class="text-secondary small mt-2 mb-0"><?php esc_html_e( 'Choose a suggestion or type a complete custom address.', 'airfiber-centralized' ); ?></p>
 				</section>
 
 				<section class="afc-ppp-wizard-step" data-afc-create-step="2">
@@ -55,7 +56,7 @@ defined( 'ABSPATH' ) || exit;
 			<div class="afc-advanced-only afc-ppp-advanced-grid">
 				<div><label class="form-label" for="afc-new-ppp-name-advanced"><?php esc_html_e( 'Full name', 'airfiber-centralized' ); ?></label><input class="form-control" id="afc-new-ppp-name-advanced" type="text"></div>
 				<div><label class="form-label" for="afc-new-ppp-phone-advanced"><?php esc_html_e( 'CP number', 'airfiber-centralized' ); ?></label><input class="form-control" id="afc-new-ppp-phone-advanced" type="tel"></div>
-				<div class="afc-span-2"><label class="form-label" for="afc-new-ppp-address-advanced"><?php esc_html_e( 'Address', 'airfiber-centralized' ); ?></label><textarea class="form-control" id="afc-new-ppp-address-advanced" rows="2"></textarea></div>
+				<div class="afc-span-2"><label class="form-label" for="afc-new-ppp-address-advanced"><?php esc_html_e( 'Address', 'airfiber-centralized' ); ?></label><select class="form-select afc-address-select" id="afc-new-ppp-address-advanced" data-placeholder="<?php esc_attr_e( 'Type zone, barangay, or complete address', 'airfiber-centralized' ); ?>"><option value=""></option></select></div>
 				<div><label class="form-label" for="afc-new-ppp-profile-advanced"><?php esc_html_e( 'MikroTik profile / plan', 'airfiber-centralized' ); ?></label><select class="form-select" id="afc-new-ppp-profile-advanced"></select></div>
 				<div><label class="form-label" for="afc-new-ppp-installed-advanced"><?php esc_html_e( 'Installed date', 'airfiber-centralized' ); ?></label><input class="form-control" id="afc-new-ppp-installed-advanced" name="installed" type="date" value="<?php echo esc_attr( current_time( 'Y-m-d' ) ); ?>"></div>
 				<div class="afc-span-2"><label class="form-label" for="afc-new-ppp-username-advanced"><?php esc_html_e( 'PPP username', 'airfiber-centralized' ); ?></label><input class="form-control" id="afc-new-ppp-username-advanced" name="username" type="text" placeholder="<?php esc_attr_e( 'Leave blank to generate Name_Day_Plan', 'airfiber-centralized' ); ?>"></div>
@@ -64,12 +65,15 @@ defined( 'ABSPATH' ) || exit;
 			<div id="afc-ppp-create-success" class="afc-ppp-success" hidden>
 				<strong><?php esc_html_e( 'PPP account created', 'airfiber-centralized' ); ?></strong>
 				<code id="afc-created-ppp-username"></code>
-				<button class="btn btn-outline-primary btn-sm" id="afc-copy-installer-login" type="button"><?php esc_html_e( 'Copy installer login', 'airfiber-centralized' ); ?></button>
+				<div class="d-flex gap-2 flex-wrap">
+					<button class="btn btn-outline-primary btn-sm" id="afc-copy-installer-login" type="button"><?php esc_html_e( 'Copy installer login', 'airfiber-centralized' ); ?></button>
+					<button class="btn btn-success btn-sm" type="button" data-afc-dialog-close><?php esc_html_e( 'Done', 'airfiber-centralized' ); ?></button>
+				</div>
 			</div>
 		</div>
 
 		<div class="afc-dialog-footer">
-			<button class="btn btn-link" value="cancel"><?php esc_html_e( 'Close', 'airfiber-centralized' ); ?></button>
+			<button class="btn btn-link" type="button" data-afc-dialog-close><?php esc_html_e( 'Close', 'airfiber-centralized' ); ?></button>
 			<div class="afc-basic-only afc-ppp-wizard-actions">
 				<button class="btn btn-outline-secondary" id="afc-ppp-create-back" type="button" hidden><?php esc_html_e( 'Back', 'airfiber-centralized' ); ?></button>
 				<button class="btn btn-primary" id="afc-ppp-create-next" type="button"><?php esc_html_e( 'Next', 'airfiber-centralized' ); ?></button>
@@ -81,13 +85,13 @@ defined( 'ABSPATH' ) || exit;
 </dialog>
 
 <dialog id="afc-ppp-manage-dialog" class="afc-dialog afc-ppp-manager-dialog afc-ppp-manage-dialog">
-	<form method="dialog" id="afc-ppp-manage-form">
+	<form id="afc-ppp-manage-form">
 		<div class="afc-dialog-header">
 			<div>
 				<div class="text-secondary small"><?php esc_html_e( 'Search and update MikroTik PPP', 'airfiber-centralized' ); ?></div>
 				<h3 class="mb-0"><?php esc_html_e( 'Find / Edit PPP', 'airfiber-centralized' ); ?></h3>
 			</div>
-			<button class="btn-close" value="cancel" aria-label="<?php esc_attr_e( 'Close', 'airfiber-centralized' ); ?>"></button>
+			<button class="btn-close" type="button" data-afc-dialog-close aria-label="<?php esc_attr_e( 'Close', 'airfiber-centralized' ); ?>"></button>
 		</div>
 
 		<div class="afc-dialog-body afc-ppp-manage-body">
@@ -110,7 +114,7 @@ defined( 'ABSPATH' ) || exit;
 					<div class="afc-ppp-basic-fields">
 						<div><label class="form-label" for="afc-edit-ppp-name"><?php esc_html_e( 'Full name', 'airfiber-centralized' ); ?></label><input class="form-control" id="afc-edit-ppp-name" type="text" required></div>
 						<div><label class="form-label" for="afc-edit-ppp-phone"><?php esc_html_e( 'CP number', 'airfiber-centralized' ); ?></label><input class="form-control" id="afc-edit-ppp-phone" type="tel" required></div>
-						<div class="afc-span-2"><label class="form-label" for="afc-edit-ppp-address"><?php esc_html_e( 'Address', 'airfiber-centralized' ); ?></label><textarea class="form-control" id="afc-edit-ppp-address" rows="2" required></textarea></div>
+						<div class="afc-span-2"><label class="form-label" for="afc-edit-ppp-address"><?php esc_html_e( 'Address', 'airfiber-centralized' ); ?></label><select class="form-select afc-address-select" id="afc-edit-ppp-address" data-placeholder="<?php esc_attr_e( 'Type zone, barangay, or complete address', 'airfiber-centralized' ); ?>"><option value=""></option></select></div>
 						<div class="afc-span-2"><label class="form-label" for="afc-edit-ppp-profile"><?php esc_html_e( 'Plan', 'airfiber-centralized' ); ?></label><select class="form-select" id="afc-edit-ppp-profile" required></select></div>
 					</div>
 
@@ -142,8 +146,31 @@ defined( 'ABSPATH' ) || exit;
 		</div>
 
 		<div class="afc-dialog-footer">
-			<button class="btn btn-link" value="cancel"><?php esc_html_e( 'Close', 'airfiber-centralized' ); ?></button>
+			<button class="btn btn-link" type="button" data-afc-dialog-close><?php esc_html_e( 'Close', 'airfiber-centralized' ); ?></button>
 			<button class="btn btn-primary" id="afc-save-ppp-details" type="button" disabled><?php esc_html_e( 'Save PPP Details', 'airfiber-centralized' ); ?></button>
+		</div>
+	</form>
+</dialog>
+
+<dialog id="afc-service-areas-dialog" class="afc-dialog afc-ppp-manager-dialog afc-service-areas-dialog">
+	<form id="afc-service-areas-form">
+		<div class="afc-dialog-header">
+			<div>
+				<div class="text-secondary small"><?php esc_html_e( 'Address suggestions and future map centers', 'airfiber-centralized' ); ?></div>
+				<h3 class="mb-0"><?php esc_html_e( 'ISP Service Areas', 'airfiber-centralized' ); ?></h3>
+			</div>
+			<button class="btn-close" type="button" data-afc-dialog-close aria-label="<?php esc_attr_e( 'Close', 'airfiber-centralized' ); ?>"></button>
+		</div>
+		<div class="afc-dialog-body">
+			<div id="afc-service-areas-notice" aria-live="polite"></div>
+			<p class="text-secondary"><?php esc_html_e( 'Add the barangays covered by Airfiber. Zones are comma-separated. Optional center coordinates will later let the customer map open directly over that barangay.', 'airfiber-centralized' ); ?></p>
+			<div class="afc-service-area-headings" aria-hidden="true"><span><?php esc_html_e( 'Barangay / area', 'airfiber-centralized' ); ?></span><span><?php esc_html_e( 'Zones', 'airfiber-centralized' ); ?></span><span><?php esc_html_e( 'Center latitude', 'airfiber-centralized' ); ?></span><span><?php esc_html_e( 'Center longitude', 'airfiber-centralized' ); ?></span><span></span></div>
+			<div id="afc-service-area-rows" class="afc-service-area-rows"></div>
+			<button class="btn btn-outline-primary btn-sm mt-3" id="afc-add-service-area-row" type="button">+ <?php esc_html_e( 'Add barangay', 'airfiber-centralized' ); ?></button>
+		</div>
+		<div class="afc-dialog-footer">
+			<button class="btn btn-link" type="button" data-afc-dialog-close><?php esc_html_e( 'Close', 'airfiber-centralized' ); ?></button>
+			<button class="btn btn-primary" id="afc-save-service-areas" type="button"><?php esc_html_e( 'Save Service Areas', 'airfiber-centralized' ); ?></button>
 		</div>
 	</form>
 </dialog>
