@@ -1,0 +1,145 @@
+/* Keep the Advanced PPP editor roomy enough for billing and account fields. */
+#afc-ppp-manage-dialog.afc-ppp-manage-dialog {
+	width: min( 1280px, calc( 100vw - 28px ) ) !important;
+	max-width: 1280px !important;
+}
+
+#afc-ppp-manage-dialog .afc-ppp-manage-body {
+	grid-template-columns: minmax( 245px, 300px ) minmax( 0, 1fr );
+	min-height: min( 680px, 76vh );
+}
+
+#afc-ppp-manage-dialog .afc-ppp-manager-editor-pane {
+	min-width: 0;
+	padding: 24px 26px;
+}
+
+#afc-ppp-manage-dialog .afc-ppp-advanced-editor {
+	grid-template-columns: repeat( 3, minmax( 150px, 1fr ) );
+}
+
+#afc-ppp-manage-dialog .afc-ppp-basic-fields {
+	grid-template-columns: repeat( 2, minmax( 180px, 1fr ) );
+}
+
+#afc-ppp-manage-dialog .afc-delete-ppp-account {
+	margin-right: auto;
+}
+
+/* The Basic screen gets its own always-visible, child-friendly Add button. */
+.afc-admin-page .afc-basic-payment-heading {
+	position: relative;
+	padding-right: 72px;
+	padding-left: 72px;
+}
+
+.afc-admin-page .afc-basic-add-ppp {
+	position: absolute;
+	right: 0;
+	top: 2px;
+	display: grid;
+	width: 54px;
+	height: 54px;
+	place-items: center;
+	padding: 0;
+	border: 0;
+	border-radius: 50%;
+	background: var(--tblr-success, #2fb344);
+	color: #fff;
+	box-shadow: 0 10px 24px rgba( 47, 179, 68, .28 );
+	cursor: pointer;
+	transition: transform .16s ease, box-shadow .16s ease, filter .16s ease;
+}
+
+.afc-admin-page .afc-basic-add-ppp span {
+	font-size: 2rem;
+	font-weight: 400;
+	line-height: .8;
+}
+
+.afc-admin-page .afc-basic-add-ppp small {
+	position: absolute;
+	top: calc( 100% + 6px );
+	left: 50%;
+	width: max-content;
+	color: var(--tblr-success, #2fb344);
+	font-size: .66rem;
+	font-weight: 800;
+	line-height: 1;
+	transform: translateX( -50% );
+}
+
+.afc-admin-page .afc-basic-add-ppp:hover,
+.afc-admin-page .afc-basic-add-ppp:focus-visible {
+	filter: brightness( .97 );
+	outline: 4px solid rgba( 47, 179, 68, .16 );
+	box-shadow: 0 13px 28px rgba( 47, 179, 68, .34 );
+	transform: translateY( -2px );
+}
+
+.afc-basic-supplemental-result .afc-basic-customer-side span {
+	font-weight: 700;
+}
+
+/* Migration rows with bad source data must tell the administrator how to fix them. */
+.afc-comment-migration-table thead .afc-migration-check {
+	width: 48px;
+	text-align: center;
+}
+
+.afc-comment-migration-table [data-afc-migration-head-check] {
+	width: 17px;
+	height: 17px;
+	cursor: pointer;
+}
+
+.afc-migration-fix-button {
+	display: block;
+	margin-top: 9px;
+}
+
+.afc-migration-fix-help {
+	display: block;
+	margin-top: 5px;
+	color: var(--tblr-secondary, #667382);
+	font-size: .7rem;
+	line-height: 1.35;
+}
+
+@media ( max-width: 1040px ) {
+	#afc-ppp-manage-dialog .afc-ppp-manage-body {
+		grid-template-columns: 235px minmax( 0, 1fr );
+	}
+
+	#afc-ppp-manage-dialog .afc-ppp-advanced-editor {
+		grid-template-columns: repeat( 2, minmax( 150px, 1fr ) );
+	}
+}
+
+@media ( max-width: 780px ) {
+	#afc-ppp-manage-dialog .afc-ppp-manage-body {
+		grid-template-columns: 1fr;
+		min-height: 0;
+	}
+
+	#afc-ppp-manage-dialog .afc-ppp-manager-list-pane {
+		max-height: 230px;
+		border-right: 0;
+		border-bottom: 1px solid var(--tblr-border-color, #e5e9ee);
+	}
+
+	#afc-ppp-manage-dialog .afc-ppp-advanced-editor,
+	#afc-ppp-manage-dialog .afc-ppp-basic-fields {
+		grid-template-columns: 1fr;
+	}
+
+	.afc-admin-page .afc-basic-payment-heading {
+		padding-right: 64px;
+		padding-left: 0;
+		text-align: left;
+	}
+
+	.afc-admin-page .afc-basic-payment-heading p {
+		margin-left: 0;
+	}
+}
