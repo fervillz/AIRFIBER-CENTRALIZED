@@ -9,10 +9,12 @@ defined( 'ABSPATH' ) || exit;
 				<div class="col">
 					<div class="page-pretitle"><?php esc_html_e( 'Airfiber - Centralized', 'airfiber-centralized' ); ?></div>
 					<h2 class="page-title"><?php esc_html_e( 'Billing & PPP Operations', 'airfiber-centralized' ); ?></h2>
-					<p class="text-secondary mb-0"><?php esc_html_e( 'Record payments, expire accounts, and restore service from one screen.', 'airfiber-centralized' ); ?></p>
+					<p class="text-secondary mb-0"><?php esc_html_e( 'Record payments, add or edit PPP accounts, expire accounts, and restore service from one screen.', 'airfiber-centralized' ); ?></p>
 				</div>
-				<div class="col-auto ms-auto">
-					<button class="btn btn-outline-primary" id="afc-refresh-ppp" type="button"><?php esc_html_e( 'Refresh MikroTik', 'airfiber-centralized' ); ?></button>
+				<div class="col-auto ms-auto afc-ppp-header-actions">
+					<button class="btn btn-primary" id="afc-add-ppp-account" type="button"><?php esc_html_e( 'Add PPP', 'airfiber-centralized' ); ?></button>
+					<button class="btn btn-outline-primary" id="afc-find-edit-ppp" type="button"><?php esc_html_e( 'Find / Edit PPP', 'airfiber-centralized' ); ?></button>
+					<button class="btn btn-outline-secondary" id="afc-refresh-ppp" type="button"><?php esc_html_e( 'Refresh MikroTik', 'airfiber-centralized' ); ?></button>
 				</div>
 			</div>
 		</div>
@@ -120,4 +122,6 @@ defined( 'ABSPATH' ) || exit;
 			</div>
 		</form>
 	</dialog>
+
+	<?php include AFC_PATH . 'templates/admin/ppp-manager.php'; ?>
 </div>
