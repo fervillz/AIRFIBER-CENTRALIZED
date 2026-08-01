@@ -1,0 +1,4 @@
+/* The creation success state must stay inside the creation dialog. */
+.afc-ppp-manage-dialog .afc-ppp-advanced-grid.afc-created-hidden {
+	display: grid !important;
+}
