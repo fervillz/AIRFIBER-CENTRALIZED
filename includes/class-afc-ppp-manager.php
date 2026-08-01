@@ -82,6 +82,7 @@ class AFC_PPP_Manager {
 
 	private static function enqueue_assets() {
 		wp_enqueue_style( 'afc-ppp-manager', AFC_URL . 'assets/css/ppp-manager.css', array( 'afc-admin-compat' ), AFC_VERSION );
+		wp_enqueue_style( 'afc-ppp-manager-fixes', AFC_URL . 'assets/css/ppp-manager-fixes.css', array( 'afc-ppp-manager' ), AFC_VERSION );
 		wp_enqueue_script( 'afc-ppp-manager', AFC_URL . 'assets/js/ppp-manager.js', array( 'jquery', 'afc-ppp-users' ), AFC_VERSION, true );
 		wp_localize_script(
 			'afc-ppp-manager',
