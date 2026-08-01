@@ -33,7 +33,11 @@ trait AFC_PPP_Manager_Create_Trait {
 		if ( $duplicate ) {
 			wp_send_json_error( array( 'message' => sprintf( __( 'PPP username %s already exists.', 'airfiber-centralized' ), $username ) ) );
 		}
-		$password = wp_generate_password( 12, false, false );
+		$password = apply_filters( 'afc_ppp_new_password', wp_generate_password( 12, false, false ), $username, $profile );
+		$password = is_scalar( $password ) ? substr( (string) $password, 0, 64 ) : '';
+		if ( strlen( $password ) < 8 ) {
+			wp_send_json_error( array( 'message' => __( 'The configured PPP password is invalid. Open PPP Settings and save a password with at least 8 characters.', 'airfiber-centralized' ) ) );
+		}
 		$amount   = self::amount_from_profile( $profile, '' );
 		$comment  = self::build_comment( '', array_merge( $dates, array(
 			'grace'         => 3,
