@@ -11,7 +11,7 @@ $device = isset( $snapshot['device'] ) ? $snapshot['device'] : array();
 					<div class="col">
 						<div class="page-pretitle"><?php esc_html_e( 'Airfiber - Centralized', 'airfiber-centralized' ); ?></div>
 						<h2 class="page-title"><?php esc_html_e( 'SMS Center', 'airfiber-centralized' ); ?></h2>
-						<p class="text-secondary mb-0"><?php esc_html_e( 'Connect the dedicated Android phone, approve one PPP test message, and follow its delivery status.', 'airfiber-centralized' ); ?></p>
+						<p class="text-secondary mb-0"><?php esc_html_e( 'Connect the Android gateway, approve messages, and manage delivery and customer replies as conversations.', 'airfiber-centralized' ); ?></p>
 					</div>
 					<div class="col-auto ms-auto">
 						<button class="btn btn-outline-primary" id="afc-sms-refresh" type="button"><?php esc_html_e( 'Refresh Status', 'airfiber-centralized' ); ?></button>
@@ -55,7 +55,7 @@ $device = isset( $snapshot['device'] ) ? $snapshot['device'] : array();
 
 				<div class="col-xl-7">
 					<div class="card h-100">
-						<div class="card-header"><div><h3 class="card-title"><?php esc_html_e( '2. Queue One PPP Test SMS', 'airfiber-centralized' ); ?></h3><p class="card-subtitle"><?php esc_html_e( 'The phone sends only after you approve this queue item and tap Process queue now.', 'airfiber-centralized' ); ?></p></div></div>
+						<div class="card-header"><div><h3 class="card-title"><?php esc_html_e( '2. Queue One PPP Test SMS', 'airfiber-centralized' ); ?></h3><p class="card-subtitle"><?php esc_html_e( 'Approve a message here. When automatic mode is enabled on the phone, it is sent without pressing Process queue now.', 'airfiber-centralized' ); ?></p></div></div>
 						<div class="card-body">
 							<div class="row g-2 mb-3">
 								<div class="col"><input class="form-control" id="afc-sms-ppp-search" type="search" placeholder="<?php esc_attr_e( 'Search PPP username, customer or phone...', 'airfiber-centralized' ); ?>"></div>
@@ -76,16 +76,55 @@ $device = isset( $snapshot['device'] ) ? $snapshot['device'] : array();
 				</div>
 			</div>
 
-			<div class="card mb-3">
-				<div class="card-header"><div><h3 class="card-title"><?php esc_html_e( 'SMS Queue & Delivery', 'airfiber-centralized' ); ?></h3><p class="card-subtitle"><?php esc_html_e( 'Watch the test move from queued to claimed, submitted, sent and delivered.', 'airfiber-centralized' ); ?></p></div></div>
-				<div class="table-responsive">
-					<table class="table table-vcenter card-table" id="afc-sms-jobs-table"><thead><tr><th><?php esc_html_e( 'ID', 'airfiber-centralized' ); ?></th><th><?php esc_html_e( 'PPP / Customer', 'airfiber-centralized' ); ?></th><th><?php esc_html_e( 'Phone', 'airfiber-centralized' ); ?></th><th><?php esc_html_e( 'Status', 'airfiber-centralized' ); ?></th><th><?php esc_html_e( 'Detail', 'airfiber-centralized' ); ?></th><th><?php esc_html_e( 'Created', 'airfiber-centralized' ); ?></th><th></th></tr></thead><tbody><tr><td colspan="7" class="text-center text-secondary py-4"><?php esc_html_e( 'No SMS jobs yet.', 'airfiber-centralized' ); ?></td></tr></tbody></table>
-				</div>
-			</div>
+			<div class="card afc-sms-chat-card">
+				<div class="afc-sms-chat-layout" id="afc-sms-chat-layout">
+					<aside class="afc-sms-conversation-column" aria-label="<?php esc_attr_e( 'SMS conversations', 'airfiber-centralized' ); ?>">
+						<div class="afc-sms-conversation-heading">
+							<div>
+								<h3 class="card-title mb-1"><?php esc_html_e( 'Messages', 'airfiber-centralized' ); ?></h3>
+								<div class="text-secondary small" id="afc-sms-conversation-count"><?php esc_html_e( '0 conversations', 'airfiber-centralized' ); ?></div>
+							</div>
+						</div>
+						<div class="afc-sms-conversation-search">
+							<input class="form-control" id="afc-sms-conversation-search" type="search" placeholder="<?php esc_attr_e( 'Search name, PPP or phone...', 'airfiber-centralized' ); ?>">
+						</div>
+						<div class="afc-sms-conversation-list" id="afc-sms-conversations">
+							<div class="afc-sms-chat-empty"><?php esc_html_e( 'No messages yet.', 'airfiber-centralized' ); ?></div>
+						</div>
+					</aside>
 
-			<div class="row row-cards">
-				<div class="col-xl-7"><div class="card h-100"><div class="card-header"><h3 class="card-title"><?php esc_html_e( 'Gateway Activity', 'airfiber-centralized' ); ?></h3></div><div class="list-group list-group-flush" id="afc-sms-events"><div class="list-group-item text-secondary"><?php esc_html_e( 'No activity yet.', 'airfiber-centralized' ); ?></div></div></div></div>
-				<div class="col-xl-5"><div class="card h-100"><div class="card-header"><h3 class="card-title"><?php esc_html_e( 'Incoming Replies', 'airfiber-centralized' ); ?></h3></div><div class="list-group list-group-flush" id="afc-sms-replies"><div class="list-group-item text-secondary"><?php esc_html_e( 'No replies received.', 'airfiber-centralized' ); ?></div></div></div></div>
+					<section class="afc-sms-chat-column" aria-label="<?php esc_attr_e( 'Selected SMS conversation', 'airfiber-centralized' ); ?>">
+						<div class="afc-sms-chat-main" id="afc-sms-chat-main">
+							<header class="afc-sms-chat-header">
+								<div class="afc-sms-chat-avatar" id="afc-sms-chat-avatar">A</div>
+								<div class="afc-sms-chat-contact">
+									<strong id="afc-sms-chat-name"><?php esc_html_e( 'Select a conversation', 'airfiber-centralized' ); ?></strong>
+									<span id="afc-sms-chat-meta"><?php esc_html_e( 'Delivery updates and replies will appear here.', 'airfiber-centralized' ); ?></span>
+								</div>
+								<button class="afc-sms-chat-close-drawer" id="afc-sms-close-drawer" type="button" aria-label="<?php esc_attr_e( 'Close conversation options', 'airfiber-centralized' ); ?>" hidden>&times;</button>
+							</header>
+							<div class="afc-sms-chat-timeline" id="afc-sms-chat-timeline">
+								<div class="afc-sms-chat-empty"><?php esc_html_e( 'Choose a customer from the list to open the conversation.', 'airfiber-centralized' ); ?></div>
+							</div>
+						</div>
+
+						<aside class="afc-sms-chat-drawer" id="afc-sms-chat-drawer" aria-hidden="true">
+							<div class="afc-sms-drawer-header">
+								<div>
+									<div class="text-secondary small"><?php esc_html_e( 'Conversation options', 'airfiber-centralized' ); ?></div>
+									<strong id="afc-sms-drawer-name"><?php esc_html_e( 'Customer', 'airfiber-centralized' ); ?></strong>
+								</div>
+								<button class="btn-close" id="afc-sms-drawer-close" type="button" aria-label="<?php esc_attr_e( 'Close', 'airfiber-centralized' ); ?>"></button>
+							</div>
+							<nav class="afc-sms-drawer-tabs" aria-label="<?php esc_attr_e( 'Conversation views', 'airfiber-centralized' ); ?>">
+								<button type="button" data-afc-sms-drawer-view="conversation"><?php esc_html_e( 'Conversation', 'airfiber-centralized' ); ?></button>
+								<button type="button" data-afc-sms-drawer-view="delivery"><?php esc_html_e( 'Queue & Delivery', 'airfiber-centralized' ); ?></button>
+								<button type="button" data-afc-sms-drawer-view="details"><?php esc_html_e( 'Customer Details', 'airfiber-centralized' ); ?></button>
+							</nav>
+							<div class="afc-sms-drawer-content" id="afc-sms-drawer-content"></div>
+						</aside>
+					</section>
+				</div>
 			</div>
 		</div>
 	</div>
