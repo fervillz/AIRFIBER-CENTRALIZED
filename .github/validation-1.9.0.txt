@@ -1,0 +1,1 @@
+Temporary validation marker for the Airfiber Centralized 1.9.0 PHP and JavaScript lint workflow.
