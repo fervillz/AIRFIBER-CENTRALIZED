@@ -134,54 +134,88 @@
 	display: none !important;
 }
 
+/* Messenger-style status: outside the bubble and slightly attached to its lower-right edge. */
+.afc-sms-message-row.is-outgoing .afc-sms-message-bubble {
+	position: relative;
+	overflow: visible;
+	margin-bottom: .32rem;
+}
+
+.afc-sms-message-row.is-outgoing .afc-sms-message-footer {
+	padding-right: .58rem;
+}
+
 .afc-sms-chat-status {
 	display: inline-flex;
-	width: 18px;
-	height: 18px;
+	width: 20px;
+	height: 20px;
 	align-items: center;
 	justify-content: center;
-	flex: 0 0 18px;
-	border: 1px solid rgba(255, 255, 255, .48);
+	flex: 0 0 20px;
+	border: 2px solid #eef2f7;
 	border-radius: 50%;
-	background: rgba(255, 255, 255, .18);
-	color: #fff;
+	background: #fff;
+	color: #0ca678;
 	font-size: .68rem;
 	font-weight: 800;
 	line-height: 1;
 	cursor: help;
-	box-shadow: 0 1px 3px rgba(15, 23, 42, .12);
+	box-shadow: 0 2px 7px rgba(15, 23, 42, .2);
+}
+
+.afc-sms-message-row.is-outgoing .afc-sms-chat-status {
+	position: absolute;
+	right: -8px;
+	bottom: -8px;
+	z-index: 2;
+}
+
+.afc-sms-chat-status.is-sending {
+	background: #fff;
+	color: #206bc4;
+	cursor: default;
+}
+
+.afc-sms-chat-status.is-sending::before {
+	width: 10px;
+	height: 10px;
+	border: 2px solid rgba(32, 107, 196, .22);
+	border-top-color: #206bc4;
+	border-radius: 50%;
+	content: '';
+	animation: afc-sms-send-spin .72s linear infinite;
 }
 
 .afc-sms-chat-status.is-queued {
 	background: #f59f00;
-	border-color: #ffd27a;
+	color: #fff;
 }
 
 .afc-sms-chat-status.is-claimed,
 .afc-sms-chat-status.is-submitted {
 	background: #4299e1;
-	border-color: #a9d5f7;
+	color: #fff;
 }
 
 .afc-sms-chat-status.is-sent {
 	background: #2fb344;
-	border-color: #9cdda8;
+	color: #fff;
 }
 
 .afc-sms-chat-status.is-delivered {
 	background: #0ca678;
-	border-color: #8be1c5;
+	color: #fff;
 }
 
 .afc-sms-chat-status.is-failed {
 	background: #d63939;
-	border-color: #f2aaaa;
+	color: #fff;
 }
 
 .afc-sms-chat-status.is-cancelled,
 .afc-sms-chat-status.is-unknown {
 	background: #7b8794;
-	border-color: #c7ced5;
+	color: #fff;
 }
 
 .afc-sms-web-reply-pending .afc-sms-message-bubble {
