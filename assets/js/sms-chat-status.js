@@ -54,7 +54,8 @@
 		const send = document.getElementById( 'afc-sms-reply-send' );
 		const message = document.getElementById( 'afc-sms-reply-message' );
 		if ( ! send || ! message ) return;
-		const loading = send.disabled && message.disabled && !! message.value.trim();
+		const explicitlyBusy = send.getAttribute( 'aria-busy' ) === 'true';
+		const loading = explicitlyBusy || ( send.disabled && message.disabled && !! message.value.trim() );
 		send.classList.toggle( 'is-loading', loading );
 		send.setAttribute( 'aria-busy', loading ? 'true' : 'false' );
 	}
