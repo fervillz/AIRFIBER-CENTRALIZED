@@ -1,22 +1,22 @@
-/* Conversation list states: outlined pastel by default, filled after we reply. */
+/* Conversation list states: white and outlined by default, pastel-filled after we reply. */
 .afc-sms-conversation-item .afc-sms-list-avatar {
 	position: relative;
 	border: 1.5px solid var(--afc-avatar-color, #7c8fe8);
-	background: var(--afc-avatar-soft, #f1f3ff) !important;
+	background: #fff !important;
 	background-image: none !important;
 	color: var(--afc-avatar-ink, #4c5ec5) !important;
 	box-shadow: none;
 	transition: background .18s ease, color .18s ease, border-color .18s ease, box-shadow .18s ease, transform .18s ease;
 }
 
-.afc-sms-list-avatar.is-tone-0 { --afc-avatar-color: #7c8fe8; --afc-avatar-soft: #f1f3ff; --afc-avatar-ink: #4c5ec5; }
-.afc-sms-list-avatar.is-tone-1 { --afc-avatar-color: #e58d8a; --afc-avatar-soft: #fff2f1; --afc-avatar-ink: #b85f5b; }
-.afc-sms-list-avatar.is-tone-2 { --afc-avatar-color: #62b9a7; --afc-avatar-soft: #eefaf7; --afc-avatar-ink: #2e8373; }
-.afc-sms-list-avatar.is-tone-3 { --afc-avatar-color: #dfa85f; --afc-avatar-soft: #fff7ea; --afc-avatar-ink: #a46f2d; }
-.afc-sms-list-avatar.is-tone-4 { --afc-avatar-color: #a889d9; --afc-avatar-soft: #f7f1ff; --afc-avatar-ink: #7757aa; }
-.afc-sms-list-avatar.is-tone-5 { --afc-avatar-color: #65a9dc; --afc-avatar-soft: #eef7fd; --afc-avatar-ink: #3579aa; }
-.afc-sms-list-avatar.is-tone-6 { --afc-avatar-color: #d982aa; --afc-avatar-soft: #fff0f7; --afc-avatar-ink: #a55079; }
-.afc-sms-list-avatar.is-tone-7 { --afc-avatar-color: #74ad75; --afc-avatar-soft: #f0f9f0; --afc-avatar-ink: #477f48; }
+.afc-sms-list-avatar.is-tone-0 { --afc-avatar-color: #7c8fe8; --afc-avatar-ink: #4c5ec5; }
+.afc-sms-list-avatar.is-tone-1 { --afc-avatar-color: #e58d8a; --afc-avatar-ink: #b85f5b; }
+.afc-sms-list-avatar.is-tone-2 { --afc-avatar-color: #62b9a7; --afc-avatar-ink: #2e8373; }
+.afc-sms-list-avatar.is-tone-3 { --afc-avatar-color: #dfa85f; --afc-avatar-ink: #a46f2d; }
+.afc-sms-list-avatar.is-tone-4 { --afc-avatar-color: #a889d9; --afc-avatar-ink: #7757aa; }
+.afc-sms-list-avatar.is-tone-5 { --afc-avatar-color: #65a9dc; --afc-avatar-ink: #3579aa; }
+.afc-sms-list-avatar.is-tone-6 { --afc-avatar-color: #d982aa; --afc-avatar-ink: #a55079; }
+.afc-sms-list-avatar.is-tone-7 { --afc-avatar-color: #74ad75; --afc-avatar-ink: #477f48; }
 
 .afc-sms-conversation-item.is-replied .afc-sms-list-avatar {
 	border-color: #fff;
