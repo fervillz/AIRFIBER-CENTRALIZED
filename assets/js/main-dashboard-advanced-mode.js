@@ -69,6 +69,11 @@
 		return true;
 	}
 
+	function movePaymentDialogToBody() {
+		const dialog = document.getElementById( 'afc-payment-dialog' );
+		if ( dialog && dialog.parentNode !== document.body ) document.body.appendChild( dialog );
+	}
+
 	function syncMode() {
 		revealShell();
 		markDashboardAdvancedOnly();
@@ -82,6 +87,12 @@
 	function boot() {
 		revealShell();
 		syncMode();
+
+		document.addEventListener( 'click', function ( event ) {
+			if ( 'advanced' === currentMode() && event.target.closest( '[data-afc-dashboard-payment-account]' ) ) {
+				movePaymentDialogToBody();
+			}
+		}, true );
 
 		document.addEventListener( 'afc:admin-mode-change', function () {
 			window.requestAnimationFrame( syncMode );
