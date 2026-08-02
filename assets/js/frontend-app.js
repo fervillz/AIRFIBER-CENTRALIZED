@@ -82,12 +82,7 @@
 		if ( hash && root && root.querySelector( '[data-afc-panel="' + hash + '"]' ) ) {
 			return hash;
 		}
-		try {
-			const stored = window.sessionStorage.getItem( 'afcFrontendPanel' ) || 'dashboard';
-			return root && root.querySelector( '[data-afc-panel="' + stored + '"]' ) ? stored : 'dashboard';
-		} catch ( error ) {
-			return 'dashboard';
-		}
+		return 'dashboard';
 	}
 
 	function requestMode( mode ) {
