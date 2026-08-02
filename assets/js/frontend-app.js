@@ -1,7 +1,7 @@
 ( function () {
 	'use strict';
 
-	let activePanel = 'dashboard';
+	let activePanel = 'operations';
 
 	function app() {
 		return document.getElementById( 'afc-frontend-app' );
@@ -16,6 +16,14 @@
 		}
 		const root = app();
 		return root ? root.getAttribute( 'data-afc-mode' ) || 'basic' : 'basic';
+	}
+
+	function defaultPanel() {
+		const root = app();
+		if ( 'advanced' === currentMode() && root && root.querySelector( '[data-afc-panel="dashboard"]' ) ) {
+			return 'dashboard';
+		}
+		return 'operations';
 	}
 
 	function syncModeButtons( mode ) {
@@ -39,8 +47,8 @@
 
 		let target = root.querySelector( '[data-afc-panel="' + panel + '"]' );
 		if ( ! target || ( target.classList.contains( 'afc-advanced-only' ) && 'advanced' !== currentMode() ) ) {
-			panel = 'dashboard';
-			target = root.querySelector( '[data-afc-panel="dashboard"]' ) || root.querySelector( '[data-afc-panel="operations"]' );
+			panel = defaultPanel();
+			target = root.querySelector( '[data-afc-panel="' + panel + '"]' ) || root.querySelector( '[data-afc-panel="operations"]' );
 		}
 
 		activePanel = panel;
@@ -65,7 +73,7 @@
 
 		if ( updateUrl && window.history && window.history.replaceState ) {
 			const url = new URL( window.location.href );
-			if ( 'dashboard' === panel ) {
+			if ( panel === defaultPanel() ) {
 				url.hash = '';
 			} else {
 				url.hash = panel;
@@ -79,10 +87,27 @@
 	function initialPanel() {
 		const root = app();
 		const hash = String( window.location.hash || '' ).replace( /^#/, '' );
-		if ( hash && root && root.querySelector( '[data-afc-panel="' + hash + '"]' ) ) {
-			return hash;
+		if ( hash && root ) {
+			const target = root.querySelector( '[data-afc-panel="' + hash + '"]' );
+			if ( target && ( ! target.classList.contains( 'afc-advanced-only' ) || 'advanced' === currentMode() ) ) {
+				return hash;
+			}
 		}
-		return 'dashboard';
+
+		if ( 'advanced' !== currentMode() ) {
+			return 'operations';
+		}
+
+		try {
+			const stored = window.sessionStorage.getItem( 'afcFrontendPanel' ) || '';
+			const target = stored && root ? root.querySelector( '[data-afc-panel="' + stored + '"]' ) : null;
+			if ( target && ( ! target.classList.contains( 'afc-advanced-only' ) || 'advanced' === currentMode() ) ) {
+				return stored;
+			}
+		} catch ( error ) {
+			// Use the Advanced dashboard default below.
+		}
+		return defaultPanel();
 	}
 
 	function requestMode( mode ) {
@@ -107,7 +132,7 @@
 			const panelButton = event.target.closest( '[data-afc-app-panel]' );
 			if ( panelButton ) {
 				event.preventDefault();
-				setPanel( panelButton.getAttribute( 'data-afc-app-panel' ) || 'dashboard', true );
+				setPanel( panelButton.getAttribute( 'data-afc-app-panel' ) || defaultPanel(), true );
 				return;
 			}
 
@@ -143,13 +168,17 @@
 			const mode = event.detail && event.detail.mode ? event.detail.mode : currentMode();
 			syncModeButtons( mode );
 			const activeTarget = root.querySelector( '[data-afc-panel="' + activePanel + '"]' );
-			if ( 'basic' === mode && activeTarget && activeTarget.classList.contains( 'afc-advanced-only' ) ) {
+			if ( 'basic' === mode ) {
+				if ( ! activeTarget || activeTarget.classList.contains( 'afc-advanced-only' ) ) {
+					setPanel( 'operations', true );
+				}
+			} else if ( 'advanced' === mode && 'operations' === activePanel && root.querySelector( '[data-afc-panel="dashboard"]' ) ) {
 				setPanel( 'dashboard', true );
 			}
 		} );
 
 		window.addEventListener( 'hashchange', function () {
-			setPanel( String( window.location.hash || '' ).replace( /^#/, '' ) || 'dashboard', false );
+			setPanel( String( window.location.hash || '' ).replace( /^#/, '' ) || defaultPanel(), false );
 		} );
 	} );
 }() );
