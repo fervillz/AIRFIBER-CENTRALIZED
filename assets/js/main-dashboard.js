@@ -119,24 +119,8 @@
 		} );
 	}
 
-	function movePaymentApp() {
-		const mount = root && root.querySelector( '[data-afc-dashboard-payment-mount]' );
-		const app = document.getElementById( 'afc-basic-payment-app' );
-		if ( ! mount || ! app || mount.contains( app ) ) return Boolean( app && mount && mount.contains( app ) );
-		app.classList.remove( 'afc-basic-only' );
-		app.classList.add( 'is-dashboard-payment' );
-		mount.replaceChildren( app );
-		return true;
-	}
-
-	function watchPaymentApp() {
-		if ( movePaymentApp() ) return;
-		const observer = new MutationObserver( function () {
-			if ( movePaymentApp() ) observer.disconnect();
-		} );
-		observer.observe( document.body, { childList: true, subtree: true } );
-		window.setTimeout( function () { observer.disconnect(); }, 10000 );
-	}
+	/* The Advanced dashboard now owns its own PPP payment search. */
+	function watchPaymentApp() {}
 
 	function formatDate( value ) {
 		const match = text( value ).match( /^(\d{4})-(\d{2})-(\d{2})/ );
