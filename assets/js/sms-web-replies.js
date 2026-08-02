@@ -80,6 +80,69 @@
 		} );
 	}
 
+	function statusInfo( status ) {
+		const normalized = String( status || 'queued' ).trim().toLowerCase();
+		const statuses = {
+			queued: {
+				icon: '!',
+				label: 'Queued — waiting for the Android gateway.',
+			},
+			claimed: {
+				icon: '!',
+				label: 'Claimed — the Android gateway picked up this message.',
+			},
+			submitted: {
+				icon: '!',
+				label: 'Submitted — passed to Android telephony for sending.',
+			},
+			sent: {
+				icon: '✓',
+				label: 'Sent — the mobile carrier accepted this SMS.',
+			},
+			delivered: {
+				icon: '✓',
+				label: 'Delivered — the receiving phone confirmed delivery.',
+			},
+			failed: {
+				icon: '!',
+				label: 'Failed — open Queue & Delivery to see the error.',
+			},
+			cancelled: {
+				icon: '×',
+				label: 'Cancelled — this SMS was not sent.',
+			},
+		};
+		return {
+			status: statuses[ normalized ] ? normalized : 'unknown',
+			icon: statuses[ normalized ] ? statuses[ normalized ].icon : '!',
+			label: statuses[ normalized ] ? statuses[ normalized ].label : 'SMS status: ' + normalized + '.',
+		};
+	}
+
+	function createStatusIndicator( status ) {
+		const info = statusInfo( status );
+		const indicator = document.createElement( 'span' );
+		indicator.className = 'afc-sms-chat-status is-' + info.status;
+		indicator.dataset.afcStatus = info.status;
+		indicator.textContent = info.icon;
+		indicator.title = info.label;
+		indicator.setAttribute( 'aria-label', info.label );
+		indicator.setAttribute( 'role', 'img' );
+		return indicator;
+	}
+
+	function compactDeliveryStatuses() {
+		const timeline = byId( 'afc-sms-chat-timeline' );
+		if ( ! timeline ) return;
+
+		timeline.querySelectorAll( '.afc-sms-message-row.is-outgoing .afc-sms-message-footer .badge' ).forEach( function ( badge ) {
+			if ( badge.classList.contains( 'afc-sms-chat-status' ) ) return;
+			const status = badge.dataset.afcStatus || badge.textContent.trim().toLowerCase();
+			const replacement = createStatusIndicator( status );
+			badge.replaceWith( replacement );
+		} );
+	}
+
 	function injectInterface() {
 		const main = byId( 'afc-sms-chat-main' );
 		const timeline = byId( 'afc-sms-chat-timeline' );
@@ -149,11 +212,15 @@
 		message.placeholder = activeContext.valid ? 'Type a message...' : 'Replies are unavailable for this sender.';
 		if ( hint ) {
 			hint.textContent = activeContext.valid
-				? 'Enter to send · Shift + Enter for a new line'
+				? ( sending ? 'Queueing message…' : 'Enter to send · Shift + Enter for a new line' )
 				: 'This conversation does not have a reply-capable mobile number.';
 		}
 		if ( count ) count.textContent = message.value.length + '/1200';
 		send.disabled = sending || ! activeContext.valid || ! message.value.trim();
+		send.classList.toggle( 'is-loading', sending );
+		send.setAttribute( 'aria-busy', sending ? 'true' : 'false' );
+		send.setAttribute( 'aria-label', sending ? 'Queueing message' : 'Send message' );
+		send.title = sending ? 'Queueing message…' : 'Send message';
 		autoResize();
 	}
 
@@ -164,6 +231,7 @@
 		if ( nextKey === activeKey ) {
 			activeContext = next;
 			updateComposerState();
+			compactDeliveryStatuses();
 			return;
 		}
 
@@ -173,6 +241,7 @@
 		const message = messageNode();
 		if ( message ) message.value = nextKey && drafts.has( nextKey ) ? drafts.get( nextKey ) : '';
 		updateComposerState();
+		compactDeliveryStatuses();
 
 		if ( next && next.valid && window.matchMedia && window.matchMedia( '(min-width: 768px)' ).matches ) {
 			window.setTimeout( function () {
@@ -193,12 +262,10 @@
 		body.textContent = job && job.message ? job.message : fallbackMessage;
 		const footer = document.createElement( 'div' );
 		footer.className = 'afc-sms-message-footer';
-		const badge = document.createElement( 'span' );
-		badge.className = 'badge bg-yellow-lt text-yellow';
-		badge.textContent = 'queued';
+		const indicator = createStatusIndicator( job && job.status ? job.status : 'queued' );
 		const time = document.createElement( 'span' );
 		time.textContent = new Date().toLocaleTimeString( [], { hour: 'numeric', minute: '2-digit' } );
-		footer.append( badge, time );
+		footer.append( indicator, time );
 		bubble.append( body, footer );
 		row.appendChild( bubble );
 		timeline.appendChild( row );
@@ -274,11 +341,17 @@
 		switchConversation();
 		const name = byId( 'afc-sms-chat-name' );
 		const meta = byId( 'afc-sms-chat-meta' );
+		const timeline = byId( 'afc-sms-chat-timeline' );
 		if ( window.MutationObserver && name && meta ) {
 			const observer = new MutationObserver( switchConversation );
 			observer.observe( name, { childList: true, characterData: true, subtree: true } );
 			observer.observe( meta, { childList: true, characterData: true, subtree: true } );
 		}
+		if ( window.MutationObserver && timeline ) {
+			const timelineObserver = new MutationObserver( compactDeliveryStatuses );
+			timelineObserver.observe( timeline, { childList: true, subtree: true } );
+		}
+		compactDeliveryStatuses();
 	}
 
 	if ( document.readyState === 'loading' ) document.addEventListener( 'DOMContentLoaded', boot );
