@@ -17,6 +17,13 @@ class AFC_Main_Dashboard_Advanced_Mode {
 			return;
 		}
 
+		wp_enqueue_style(
+			'afc-main-dashboard-desktop-typography',
+			AFC_URL . 'assets/css/main-dashboard-desktop-typography.css',
+			array( 'afc-main-dashboard' ),
+			AFC_VERSION
+		);
+
 		wp_enqueue_script(
 			'afc-main-dashboard-advanced-mode',
 			AFC_URL . 'assets/js/main-dashboard-advanced-mode.js',
