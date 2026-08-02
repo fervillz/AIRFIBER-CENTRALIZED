@@ -4,7 +4,7 @@ defined( 'ABSPATH' ) || exit;
 
 $dashboard_layout = isset( $dashboard_layout ) && is_array( $dashboard_layout ) ? $dashboard_layout : array();
 ?>
-<section class="afc-frontend-panel afc-dashboard-panel afc-admin-page" data-afc-panel="dashboard" aria-hidden="true" hidden>
+<section class="afc-frontend-panel afc-dashboard-panel afc-admin-page afc-advanced-only" data-afc-panel="dashboard" aria-hidden="true" hidden>
 	<div class="afc-dashboard-shell" id="afc-main-dashboard">
 		<header class="afc-dashboard-header">
 			<div>
