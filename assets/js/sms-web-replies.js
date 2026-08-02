@@ -83,6 +83,10 @@
 	function statusInfo( status ) {
 		const normalized = String( status || 'queued' ).trim().toLowerCase();
 		const statuses = {
+			sending: {
+				icon: '',
+				label: 'Sending message…',
+			},
 			queued: {
 				icon: '!',
 				label: 'Queued — waiting for the Android gateway.',
@@ -119,15 +123,20 @@
 		};
 	}
 
-	function createStatusIndicator( status ) {
+	function updateStatusIndicator( indicator, status ) {
+		if ( ! indicator ) return;
 		const info = statusInfo( status );
-		const indicator = document.createElement( 'span' );
 		indicator.className = 'afc-sms-chat-status is-' + info.status;
 		indicator.dataset.afcStatus = info.status;
 		indicator.textContent = info.icon;
 		indicator.title = info.label;
 		indicator.setAttribute( 'aria-label', info.label );
 		indicator.setAttribute( 'role', 'img' );
+	}
+
+	function createStatusIndicator( status ) {
+		const indicator = document.createElement( 'span' );
+		updateStatusIndicator( indicator, status );
 		return indicator;
 	}
 
@@ -252,7 +261,7 @@
 
 	function optimisticBubble( job, fallbackMessage ) {
 		const timeline = byId( 'afc-sms-chat-timeline' );
-		if ( ! timeline ) return;
+		if ( ! timeline ) return null;
 		const row = document.createElement( 'div' );
 		row.className = 'afc-sms-message-row is-outgoing afc-sms-web-reply-pending';
 		const bubble = document.createElement( 'div' );
@@ -262,7 +271,7 @@
 		body.textContent = job && job.message ? job.message : fallbackMessage;
 		const footer = document.createElement( 'div' );
 		footer.className = 'afc-sms-message-footer';
-		const indicator = createStatusIndicator( job && job.status ? job.status : 'queued' );
+		const indicator = createStatusIndicator( job && job.status ? job.status : 'sending' );
 		const time = document.createElement( 'span' );
 		time.textContent = new Date().toLocaleTimeString( [], { hour: 'numeric', minute: '2-digit' } );
 		footer.append( indicator, time );
@@ -270,6 +279,24 @@
 		row.appendChild( bubble );
 		timeline.appendChild( row );
 		timeline.scrollTop = timeline.scrollHeight;
+		return {
+			row: row,
+			body: body,
+			indicator: indicator,
+		};
+	}
+
+	function finishOptimisticBubble( pending, job, fallbackStatus ) {
+		if ( ! pending ) return;
+		if ( job && job.message && pending.body ) pending.body.textContent = job.message;
+		updateStatusIndicator( pending.indicator, job && job.status ? job.status : fallbackStatus );
+		pending.row.classList.remove( 'afc-sms-web-reply-pending' );
+	}
+
+	function minimumLoadingTime() {
+		return new Promise( function ( resolve ) {
+			window.setTimeout( resolve, 350 );
+		} );
 	}
 
 	function sendReply() {
@@ -292,19 +319,35 @@
 			return;
 		}
 
+		const requestKey = activeKey;
+		const pending = optimisticBubble( { message: body, status: 'sending' }, body );
 		sending = true;
+		if ( message ) message.value = '';
+		drafts.delete( requestKey );
+		showNotice( '', 'info' );
 		updateComposerState();
-		ajax( {
+
+		const request = ajax( {
 			phone: activeContext.phone,
 			ppp_username: activeContext.ppp,
 			customer_name: activeContext.name,
 			message: body,
 		} ).then( function ( response ) {
-			optimisticBubble( response.job || {}, body );
-			drafts.delete( activeKey );
-			if ( message ) message.value = '';
+			return { response: response, error: null };
+		} ).catch( function ( error ) {
+			return { response: null, error: error };
+		} );
+
+		Promise.all( [ request, minimumLoadingTime() ] ).then( function ( results ) {
+			const result = results[ 0 ];
+			if ( result.error ) throw result.error;
+			const response = result.response || {};
+			finishOptimisticBubble( pending, response.job || {}, 'queued' );
 			showNotice( response.message || 'Message queued for the Android gateway.', 'success' );
 		} ).catch( function ( error ) {
+			if ( pending && pending.row ) pending.row.remove();
+			drafts.set( requestKey, body );
+			if ( message && activeKey === requestKey ) message.value = body;
 			showNotice( error.message, 'danger' );
 		} ).finally( function () {
 			sending = false;
