@@ -1,0 +1,206 @@
+/*
+ * Desktop readability for the Advanced dashboard.
+ * Mobile keeps the existing compact sizing from main-dashboard.css.
+ */
+@media (min-width: 721px) {
+	.afc-dashboard-panel .afc-dashboard-header h1 {
+		font-size: clamp(32px, 2.6vw, 40px);
+	}
+
+	.afc-dashboard-panel .afc-dashboard-header p {
+		font-size: 15px;
+		line-height: 1.6;
+	}
+
+	.afc-dashboard-panel .afc-dashboard-kicker,
+	.afc-dashboard-panel .afc-dashboard-card-title small {
+		font-size: 12px;
+		letter-spacing: .075em;
+	}
+
+	.afc-dashboard-panel .afc-dashboard-save-state {
+		font-size: 13px;
+	}
+
+	.afc-dashboard-panel .afc-dashboard-refresh {
+		min-height: 42px;
+		padding: 9px 15px;
+		font-size: 14px;
+	}
+
+	.afc-dashboard-panel .afc-dashboard-router-alert {
+		min-height: 62px;
+		padding: 13px 16px;
+	}
+
+	.afc-dashboard-panel .afc-dashboard-router-alert strong {
+		font-size: 15px;
+	}
+
+	.afc-dashboard-panel .afc-dashboard-router-alert small {
+		font-size: 12px;
+	}
+
+	.afc-dashboard-panel .afc-dashboard-router-alert button {
+		font-size: 13px;
+	}
+
+	.afc-dashboard-panel .afc-dashboard-card-head {
+		min-height: 70px;
+		padding: 15px 16px 13px;
+	}
+
+	.afc-dashboard-panel .afc-dashboard-card-title h2 {
+		font-size: 18px;
+	}
+
+	.afc-dashboard-panel .afc-dashboard-card-icon {
+		width: 40px;
+		height: 40px;
+		flex-basis: 40px;
+		font-size: 20px;
+	}
+
+	.afc-dashboard-panel .afc-dashboard-payment-mount > p {
+		font-size: 13px;
+	}
+
+	.afc-dashboard-panel .afc-dashboard-new-ppp-body p {
+		font-size: 14px;
+		line-height: 1.6;
+	}
+
+	.afc-dashboard-panel .afc-dashboard-primary-action {
+		min-height: 44px;
+		padding: 10px 16px;
+		font-size: 14px;
+	}
+
+	.afc-dashboard-panel .afc-dashboard-list-item {
+		grid-template-columns: 40px minmax(0, 1fr) auto;
+		gap: 11px;
+		padding: 11px;
+	}
+
+	.afc-dashboard-panel .afc-dashboard-list-avatar {
+		width: 40px;
+		height: 40px;
+		font-size: 14px;
+	}
+
+	.afc-dashboard-panel .afc-dashboard-list-copy strong {
+		font-size: 14px;
+	}
+
+	.afc-dashboard-panel .afc-dashboard-list-copy small {
+		font-size: 12px;
+	}
+
+	.afc-dashboard-panel .afc-dashboard-list-copy em {
+		font-size: 13px;
+		line-height: 1.35;
+	}
+
+	.afc-dashboard-panel .afc-dashboard-item-badge {
+		padding: 5px 8px;
+		font-size: 10px;
+	}
+
+	.afc-dashboard-panel .afc-dashboard-list-loading,
+	.afc-dashboard-panel .afc-dashboard-empty {
+		font-size: 13px;
+	}
+
+	.afc-dashboard-panel .afc-dashboard-card-footer {
+		min-height: 45px;
+		padding: 9px 14px;
+		font-size: 12px;
+	}
+
+	.afc-dashboard-panel .afc-dashboard-card-footer button {
+		font-size: 12px;
+	}
+
+	.afc-dashboard-panel .afc-dashboard-metric > span {
+		font-size: 11px;
+	}
+
+	.afc-dashboard-panel .afc-dashboard-metric > strong {
+		font-size: 22px;
+	}
+
+	.afc-dashboard-panel .afc-dashboard-metric > strong small {
+		font-size: 12px;
+	}
+
+	.afc-dashboard-panel .afc-dashboard-port {
+		padding: 12px;
+	}
+
+	.afc-dashboard-panel .afc-dashboard-port header strong {
+		font-size: 14px;
+	}
+
+	.afc-dashboard-panel .afc-dashboard-port header em {
+		font-size: 11px;
+	}
+
+	.afc-dashboard-panel .afc-dashboard-port > div span {
+		font-size: 11px;
+	}
+
+	.afc-dashboard-panel .afc-dashboard-port > div strong {
+		font-size: 14px;
+	}
+
+	.afc-dashboard-panel .afc-dashboard-port > small {
+		font-size: 11px;
+	}
+
+	.afc-dashboard-panel .afc-dashboard-network-error {
+		font-size: 13px;
+	}
+
+	/* Keep the payment tool readable when embedded in the Advanced dashboard. */
+	.afc-dashboard-panel #afc-basic-payment-clear {
+		font-size: 13px;
+	}
+
+	.afc-dashboard-panel .afc-basic-payment-search-help {
+		font-size: 13px;
+	}
+
+	.afc-dashboard-panel .afc-basic-payment-message {
+		font-size: 14px;
+	}
+
+	.afc-dashboard-panel .afc-basic-customer-main strong {
+		font-size: 16px;
+	}
+
+	.afc-dashboard-panel .afc-basic-customer-main span,
+	.afc-dashboard-panel .afc-basic-customer-side span,
+	.afc-dashboard-panel .afc-basic-customer-location {
+		font-size: 12px;
+	}
+
+	.afc-dashboard-panel .afc-basic-customer-side strong {
+		font-size: 13px;
+	}
+
+	.afc-dashboard-panel .afc-basic-selected-label {
+		font-size: 11px;
+	}
+
+	.afc-dashboard-panel .afc-basic-selected-account {
+		font-size: 14px;
+	}
+
+	.afc-dashboard-panel .afc-basic-selected-details span {
+		font-size: 11px;
+	}
+
+	.afc-dashboard-panel .afc-basic-selected-details strong {
+		font-size: 14px;
+	}
+}
