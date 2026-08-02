@@ -97,3 +97,21 @@ function afc_boot_plugin() {
 	do_action( 'afc_loaded' );
 }
 add_action( 'plugins_loaded', 'afc_boot_plugin' );
+
+function afc_activate_plugin() {
+	AFC_Post_Types::register();
+	AFC_Frontend_Page::activate();
+	AFC_SMS_Center::install();
+	AFC_SMS_Templates::install();
+	AFC_SMS_Payer_Ratings::schedule();
+	AFC_PPP_Manager::ensure_schema_and_schedule();
+	flush_rewrite_rules();
+}
+register_activation_hook( __FILE__, 'afc_activate_plugin' );
+
+function afc_deactivate_plugin() {
+	AFC_SMS_Payer_Ratings::unschedule();
+	AFC_PPP_Manager::unschedule();
+	flush_rewrite_rules();
+}
+register_deactivation_hook( __FILE__, 'afc_deactivate_plugin' );
