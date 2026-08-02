@@ -1,0 +1,17 @@
+/*
+ * Visibility failsafes for the frontend app.
+ * The page must remain usable even when a later optional dashboard script or
+ * third-party drag library is slow or unavailable.
+ */
+.afc-frontend-shell {
+	opacity: 1 !important;
+}
+
+body.afc-admin-mode-basic [data-afc-app-panel="dashboard"],
+body.afc-admin-mode-basic [data-afc-panel="dashboard"] {
+	display: none !important;
+}
+
+body.afc-admin-mode-basic [data-afc-panel="operations"].is-active {
+	display: block !important;
+}
