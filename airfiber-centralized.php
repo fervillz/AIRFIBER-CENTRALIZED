@@ -2,14 +2,14 @@
 /**
  * Plugin Name: Airfiber - Centralized
  * Description: Customer, billing, payment, installation, notification, and MikroTik management for Airfiber.
- * Version: 2.0.8
+ * Version: 2.1.0
  * Author: Airfiber
  * Text Domain: airfiber-centralized
  */
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'AFC_VERSION', '2.0.8' );
+define( 'AFC_VERSION', '2.1.0' );
 define( 'AFC_FILE', __FILE__ );
 define( 'AFC_PATH', plugin_dir_path( __FILE__ ) );
 define( 'AFC_URL', plugin_dir_url( __FILE__ ) );
@@ -41,6 +41,7 @@ require_once AFC_PATH . 'includes/class-afc-admin-mode.php';
 require_once AFC_PATH . 'includes/class-afc-basic-payments.php';
 require_once AFC_PATH . 'includes/class-afc-quick-payments.php';
 require_once AFC_PATH . 'includes/class-afc-billing-cycles.php';
+require_once AFC_PATH . 'includes/class-afc-prepaid-service-policy.php';
 require_once AFC_PATH . 'includes/class-afc-advance-payments.php';
 require_once AFC_PATH . 'includes/class-afc-frontend-page.php';
 require_once AFC_PATH . 'includes/class-afc-sms-center.php';
@@ -75,6 +76,7 @@ function afc_boot_plugin() {
 	AFC_SMS_Payer_Ratings::init();
 	AFC_SMS_Payer_Hooks::init();
 	AFC_PWA::init();
+	AFC_Prepaid_Service_Policy::init();
 
 	if ( is_admin() ) {
 		AFC_Admin::init();
