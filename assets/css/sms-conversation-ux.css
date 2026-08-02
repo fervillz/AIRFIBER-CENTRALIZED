@@ -1,0 +1,98 @@
+/* Conversation list states: outlined pastel by default, filled after we reply. */
+.afc-sms-conversation-item .afc-sms-list-avatar {
+	position: relative;
+	border: 1.5px solid var(--afc-avatar-color, #7c8fe8);
+	background: var(--afc-avatar-soft, #f1f3ff) !important;
+	background-image: none !important;
+	color: var(--afc-avatar-ink, #4c5ec5) !important;
+	box-shadow: none;
+	transition: background .18s ease, color .18s ease, border-color .18s ease, box-shadow .18s ease, transform .18s ease;
+}
+
+.afc-sms-list-avatar.is-tone-0 { --afc-avatar-color: #7c8fe8; --afc-avatar-soft: #f1f3ff; --afc-avatar-ink: #4c5ec5; }
+.afc-sms-list-avatar.is-tone-1 { --afc-avatar-color: #e58d8a; --afc-avatar-soft: #fff2f1; --afc-avatar-ink: #b85f5b; }
+.afc-sms-list-avatar.is-tone-2 { --afc-avatar-color: #62b9a7; --afc-avatar-soft: #eefaf7; --afc-avatar-ink: #2e8373; }
+.afc-sms-list-avatar.is-tone-3 { --afc-avatar-color: #dfa85f; --afc-avatar-soft: #fff7ea; --afc-avatar-ink: #a46f2d; }
+.afc-sms-list-avatar.is-tone-4 { --afc-avatar-color: #a889d9; --afc-avatar-soft: #f7f1ff; --afc-avatar-ink: #7757aa; }
+.afc-sms-list-avatar.is-tone-5 { --afc-avatar-color: #65a9dc; --afc-avatar-soft: #eef7fd; --afc-avatar-ink: #3579aa; }
+.afc-sms-list-avatar.is-tone-6 { --afc-avatar-color: #d982aa; --afc-avatar-soft: #fff0f7; --afc-avatar-ink: #a55079; }
+.afc-sms-list-avatar.is-tone-7 { --afc-avatar-color: #74ad75; --afc-avatar-soft: #f0f9f0; --afc-avatar-ink: #477f48; }
+
+.afc-sms-conversation-item.is-replied .afc-sms-list-avatar {
+	border-color: #fff;
+	background: var(--afc-avatar-color, #7c8fe8) !important;
+	color: #fff !important;
+	box-shadow: 0 4px 11px rgba(71, 85, 105, .22);
+}
+
+.afc-sms-conversation-item .afc-sms-list-avatar::after {
+	position: absolute;
+	top: -3px;
+	right: -3px;
+	width: 10px;
+	height: 10px;
+	border: 2px solid #fff;
+	border-radius: 50%;
+	content: '';
+	opacity: 0;
+	transform: scale(.65);
+	transition: opacity .16s ease, transform .16s ease, background .16s ease;
+}
+
+.afc-sms-conversation-item.is-replied .afc-sms-list-avatar::after {
+	background: #2fb344;
+	opacity: 1;
+	transform: scale(1);
+}
+
+.afc-sms-conversation-item.has-recipient-reply .afc-sms-list-avatar::after {
+	background: #f59f00;
+	opacity: 1;
+	transform: scale(1);
+}
+
+.afc-sms-list-name-row {
+	display: flex;
+	min-width: 0;
+	align-items: center;
+	gap: .3rem;
+}
+
+.afc-sms-list-name-row > strong {
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.afc-sms-list-replied-icon {
+	display: none;
+	width: 15px;
+	height: 15px;
+	flex: 0 0 15px;
+	align-items: center;
+	justify-content: center;
+	border-radius: 50%;
+	background: #e9f8ed;
+	color: #238636;
+	font-size: .58rem;
+	font-weight: 900;
+	line-height: 1;
+}
+
+.afc-sms-conversation-item.is-replied .afc-sms-list-replied-icon {
+	display: inline-flex;
+}
+
+.afc-sms-conversation-item.is-replied .afc-sms-list-identity strong,
+.afc-sms-conversation-item.has-recipient-reply .afc-sms-list-identity strong {
+	color: #111827;
+	font-weight: 800;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.afc-sms-conversation-item .afc-sms-list-avatar,
+	.afc-sms-conversation-item .afc-sms-list-avatar::after {
+		transition: none;
+	}
+}
