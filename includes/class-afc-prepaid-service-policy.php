@@ -17,8 +17,8 @@ defined( 'ABSPATH' ) || exit;
  */
 class AFC_Prepaid_Service_Policy {
 
-	const DEFAULT_CYCLE_DAYS = 30;
-	const MAX_FUTURE_ANCHOR_DAYS = 365;
+	const DEFAULT_CYCLE_DAYS      = 30;
+	const MAX_FUTURE_ANCHOR_DAYS  = 365;
 
 	public static function init() {
 		// AFC_Billing_Cycles registers its handlers on init priority 1.
@@ -107,6 +107,7 @@ class AFC_Prepaid_Service_Policy {
 			if ( ! empty( $field['key'] ) && 0 === strcasecmp( $canonical, $field['key'] ) ) {
 				return $field['key'];
 			}
+		}
 		return $canonical;
 	}
 
@@ -159,9 +160,9 @@ class AFC_Prepaid_Service_Policy {
 	}
 
 	private static function service_dates( $details, DateTimeImmutable $payment_date, $cycle ) {
-		$existing_next = self::parse_date( self::custom_value( $details, 'nextDue' ) );
+		$existing_next  = self::parse_date( self::custom_value( $details, 'nextDue' ) );
 		$maximum_anchor = $payment_date->modify( '+' . self::MAX_FUTURE_ANCHOR_DAYS . ' days' );
-		$anchor = $payment_date;
+		$anchor         = $payment_date;
 
 		// Preserve already-paid days for early payors. Ignore clearly malformed
 		// dates that are more than one year ahead.
@@ -171,14 +172,14 @@ class AFC_Prepaid_Service_Policy {
 
 		$next_due = $anchor->modify( '+' . (int) $cycle . ' days' );
 		return array(
-			'cycle_days'             => (int) $cycle,
-			'service_anchor'         => $anchor,
-			'paidThrough'            => $anchor,
-			'nextDue'                => $next_due,
-			'cutoffDate'             => $next_due->modify( '+1 day' ),
-			'dueReminderDate'        => $next_due->modify( '-1 day' ),
-			'preserved_remaining'    => $anchor > $payment_date,
-			'preserved_days'         => max( 0, (int) $payment_date->diff( $anchor )->format( '%a' ) ),
+			'cycle_days'          => (int) $cycle,
+			'service_anchor'      => $anchor,
+			'paidThrough'         => $anchor,
+			'nextDue'             => $next_due,
+			'cutoffDate'          => $next_due->modify( '+1 day' ),
+			'dueReminderDate'     => $next_due->modify( '-1 day' ),
+			'preserved_remaining' => $anchor > $payment_date,
+			'preserved_days'      => max( 0, (int) $payment_date->diff( $anchor )->format( '%a' ) ),
 		);
 	}
 
@@ -292,9 +293,11 @@ class AFC_Prepaid_Service_Policy {
 			)
 		);
 
-		$saved_plan = isset( $details['plan'] ) ? trim( (string) $details['plan'] ) : '';
-		$current_profile = isset( $secret['profile'] ) ? trim( (string) $secret['profile'] ) : '';
-		$restore_profile = '' !== $saved_plan && 0 === strcasecmp( $current_profile, 'Expired' );
+		$saved_plan       = isset( $details['plan'] ) ? trim( (string) $details['plan'] ) : '';
+		$current_profile  = isset( $secret['profile'] ) ? trim( (string) $secret['profile'] ) : '';
+		$scheduler_config = class_exists( 'AFC_Schedulers' ) ? AFC_Schedulers::get_settings() : array();
+		$expired_profile  = ! empty( $scheduler_config['expired_profile'] ) ? (string) $scheduler_config['expired_profile'] : 'Expired';
+		$restore_profile  = '' !== $saved_plan && 0 === strcasecmp( $current_profile, $expired_profile );
 
 		$command = array(
 			'/ppp/secret/set',
@@ -356,7 +359,7 @@ class AFC_Prepaid_Service_Policy {
 		if ( $existing ) {
 			return $existing;
 		}
-		$cycle = self::selected_cycle( $details, 0 );
+		$cycle        = self::selected_cycle( $details, 0 );
 		$payment_date = self::parse_date( isset( $details['payment_date'] ) ? $details['payment_date'] : '' );
 		return $payment_date ? $payment_date->modify( '+' . $cycle . ' days' ) : $today->modify( '+' . $cycle . ' days' );
 	}
@@ -387,13 +390,13 @@ class AFC_Prepaid_Service_Policy {
 			wp_send_json_error( array( 'message' => $secret->get_error_message() ) );
 		}
 
-		$current_name = isset( $secret['name'] ) ? sanitize_text_field( $secret['name'] ) : $name;
-		$comment      = isset( $secret['comment'] ) ? (string) $secret['comment'] : '';
-		$details      = AFC_Comment_Fields::parse_comment( $comment );
-		$next_due     = self::derive_next_due( $details, $today );
-		$normal_cutoff = $next_due->modify( '+1 day' );
+		$current_name   = isset( $secret['name'] ) ? sanitize_text_field( $secret['name'] ) : $name;
+		$comment        = isset( $secret['comment'] ) ? (string) $secret['comment'] : '';
+		$details        = AFC_Comment_Fields::parse_comment( $comment );
+		$next_due       = self::derive_next_due( $details, $today );
+		$normal_cutoff  = $next_due->modify( '+1 day' );
 		$promise_cutoff = $promise ? $promise->modify( '+1 day' ) : null;
-		$effective = $promise_cutoff && $promise_cutoff > $normal_cutoff ? $promise_cutoff : $normal_cutoff;
+		$effective      = $promise_cutoff && $promise_cutoff > $normal_cutoff ? $promise_cutoff : $normal_cutoff;
 
 		$new_comment = self::replace_comment_fields(
 			$comment,
