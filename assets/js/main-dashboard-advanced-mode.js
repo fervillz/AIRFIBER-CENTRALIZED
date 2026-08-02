@@ -69,27 +69,14 @@
 		return true;
 	}
 
-	function mountAdvancedPaymentApp() {
-		const app = paymentApp();
-		const mount = document.querySelector( '[data-afc-dashboard-payment-mount]' );
-		if ( ! app || ! mount ) return false;
-		app.classList.remove( 'afc-basic-only' );
-		app.classList.add( 'is-dashboard-payment' );
-		if ( ! mount.contains( app ) ) mount.replaceChildren( app );
-		return true;
-	}
-
 	function syncMode() {
 		revealShell();
 		markDashboardAdvancedOnly();
-
-		if ( 'advanced' === currentMode() ) {
-			mountAdvancedPaymentApp();
-			return;
-		}
-
+		// The original Basic payment app always stays in Operations. Advanced
+		// uses a separate dashboard payment search and never moves this element.
 		restoreBasicPaymentApp();
-		setActivePanel( 'operations' );
+
+		if ( 'basic' === currentMode() ) setActivePanel( 'operations' );
 	}
 
 	function boot() {
@@ -103,8 +90,8 @@
 		observer = new MutationObserver( function () {
 			revealShell();
 			markDashboardAdvancedOnly();
+			restoreBasicPaymentApp();
 			if ( 'basic' === currentMode() ) {
-				restoreBasicPaymentApp();
 				const active = document.querySelector( '[data-afc-panel="dashboard"].is-active' );
 				if ( active ) setActivePanel( 'operations' );
 			}
@@ -117,7 +104,6 @@
 		}, 12000 );
 	}
 
-	/* Reveal immediately when this footer script loads, then finish on DOM ready. */
 	revealShell();
 	if ( 'loading' === document.readyState ) document.addEventListener( 'DOMContentLoaded', boot );
 	else boot();
