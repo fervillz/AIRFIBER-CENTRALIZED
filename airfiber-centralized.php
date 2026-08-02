@@ -2,14 +2,14 @@
 /**
  * Plugin Name: Airfiber - Centralized
  * Description: Customer, billing, payment, installation, notification, and MikroTik management for Airfiber.
- * Version: 2.1.7
+ * Version: 2.1.8
  * Author: Airfiber
  * Text Domain: airfiber-centralized
  */
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'AFC_VERSION', '2.1.7' );
+define( 'AFC_VERSION', '2.1.8' );
 define( 'AFC_FILE', __FILE__ );
 define( 'AFC_PATH', plugin_dir_path( __FILE__ ) );
 define( 'AFC_URL', plugin_dir_url( __FILE__ ) );
@@ -22,6 +22,7 @@ require_once AFC_PATH . 'includes/class-afc-comment-migration.php';
 require_once AFC_PATH . 'includes/class-afc-comment-migration-rules.php';
 require_once AFC_PATH . 'includes/class-afc-comment-center.php';
 require_once AFC_PATH . 'includes/class-afc-schedulers.php';
+require_once AFC_PATH . 'includes/class-afc-scheduler-insights.php';
 require_once AFC_PATH . 'includes/class-afc-scheduler-migration-selection.php';
 require_once AFC_PATH . 'includes/class-afc-ppp-users.php';
 require_once AFC_PATH . 'includes/trait-afc-ppp-manager-router.php';
@@ -62,6 +63,7 @@ function afc_boot_plugin() {
 	AFC_Comment_Migration_Rules::init();
 	AFC_Comment_Center::init();
 	AFC_Schedulers::init();
+	AFC_Scheduler_Insights::init();
 	AFC_Scheduler_Migration_Selection::init();
 	AFC_Advance_Payments::init();
 	AFC_PPP_Users::init();
