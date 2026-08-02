@@ -23,10 +23,25 @@ class AFC_SMS_Chat_Status {
 			AFC_VERSION
 		);
 
+		wp_enqueue_style(
+			'afc-sms-conversation-ux',
+			AFC_URL . 'assets/css/sms-conversation-ux.css',
+			array( 'afc-sms-chat-status' ),
+			AFC_VERSION
+		);
+
 		wp_enqueue_script(
 			'afc-sms-chat-status',
 			AFC_URL . 'assets/js/sms-chat-status.js',
 			array( 'afc-sms-center', 'afc-sms-web-replies' ),
+			AFC_VERSION,
+			true
+		);
+
+		wp_enqueue_script(
+			'afc-sms-conversation-ux',
+			AFC_URL . 'assets/js/sms-conversation-ux.js',
+			array( 'afc-sms-center', 'afc-sms-web-replies', 'afc-sms-chat-status' ),
 			AFC_VERSION,
 			true
 		);
