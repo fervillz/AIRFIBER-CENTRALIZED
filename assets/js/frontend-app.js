@@ -1,7 +1,7 @@
 ( function () {
 	'use strict';
 
-	let activePanel = 'operations';
+	let activePanel = 'dashboard';
 
 	function app() {
 		return document.getElementById( 'afc-frontend-app' );
@@ -39,8 +39,8 @@
 
 		let target = root.querySelector( '[data-afc-panel="' + panel + '"]' );
 		if ( ! target || ( target.classList.contains( 'afc-advanced-only' ) && 'advanced' !== currentMode() ) ) {
-			panel = 'operations';
-			target = root.querySelector( '[data-afc-panel="operations"]' );
+			panel = 'dashboard';
+			target = root.querySelector( '[data-afc-panel="dashboard"]' ) || root.querySelector( '[data-afc-panel="operations"]' );
 		}
 
 		activePanel = panel;
@@ -65,7 +65,7 @@
 
 		if ( updateUrl && window.history && window.history.replaceState ) {
 			const url = new URL( window.location.href );
-			if ( 'operations' === panel ) {
+			if ( 'dashboard' === panel ) {
 				url.hash = '';
 			} else {
 				url.hash = panel;
@@ -83,10 +83,10 @@
 			return hash;
 		}
 		try {
-			const stored = window.sessionStorage.getItem( 'afcFrontendPanel' ) || 'operations';
-			return root && root.querySelector( '[data-afc-panel="' + stored + '"]' ) ? stored : 'operations';
+			const stored = window.sessionStorage.getItem( 'afcFrontendPanel' ) || 'dashboard';
+			return root && root.querySelector( '[data-afc-panel="' + stored + '"]' ) ? stored : 'dashboard';
 		} catch ( error ) {
-			return 'operations';
+			return 'dashboard';
 		}
 	}
 
@@ -112,7 +112,7 @@
 			const panelButton = event.target.closest( '[data-afc-app-panel]' );
 			if ( panelButton ) {
 				event.preventDefault();
-				setPanel( panelButton.getAttribute( 'data-afc-app-panel' ) || 'operations', true );
+				setPanel( panelButton.getAttribute( 'data-afc-app-panel' ) || 'dashboard', true );
 				return;
 			}
 
@@ -149,12 +149,12 @@
 			syncModeButtons( mode );
 			const activeTarget = root.querySelector( '[data-afc-panel="' + activePanel + '"]' );
 			if ( 'basic' === mode && activeTarget && activeTarget.classList.contains( 'afc-advanced-only' ) ) {
-				setPanel( 'operations', true );
+				setPanel( 'dashboard', true );
 			}
 		} );
 
 		window.addEventListener( 'hashchange', function () {
-			setPanel( String( window.location.hash || '' ).replace( /^#/, '' ) || 'operations', false );
+			setPanel( String( window.location.hash || '' ).replace( /^#/, '' ) || 'dashboard', false );
 		} );
 	} );
 }() );
