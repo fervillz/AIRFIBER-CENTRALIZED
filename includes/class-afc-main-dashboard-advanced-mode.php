@@ -1,0 +1,28 @@
+<?php
+
+defined( 'ABSPATH' ) || exit;
+
+/**
+ * Keeps the main dashboard and its embedded payment search exclusive to
+ * Advanced mode without changing the existing Basic payment experience.
+ */
+class AFC_Main_Dashboard_Advanced_Mode {
+
+	public static function init() {
+		add_action( 'wp_enqueue_scripts', array( __CLASS__, 'enqueue_assets' ), 120 );
+	}
+
+	public static function enqueue_assets() {
+		if ( ! class_exists( 'AFC_Frontend_Page' ) || ! AFC_Frontend_Page::is_app_request() || ! current_user_can( 'manage_options' ) ) {
+			return;
+		}
+
+		wp_enqueue_script(
+			'afc-main-dashboard-advanced-mode',
+			AFC_URL . 'assets/js/main-dashboard-advanced-mode.js',
+			array( 'afc-main-dashboard', 'afc-frontend-app', 'afc-basic-payments' ),
+			AFC_VERSION,
+			true
+		);
+	}
+}
