@@ -1,0 +1,378 @@
+/* Advanced dashboard payment search and today's collection summary. */
+.afc-dashboard-panel .afc-dashboard-payment-tool {
+	padding: 18px;
+}
+
+.afc-dashboard-panel .afc-dashboard-payment-search-row {
+	display: flex;
+	align-items: stretch;
+	gap: 10px;
+}
+
+.afc-dashboard-panel .afc-dashboard-payment-search-box {
+	position: relative;
+	display: flex;
+	min-width: 0;
+	flex: 1 1 auto;
+	align-items: center;
+	min-height: 56px;
+	border: 2px solid #d8e5f3;
+	border-radius: 14px;
+	background: #fff;
+	box-shadow: 0 8px 22px rgba(31, 45, 61, .065);
+	transition: border-color .16s ease, box-shadow .16s ease, transform .16s ease;
+}
+
+.afc-dashboard-panel .afc-dashboard-payment-search-box:focus-within {
+	border-color: #206bc4;
+	box-shadow: 0 11px 28px rgba(32, 107, 196, .14);
+	transform: translateY(-1px);
+}
+
+.afc-dashboard-panel .afc-dashboard-payment-search-icon {
+	position: relative;
+	width: 50px;
+	height: 52px;
+	flex: 0 0 50px;
+}
+
+.afc-dashboard-panel .afc-dashboard-payment-search-icon::before {
+	position: absolute;
+	top: 15px;
+	left: 16px;
+	width: 16px;
+	height: 16px;
+	border: 2px solid #66788d;
+	border-radius: 50%;
+	content: '';
+}
+
+.afc-dashboard-panel .afc-dashboard-payment-search-icon::after {
+	position: absolute;
+	top: 31px;
+	left: 31px;
+	width: 9px;
+	height: 2px;
+	border-radius: 2px;
+	background: #66788d;
+	content: '';
+	transform: rotate(45deg);
+	transform-origin: left center;
+}
+
+.afc-dashboard-panel #afc-dashboard-payment-search {
+	min-width: 0;
+	flex: 1 1 auto;
+	height: 52px;
+	padding: 0 8px 0 0;
+	border: 0;
+	outline: 0;
+	background: transparent;
+	color: #172033;
+	font-size: 16px;
+	font-weight: 650;
+}
+
+.afc-dashboard-panel #afc-dashboard-payment-search::placeholder {
+	color: #8794a5;
+	font-weight: 500;
+}
+
+.afc-dashboard-panel .afc-dashboard-payment-clear {
+	min-width: 40px;
+	height: 40px;
+	margin-right: 7px;
+	padding: 0 10px;
+	border: 0;
+	border-radius: 10px;
+	background: #f1f5f9;
+	color: #667382;
+	font-size: 13px;
+	font-weight: 750;
+	cursor: pointer;
+}
+
+.afc-dashboard-panel .afc-dashboard-payment-clear[hidden] {
+	display: none;
+}
+
+.afc-dashboard-panel .afc-dashboard-payment-new-ppp {
+	display: inline-flex;
+	flex: 0 0 auto;
+	align-items: center;
+	justify-content: center;
+	gap: 8px;
+	min-height: 56px;
+	padding: 0 18px;
+	border: 0;
+	border-radius: 14px;
+	background: #159f6b;
+	color: #fff;
+	box-shadow: 0 9px 20px rgba(21, 159, 107, .2);
+	font-size: 14px;
+	font-weight: 850;
+	cursor: pointer;
+}
+
+.afc-dashboard-panel .afc-dashboard-payment-new-ppp span {
+	font-size: 20px;
+	font-weight: 500;
+	line-height: 1;
+}
+
+.afc-dashboard-panel .afc-dashboard-payment-new-ppp:hover {
+	background: #11885b;
+}
+
+.afc-dashboard-panel .afc-dashboard-payment-help {
+	min-height: 23px;
+	padding: 7px 3px 0;
+	color: #6f7d8f;
+	font-size: 13px;
+}
+
+.afc-dashboard-panel .afc-dashboard-payment-help.is-success {
+	color: #15805a;
+	font-weight: 700;
+}
+
+.afc-dashboard-panel .afc-dashboard-payment-help.is-error {
+	color: #b42332;
+	font-weight: 700;
+}
+
+.afc-dashboard-panel .afc-dashboard-payment-results {
+	display: grid;
+	max-height: 286px;
+	margin-top: 5px;
+	overflow: auto;
+	gap: 7px;
+}
+
+.afc-dashboard-panel .afc-dashboard-payment-empty {
+	display: flex;
+	min-height: 104px;
+	align-items: center;
+	justify-content: center;
+	padding: 22px;
+	border: 1px dashed #d7e1ed;
+	border-radius: 13px;
+	background: #f9fbfd;
+	color: #718096;
+	font-size: 14px;
+	text-align: center;
+}
+
+.afc-dashboard-panel .afc-dashboard-payment-result {
+	display: grid;
+	grid-template-columns: 42px minmax(0, 1fr) auto auto;
+	align-items: center;
+	gap: 11px;
+	width: 100%;
+	min-height: 64px;
+	padding: 10px 12px;
+	border: 1px solid #e0e8f1;
+	border-radius: 13px;
+	background: #fff;
+	color: #172033;
+	text-align: left;
+	cursor: pointer;
+	transition: border-color .15s ease, background .15s ease, box-shadow .15s ease, transform .15s ease;
+}
+
+.afc-dashboard-panel .afc-dashboard-payment-result:hover,
+.afc-dashboard-panel .afc-dashboard-payment-result:focus-visible {
+	border-color: #9fc4ef;
+	background: #f6faff;
+	box-shadow: 0 7px 18px rgba(32, 107, 196, .08);
+	outline: 0;
+	transform: translateY(-1px);
+}
+
+.afc-dashboard-panel .afc-dashboard-payment-result-avatar {
+	display: grid;
+	width: 42px;
+	height: 42px;
+	place-items: center;
+	border-radius: 12px;
+	background: #eaf3ff;
+	color: #206bc4;
+	font-size: 15px;
+	font-weight: 900;
+}
+
+.afc-dashboard-panel .afc-dashboard-payment-result-copy,
+.afc-dashboard-panel .afc-dashboard-payment-result-meta {
+	min-width: 0;
+}
+
+.afc-dashboard-panel .afc-dashboard-payment-result-copy strong,
+.afc-dashboard-panel .afc-dashboard-payment-result-copy small,
+.afc-dashboard-panel .afc-dashboard-payment-result-meta strong,
+.afc-dashboard-panel .afc-dashboard-payment-result-meta small {
+	display: block;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.afc-dashboard-panel .afc-dashboard-payment-result-copy strong {
+	font-size: 15px;
+}
+
+.afc-dashboard-panel .afc-dashboard-payment-result-copy small,
+.afc-dashboard-panel .afc-dashboard-payment-result-meta small {
+	margin-top: 3px;
+	color: #7b8798;
+	font-size: 12px;
+}
+
+.afc-dashboard-panel .afc-dashboard-payment-result-meta {
+	max-width: 145px;
+	text-align: right;
+}
+
+.afc-dashboard-panel .afc-dashboard-payment-result-meta strong {
+	color: #425166;
+	font-size: 13px;
+}
+
+.afc-dashboard-panel .afc-dashboard-payment-result-action {
+	padding: 8px 11px;
+	border-radius: 9px;
+	background: #e6f7ee;
+	color: #15805a;
+	font-size: 12px;
+	font-weight: 850;
+	white-space: nowrap;
+}
+
+.afc-dashboard-panel .afc-dashboard-today-collection {
+	min-height: 260px;
+	overflow: hidden;
+	border-color: #c8dfef;
+	background: linear-gradient(145deg, #f7fbff 0%, #fff 72%);
+}
+
+.afc-dashboard-panel .afc-dashboard-today-collection .afc-dashboard-card-icon {
+	background: #e7f2ff;
+	color: #206bc4;
+}
+
+.afc-dashboard-panel .afc-dashboard-today-body {
+	padding: 16px;
+}
+
+.afc-dashboard-panel .afc-dashboard-today-total > span {
+	display: block;
+	color: #657488;
+	font-size: 13px;
+	font-weight: 700;
+}
+
+.afc-dashboard-panel .afc-dashboard-today-total > strong {
+	display: block;
+	margin-top: 4px;
+	color: #172033;
+	font-size: clamp(29px, 3vw, 38px);
+	line-height: 1.05;
+	letter-spacing: -.025em;
+}
+
+.afc-dashboard-panel .afc-dashboard-today-total > small {
+	display: block;
+	margin-top: 6px;
+	color: #718096;
+	font-size: 13px;
+}
+
+.afc-dashboard-panel .afc-dashboard-today-split {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: 8px;
+	margin-top: 14px;
+}
+
+.afc-dashboard-panel .afc-dashboard-today-split > div {
+	padding: 10px;
+	border: 1px solid #e1e9f2;
+	border-radius: 11px;
+	background: rgba(255, 255, 255, .86);
+}
+
+.afc-dashboard-panel .afc-dashboard-today-split span,
+.afc-dashboard-panel .afc-dashboard-today-split strong {
+	display: block;
+}
+
+.afc-dashboard-panel .afc-dashboard-today-split span {
+	color: #7a8798;
+	font-size: 11px;
+	font-weight: 800;
+	letter-spacing: .05em;
+	text-transform: uppercase;
+}
+
+.afc-dashboard-panel .afc-dashboard-today-split strong {
+	margin-top: 4px;
+	color: #2c3a4d;
+	font-size: 16px;
+}
+
+.afc-dashboard-panel .afc-dashboard-today-latest {
+	margin-top: 11px;
+	padding: 10px 11px;
+	border-radius: 11px;
+	background: #eef5fc;
+	color: #526174;
+	font-size: 12px;
+	line-height: 1.4;
+}
+
+.afc-dashboard-panel .afc-dashboard-today-latest strong {
+	color: #253449;
+}
+
+@media (max-width: 720px) {
+	.afc-dashboard-panel .afc-dashboard-payment-tool {
+		padding: 13px;
+	}
+
+	.afc-dashboard-panel .afc-dashboard-payment-search-row {
+		flex-wrap: wrap;
+	}
+
+	.afc-dashboard-panel .afc-dashboard-payment-search-box {
+		flex-basis: 100%;
+	}
+
+	.afc-dashboard-panel .afc-dashboard-payment-new-ppp {
+		width: 100%;
+		min-height: 48px;
+	}
+
+	.afc-dashboard-panel #afc-dashboard-payment-search {
+		font-size: 15px;
+	}
+
+	.afc-dashboard-panel .afc-dashboard-payment-result {
+		grid-template-columns: 38px minmax(0, 1fr) auto;
+	}
+
+	.afc-dashboard-panel .afc-dashboard-payment-result-avatar {
+		width: 38px;
+		height: 38px;
+	}
+
+	.afc-dashboard-panel .afc-dashboard-payment-result-meta {
+		display: none;
+	}
+
+	.afc-dashboard-panel .afc-dashboard-payment-result-copy strong {
+		font-size: 14px;
+	}
+
+	.afc-dashboard-panel .afc-dashboard-today-total > strong {
+		font-size: 30px;
+	}
+}
