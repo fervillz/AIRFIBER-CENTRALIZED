@@ -1,0 +1,262 @@
+.afc-scheduler-insights {
+	margin: 16px 0;
+	padding: 16px;
+	border: 1px solid var(--afc-scheduler-border);
+	border-radius: 15px;
+	background: linear-gradient(180deg, #fff 0%, #fbfcfe 100%);
+	box-shadow: 0 8px 24px rgba(34, 52, 73, .05);
+}
+
+.afc-scheduler-insights-head {
+	display: flex;
+	align-items: flex-start;
+	justify-content: space-between;
+	gap: 16px;
+	margin-bottom: 12px;
+}
+
+.afc-scheduler-insights-head h3 {
+	margin: 2px 0 4px;
+	font-size: 18px;
+	line-height: 1.2;
+}
+
+.afc-scheduler-insights-head p {
+	max-width: 800px;
+	margin: 0;
+	color: var(--afc-scheduler-muted);
+	font-size: 12px;
+	line-height: 1.45;
+}
+
+.afc-scheduler-insights-refresh {
+	display: inline-grid;
+	width: 34px;
+	height: 34px;
+	flex: 0 0 34px;
+	place-items: center;
+	border: 1px solid #cfd9e6;
+	border-radius: 10px;
+	background: #fff;
+	color: var(--afc-scheduler-blue);
+	font-size: 18px;
+	font-weight: 800;
+	cursor: pointer;
+}
+
+.afc-scheduler-insights-refresh:hover {
+	border-color: #9fc2ee;
+	background: #f2f7fd;
+}
+
+.afc-scheduler-insights.is-loading .afc-scheduler-insights-refresh {
+	animation: afc-scheduler-insights-spin .8s linear infinite;
+}
+
+.afc-scheduler-insights-tabs {
+	display: grid;
+	grid-template-columns: repeat(4, minmax(0, 1fr));
+	gap: 7px;
+	margin-bottom: 10px;
+}
+
+.afc-scheduler-insights-tabs button {
+	display: grid;
+	grid-template-columns: 26px minmax(0, 1fr) auto;
+	align-items: center;
+	gap: 7px;
+	min-width: 0;
+	padding: 8px 9px;
+	border: 1px solid #e0e7f0;
+	border-radius: 11px;
+	background: #fff;
+	color: #475467;
+	text-align: left;
+	cursor: pointer;
+}
+
+.afc-scheduler-insights-tabs button > span {
+	display: grid;
+	width: 26px;
+	height: 26px;
+	place-items: center;
+	border-radius: 8px;
+	background: #eef2f6;
+	font-weight: 900;
+}
+
+.afc-scheduler-insights-tabs button strong {
+	overflow: hidden;
+	font-size: 11px;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.afc-scheduler-insights-tabs button em {
+	display: inline-grid;
+	min-width: 21px;
+	height: 21px;
+	place-items: center;
+	padding: 0 5px;
+	border-radius: 999px;
+	background: #eef2f6;
+	font-size: 10px;
+	font-style: normal;
+	font-weight: 800;
+}
+
+.afc-scheduler-insights-tabs button.is-active {
+	border-color: #9fc2ee;
+	background: #f2f7fd;
+	color: #182433;
+	box-shadow: inset 0 0 0 1px rgba(32, 107, 196, .06);
+}
+
+.afc-scheduler-insights-tabs .is-due > span,
+.afc-scheduler-insights-tabs .is-due.is-active em { background: #fff1cc; color: #9a6700; }
+.afc-scheduler-insights-tabs .is-scheduled > span,
+.afc-scheduler-insights-tabs .is-scheduled.is-active em { background: #e6f1ff; color: #1d5fa7; }
+.afc-scheduler-insights-tabs .is-expired > span,
+.afc-scheduler-insights-tabs .is-expired.is-active em { background: #ffe8e8; color: #b42318; }
+.afc-scheduler-insights-tabs .is-payments > span,
+.afc-scheduler-insights-tabs .is-payments.is-active em { background: #e6f8ed; color: #18794e; }
+
+.afc-scheduler-insights-list {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: 7px;
+	max-height: 330px;
+	overflow-y: auto;
+	padding: 1px;
+}
+
+.afc-scheduler-insight-row {
+	display: grid;
+	grid-template-columns: 34px minmax(110px, .75fr) minmax(140px, 1.25fr) auto;
+	align-items: center;
+	gap: 9px;
+	min-width: 0;
+	padding: 9px 10px;
+	border: 1px solid #e4eaf1;
+	border-radius: 11px;
+	background: #fff;
+	color: #344054;
+	text-align: left;
+	cursor: pointer;
+	transition: border-color .15s ease, box-shadow .15s ease, transform .15s ease;
+}
+
+.afc-scheduler-insight-row:hover {
+	border-color: #b8cee8;
+	box-shadow: 0 5px 14px rgba(34, 52, 73, .08);
+	transform: translateY(-1px);
+}
+
+.afc-scheduler-insight-avatar {
+	display: grid;
+	width: 34px;
+	height: 34px;
+	place-items: center;
+	border-radius: 10px;
+	background: #eef2f6;
+	font-size: 12px;
+	font-weight: 850;
+}
+
+.afc-scheduler-insight-row.is-due .afc-scheduler-insight-avatar { background: #fff1cc; color: #9a6700; }
+.afc-scheduler-insight-row.is-scheduled .afc-scheduler-insight-avatar { background: #e6f1ff; color: #1d5fa7; }
+.afc-scheduler-insight-row.is-expired .afc-scheduler-insight-avatar { background: #ffe8e8; color: #b42318; }
+.afc-scheduler-insight-row.is-payments .afc-scheduler-insight-avatar { background: #e6f8ed; color: #18794e; }
+
+.afc-scheduler-insight-person,
+.afc-scheduler-insight-detail {
+	min-width: 0;
+}
+
+.afc-scheduler-insight-person strong,
+.afc-scheduler-insight-person small {
+	display: block;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.afc-scheduler-insight-person strong { color: #182433; font-size: 12px; }
+.afc-scheduler-insight-person small { margin-top: 2px; color: #7a8696; font-size: 10px; }
+.afc-scheduler-insight-detail { overflow: hidden; color: #667085; font-size: 10px; line-height: 1.35; text-overflow: ellipsis; white-space: nowrap; }
+
+.afc-scheduler-insight-badge {
+	padding: 4px 7px;
+	border-radius: 999px;
+	background: #f2f4f7;
+	color: #475467;
+	font-size: 9px;
+	font-weight: 800;
+	white-space: nowrap;
+}
+
+.afc-scheduler-insight-row.is-due .afc-scheduler-insight-badge { background: #fff8e1; color: #8a6100; }
+.afc-scheduler-insight-row.is-scheduled .afc-scheduler-insight-badge { background: #edf5ff; color: #1d5fa7; }
+.afc-scheduler-insight-row.is-expired .afc-scheduler-insight-badge { background: #fff0f0; color: #a62b23; }
+.afc-scheduler-insight-row.is-payments .afc-scheduler-insight-badge { background: #edf9f1; color: #18794e; }
+
+.afc-scheduler-insights-empty {
+	grid-column: 1 / -1;
+	display: flex;
+	min-height: 76px;
+	align-items: center;
+	justify-content: center;
+	gap: 8px;
+	padding: 16px;
+	border: 1px dashed #d7e0ea;
+	border-radius: 11px;
+	background: #fbfcfe;
+	color: #667085;
+	font-size: 11px;
+	text-align: center;
+}
+
+.afc-scheduler-insights-empty.is-loading span {
+	width: 14px;
+	height: 14px;
+	border: 2px solid #c6d6e8;
+	border-top-color: var(--afc-scheduler-blue);
+	border-radius: 50%;
+	animation: afc-scheduler-insights-spin .75s linear infinite;
+}
+
+.afc-scheduler-insights-empty.is-error {
+	border-color: #fecaca;
+	background: #fef2f2;
+	color: #991b1b;
+}
+
+.afc-scheduler-insights-note {
+	margin-top: 8px;
+	color: #8a94a3;
+	font-size: 9px;
+	text-align: right;
+}
+
+@keyframes afc-scheduler-insights-spin {
+	to { transform: rotate(360deg); }
+}
+
+@media (max-width: 980px) {
+	.afc-scheduler-insights-list { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 640px) {
+	.afc-scheduler-insights { padding: 12px; }
+	.afc-scheduler-insights-tabs { display: flex; overflow-x: auto; padding-bottom: 2px; }
+	.afc-scheduler-insights-tabs button { flex: 0 0 138px; }
+	.afc-scheduler-insight-row { grid-template-columns: 34px minmax(0, 1fr) auto; }
+	.afc-scheduler-insight-detail { grid-column: 2 / -1; white-space: normal; }
+	.afc-scheduler-insights-note { text-align: left; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.afc-scheduler-insights-refresh,
+	.afc-scheduler-insights-empty.is-loading span,
+	.afc-scheduler-insight-row { animation: none; transition: none; }
+}
