@@ -2,14 +2,14 @@
 /**
  * Plugin Name: Airfiber - Centralized
  * Description: Customer, billing, payment, installation, notification, and MikroTik management for Airfiber.
- * Version: 2.1.8
+ * Version: 2.2.0
  * Author: Airfiber
  * Text Domain: airfiber-centralized
  */
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'AFC_VERSION', '2.1.8' );
+define( 'AFC_VERSION', '2.2.0' );
 define( 'AFC_FILE', __FILE__ );
 define( 'AFC_PATH', plugin_dir_path( __FILE__ ) );
 define( 'AFC_URL', plugin_dir_url( __FILE__ ) );
@@ -45,6 +45,7 @@ require_once AFC_PATH . 'includes/class-afc-billing-cycles.php';
 require_once AFC_PATH . 'includes/class-afc-prepaid-service-policy.php';
 require_once AFC_PATH . 'includes/class-afc-advance-payments.php';
 require_once AFC_PATH . 'includes/class-afc-frontend-page.php';
+require_once AFC_PATH . 'includes/class-afc-main-dashboard.php';
 require_once AFC_PATH . 'includes/class-afc-sms-center.php';
 require_once AFC_PATH . 'includes/class-afc-sms-web-replies.php';
 require_once AFC_PATH . 'includes/class-afc-sms-chat-status.php';
@@ -74,6 +75,7 @@ function afc_boot_plugin() {
 	AFC_Comment_Aliases::init();
 	AFC_Area_Manager::init();
 	AFC_Frontend_Page::init();
+	AFC_Main_Dashboard::init();
 	AFC_SMS_Center::init();
 	AFC_SMS_Web_Replies::init();
 	AFC_SMS_Chat_Status::init();
