@@ -2,10 +2,13 @@
 	'use strict';
 
 	const config = window.afcSmsCenter || {};
-	const historyKey = 'afcSmsConversationReplyHistoryV1';
+	const replyHistoryKey = 'afcSmsConversationReplyHistoryV1';
+	const readHistoryKey = 'afcSmsConversationReadHistoryV1';
 	const serverStates = new Map();
+	const serverMessages = new Map();
 	const pendingReplies = new Map();
-	let replyHistory = readHistory();
+	let replyHistory = readStoredHistory( replyHistoryKey );
+	let readHistory = readStoredHistory( readHistoryKey );
 	let pendingAttempt = null;
 	let listObserver = null;
 	let noticeObserver = null;
@@ -21,26 +24,40 @@
 		return value == null ? '' : String( value );
 	}
 
-	function readHistory() {
+	function readStoredHistory( key ) {
 		try {
-			const stored = JSON.parse( window.localStorage.getItem( historyKey ) || '{}' );
+			const stored = JSON.parse( window.localStorage.getItem( key ) || '{}' );
 			return stored && typeof stored === 'object' && ! Array.isArray( stored ) ? stored : {};
 		} catch ( error ) {
 			return {};
 		}
 	}
 
-	function saveHistory() {
+	function compactHistory( history ) {
 		const cutoff = Date.now() - ( 180 * 24 * 60 * 60 * 1000 );
-		const compact = Object.entries( replyHistory )
-			.filter( function ( entry ) { return Number( entry[ 1 ] ) >= cutoff; } )
-			.sort( function ( a, b ) { return Number( b[ 1 ] ) - Number( a[ 1 ] ); } )
-			.slice( 0, 100 );
-		replyHistory = Object.fromEntries( compact );
+		return Object.fromEntries(
+			Object.entries( history )
+				.filter( function ( entry ) { return Number( entry[ 1 ] ) >= cutoff; } )
+				.sort( function ( a, b ) { return Number( b[ 1 ] ) - Number( a[ 1 ] ); } )
+				.slice( 0, 100 )
+		);
+	}
+
+	function saveReplyHistory() {
+		replyHistory = compactHistory( replyHistory );
 		try {
-			window.localStorage.setItem( historyKey, JSON.stringify( replyHistory ) );
+			window.localStorage.setItem( replyHistoryKey, JSON.stringify( replyHistory ) );
 		} catch ( error ) {
 			// The server state still keeps the UX accurate when storage is unavailable.
+		}
+	}
+
+	function saveReadHistory() {
+		readHistory = compactHistory( readHistory );
+		try {
+			window.localStorage.setItem( readHistoryKey, JSON.stringify( readHistory ) );
+		} catch ( error ) {
+			// Read state remains available for this page even when storage is unavailable.
 		}
 	}
 
@@ -52,6 +69,11 @@
 		return '';
 	}
 
+	/*
+	 * WordPress stores these SMS rows as timezone-less MySQL values. On this
+	 * installation they are UTC, so add Z and let the browser/PC display them
+	 * in its own local timezone. Values already carrying a timezone are kept.
+	 */
 	function timestampValue( value ) {
 		const raw = text( value ).trim();
 		if ( ! raw ) return 0;
@@ -59,8 +81,41 @@
 			const numeric = Number( raw );
 			return raw.length === 10 ? numeric * 1000 : numeric;
 		}
-		const parsed = Date.parse( raw.replace( ' ', 'T' ) );
+
+		let normalized = raw.replace( ' ', 'T' );
+		if ( /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2})?(?:\.\d+)?$/.test( normalized ) ) {
+			normalized += 'Z';
+		}
+		const parsed = Date.parse( normalized );
 		return Number.isNaN( parsed ) ? 0 : parsed;
+	}
+
+	function replyTimestamp( reply ) {
+		const received = text( reply && reply.received_at ).trim();
+		if ( /^\d{10,13}$/.test( received ) || /(?:Z|[+-]\d{2}:?\d{2})$/i.test( received ) ) {
+			return timestampValue( received );
+		}
+		return timestampValue( reply && reply.created_at ) || timestampValue( received );
+	}
+
+	function formatLocalTime( value, includeDate ) {
+		const timestamp = typeof value === 'number' ? value : timestampValue( value );
+		if ( ! timestamp ) return text( value );
+		const date = new Date( timestamp );
+		const now = new Date();
+		const sameDay = date.getFullYear() === now.getFullYear() &&
+			date.getMonth() === now.getMonth() &&
+			date.getDate() === now.getDate();
+		if ( includeDate || ! sameDay ) {
+			return date.toLocaleString( [], { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' } );
+		}
+		return date.toLocaleTimeString( [], { hour: 'numeric', minute: '2-digit' } );
+	}
+
+	function addServerMessage( key, type, at ) {
+		if ( ! key || ! at ) return;
+		if ( ! serverMessages.has( key ) ) serverMessages.set( key, [] );
+		serverMessages.get( key ).push( { type: type, at: at } );
 	}
 
 	function updateLatest( key, type, at ) {
@@ -73,13 +128,21 @@
 
 	function consumeState( state ) {
 		serverStates.clear();
+		serverMessages.clear();
 		( state.jobs || [] ).forEach( function ( job ) {
 			const key = phoneKey( job.phone ) || ( job.ppp_username ? 'ppp:' + text( job.ppp_username ).toLowerCase() : '' );
-			updateLatest( key, 'outgoing', timestampValue( job.created_at ) );
+			const at = timestampValue( job.created_at );
+			updateLatest( key, 'outgoing', at );
+			addServerMessage( key, 'outgoing', at );
 		} );
 		( state.replies || [] ).forEach( function ( reply ) {
 			const key = phoneKey( reply.phone ) || ( reply.ppp_username ? 'ppp:' + text( reply.ppp_username ).toLowerCase() : '' );
-			updateLatest( key, 'incoming', timestampValue( reply.received_at || reply.created_at ) );
+			const at = replyTimestamp( reply );
+			updateLatest( key, 'incoming', at );
+			addServerMessage( key, 'incoming', at );
+		} );
+		serverMessages.forEach( function ( messages ) {
+			messages.sort( function ( a, b ) { return a.at - b.at; } );
 		} );
 		lastStateAt = Date.now();
 
@@ -147,14 +210,24 @@
 		const server = serverStates.get( key ) || { lastAt: 0, lastType: '' };
 		const storedAt = Number( replyHistory[ key ] || 0 );
 		const pendingAt = Number( pendingReplies.get( key ) || 0 );
+		const readAt = Number( readHistory[ key ] || 0 );
 		const localAt = Math.max( storedAt, pendingAt );
-		const recipientReply = server.lastType === 'incoming' && server.lastAt > localAt;
-		const replied = ! recipientReply && ( server.lastType === 'outgoing' || localAt > 0 );
+		const recipientReply = server.lastType === 'incoming' && server.lastAt > Math.max( localAt, readAt );
+		const replied = ! recipientReply && ( server.lastType === 'outgoing' || localAt > server.lastAt );
+		const read = ! recipientReply && server.lastType === 'incoming' && server.lastAt > 0 && readAt >= server.lastAt;
 		return {
 			effectiveAt: Math.max( server.lastAt, localAt ),
 			recipientReply: recipientReply,
 			replied: replied,
+			read: read,
 		};
+	}
+
+	function markRead( key, at, saveNow ) {
+		if ( ! key || ! at || Number( readHistory[ key ] || 0 ) >= at ) return false;
+		readHistory[ key ] = at;
+		if ( saveNow !== false ) saveReadHistory();
+		return true;
 	}
 
 	function ensureNameUi( row ) {
@@ -178,25 +251,57 @@
 		}
 	}
 
+	function applyConversationTimes() {
+		const key = activeConversationKey();
+		const timeline = byId( 'afc-sms-chat-timeline' );
+		const messages = serverMessages.get( key ) || [];
+		if ( ! timeline || ! messages.length ) return;
+		const rows = Array.from( timeline.querySelectorAll( ':scope > .afc-sms-message-row' ) );
+		rows.slice( 0, messages.length ).forEach( function ( row, index ) {
+			const footer = row.querySelector( '.afc-sms-message-footer' );
+			if ( ! footer ) return;
+			const parts = footer.querySelectorAll( 'span' );
+			const time = parts.length ? parts[ parts.length - 1 ] : null;
+			if ( time ) time.textContent = formatLocalTime( messages[ index ].at, true );
+		} );
+	}
+
 	function applyRows() {
 		applyQueued = false;
 		const list = byId( 'afc-sms-conversations' );
 		if ( ! list ) return;
 		const rows = Array.from( list.querySelectorAll( ':scope > .afc-sms-conversation-item' ) );
-		if ( ! rows.length ) return;
+		if ( ! rows.length ) {
+			applyConversationTimes();
+			return;
+		}
+
+		let readChanged = false;
+		rows.forEach( function ( row ) {
+			if ( ! row.classList.contains( 'is-active' ) ) return;
+			const key = rowKey( row );
+			const server = serverStates.get( key );
+			if ( server && server.lastType === 'incoming' ) {
+				readChanged = markRead( key, server.lastAt, false ) || readChanged;
+			}
+		} );
+		if ( readChanged ) saveReadHistory();
 
 		rows.forEach( function ( row, index ) {
 			const key = rowKey( row );
 			const state = effectiveState( key );
 			const avatar = row.querySelector( '.afc-sms-list-avatar' );
+			const time = row.querySelector( '.afc-sms-list-meta' );
 			row.dataset.afcUxOriginalIndex = row.dataset.afcUxOriginalIndex || String( index );
 			row.dataset.afcUxOrder = String( state.effectiveAt || 0 );
 			row.classList.toggle( 'is-replied', state.replied );
 			row.classList.toggle( 'has-recipient-reply', state.recipientReply );
+			row.classList.toggle( 'is-read', state.read );
 			if ( avatar ) {
 				for ( let tone = 0; tone < 8; tone += 1 ) avatar.classList.remove( 'is-tone-' + tone );
 				avatar.classList.add( 'is-tone-' + toneForKey( key || avatar.textContent ) );
 			}
+			if ( time && state.effectiveAt ) time.textContent = formatLocalTime( state.effectiveAt, false );
 			ensureNameUi( row );
 		} );
 
@@ -211,6 +316,7 @@
 			sorted.forEach( function ( row ) { fragment.appendChild( row ); } );
 			list.appendChild( fragment );
 		}
+		applyConversationTimes();
 	}
 
 	function queueApply() {
@@ -242,7 +348,7 @@
 		replyHistory[ pendingAttempt.key ] = pendingAttempt.at;
 		pendingReplies.delete( pendingAttempt.key );
 		pendingAttempt = null;
-		saveHistory();
+		saveReplyHistory();
 		queueApply();
 	}
 
@@ -262,6 +368,16 @@
 			if ( ! event.target || event.target.id !== 'afc-sms-reply-message' ) return;
 			if ( event.isComposing || event.key !== 'Enter' || event.shiftKey ) return;
 			beginReplyAttempt();
+		}, true );
+	}
+
+	function bindReading() {
+		document.addEventListener( 'click', function ( event ) {
+			const button = event.target.closest( '[data-afc-sms-conversation]' );
+			if ( ! button ) return;
+			const key = text( button.getAttribute( 'data-afc-sms-conversation' ) );
+			const server = serverStates.get( key );
+			if ( server && server.lastType === 'incoming' && markRead( key, server.lastAt, true ) ) queueApply();
 		}, true );
 	}
 
@@ -287,11 +403,13 @@
 	function boot() {
 		interceptStateRequests();
 		bindSending();
+		bindReading();
 		observeList();
 		observeNotice();
 		window.addEventListener( 'storage', function ( event ) {
-			if ( event.key !== historyKey ) return;
-			replyHistory = readHistory();
+			if ( event.key === replyHistoryKey ) replyHistory = readStoredHistory( replyHistoryKey );
+			else if ( event.key === readHistoryKey ) readHistory = readStoredHistory( readHistoryKey );
+			else return;
 			queueApply();
 		} );
 		window.setTimeout( function () {
