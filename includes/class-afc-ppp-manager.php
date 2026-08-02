@@ -20,6 +20,68 @@ class AFC_PPP_Manager {
 	const SCRIPT_MARKER         = 'AFC-MANAGED-SCHEDULER v1';
 	const SERVICE_AREAS_OPTION = 'afc_ppp_service_areas';
 
+	/**
+	 * New installations are prepaid rolling accounts. The due date is exactly
+	 * 30 days after activation and the scheduler runs just after the due date,
+	 * rather than adding the collection grace as free service days.
+	 *
+	 * A class method overrides the identically named Core trait method.
+	 */
+	private static function dates_from_installation( DateTimeImmutable $installed, $grace = 3 ) {
+		$next_due = $installed->modify( '+30 days' );
+		$cutoff   = $next_due->modify( '+1 day' );
+
+		return array(
+			'installed'       => $installed->format( 'Y-m-d' ),
+			'paymentDate'     => $installed->format( 'Y-m-d' ),
+			'billingDay'      => (int) $installed->format( 'j' ),
+			'billingCycleDays'=> 30,
+			'paidThrough'     => $installed->format( 'Y-m-d' ),
+			'nextDue'         => $next_due->format( 'Y-m-d' ),
+			'cutoffDate'      => $cutoff->format( 'Y-m-d' ),
+			'dueReminderDate' => $next_due->modify( '-1 day' )->format( 'Y-m-d' ),
+		);
+	}
+
+	/**
+	 * Keep the Core trait formatter, while adding rolling-cycle and WiFi
+	 * password fields used by the newer onboarding flow.
+	 */
+	private static function build_comment( $base, $values ) {
+		$comment = (string) $base;
+		$map = array(
+			'installed'       => 'installed',
+			'grace'           => 'grace',
+			'paymentMethod'   => 'paymentMethod',
+			'paymentAmount'   => 'paymentAmount',
+			'paymentDate'     => 'paymentDate',
+			'name'            => 'name',
+			'plan'            => 'plan',
+			'cp'              => 'cp',
+			'wifi'            => 'wifi',
+			'password'        => 'password',
+			'Address'         => 'Address',
+			'billingDay'      => 'billingDay',
+			'billingCycleDays'=> 'billingCycleDays',
+			'paidThrough'     => 'paidThrough',
+			'nextDue'         => 'nextDue',
+			'cutoffDate'      => 'cutoffDate',
+			'dueReminderDate' => 'dueReminderDate',
+		);
+
+		foreach ( $map as $source => $comment_key ) {
+			if ( array_key_exists( $source, $values ) ) {
+				$comment = AFC_Comment_Fields::replace_value(
+					$comment,
+					$comment_key,
+					sanitize_text_field( (string) $values[ $source ] )
+				);
+			}
+		}
+
+		return AFC_Comment_Fields::normalize_comment( $comment );
+	}
+
 	public static function init() {
 		add_action( 'wp_ajax_afc_ppp_manager_bootstrap', array( __CLASS__, 'ajax_bootstrap' ) );
 		add_action( 'wp_ajax_afc_ppp_manager_create', array( __CLASS__, 'ajax_create' ) );
