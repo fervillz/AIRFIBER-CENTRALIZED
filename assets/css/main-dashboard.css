@@ -1,0 +1,413 @@
+.afc-dashboard-panel {
+	--afc-dashboard-ink: #172033;
+	--afc-dashboard-muted: #6b7280;
+	--afc-dashboard-border: #e2e8f0;
+	--afc-dashboard-blue: #206bc4;
+	--afc-dashboard-green: #159f6b;
+	--afc-dashboard-red: #d54a55;
+	--afc-dashboard-orange: #e89927;
+	background: #f4f7fb;
+}
+
+.afc-dashboard-shell {
+	max-width: 1540px;
+	margin: 0 auto;
+	padding: 22px;
+	color: var(--afc-dashboard-ink);
+}
+
+.afc-dashboard-header {
+	display: flex;
+	align-items: flex-start;
+	justify-content: space-between;
+	gap: 22px;
+	margin-bottom: 14px;
+}
+
+.afc-dashboard-header h1 {
+	margin: 3px 0 5px;
+	font-size: clamp(25px, 3vw, 34px);
+	line-height: 1.1;
+	letter-spacing: -.025em;
+}
+
+.afc-dashboard-header p {
+	max-width: 760px;
+	margin: 0;
+	color: var(--afc-dashboard-muted);
+	font-size: 13px;
+	line-height: 1.5;
+}
+
+.afc-dashboard-kicker,
+.afc-dashboard-card-title small {
+	display: block;
+	color: var(--afc-dashboard-blue);
+	font-size: 10px;
+	font-weight: 850;
+	letter-spacing: .085em;
+	text-transform: uppercase;
+}
+
+.afc-dashboard-header-actions {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+}
+
+.afc-dashboard-save-state {
+	min-width: 108px;
+	color: #7a8699;
+	font-size: 11px;
+	text-align: right;
+}
+
+.afc-dashboard-save-state.is-saving { color: #8a6400; }
+.afc-dashboard-save-state.is-saved { color: #15803d; }
+.afc-dashboard-save-state.is-error { color: #b42318; }
+
+.afc-dashboard-refresh {
+	display: inline-flex;
+	align-items: center;
+	gap: 7px;
+	min-height: 38px;
+	padding: 8px 13px;
+	border: 1px solid #cfd9e6;
+	border-radius: 10px;
+	background: #fff;
+	color: #344054;
+	font-size: 12px;
+	font-weight: 750;
+	cursor: pointer;
+}
+
+.afc-dashboard-refresh:hover { border-color: #9fc2ee; background: #f8fbff; color: var(--afc-dashboard-blue); }
+.afc-dashboard-refresh:disabled { cursor: wait; opacity: .65; }
+.afc-dashboard-shell.is-loading .afc-dashboard-refresh span { animation: afc-dashboard-spin .8s linear infinite; }
+
+.afc-dashboard-router-alert {
+	display: flex;
+	align-items: center;
+	gap: 11px;
+	min-height: 54px;
+	margin-bottom: 14px;
+	padding: 11px 13px;
+	border: 1px solid #d9e2ee;
+	border-radius: 13px;
+	background: #fff;
+	box-shadow: 0 8px 22px rgba(31, 45, 61, .045);
+}
+
+.afc-dashboard-router-alert.is-online { border-color: #bdebd7; background: #f0fbf6; }
+.afc-dashboard-router-alert.is-offline { border-color: #f3c6cb; background: #fff5f6; }
+.afc-dashboard-router-alert.is-loading { color: var(--afc-dashboard-muted); }
+
+.afc-dashboard-router-dot {
+	width: 11px;
+	height: 11px;
+	flex: 0 0 11px;
+	border-radius: 50%;
+	background: #94a3b8;
+	box-shadow: 0 0 0 5px rgba(148, 163, 184, .15);
+}
+
+.afc-dashboard-router-alert.is-online .afc-dashboard-router-dot { background: #19a66f; box-shadow: 0 0 0 5px rgba(25, 166, 111, .14); }
+.afc-dashboard-router-alert.is-offline .afc-dashboard-router-dot { background: #d54a55; box-shadow: 0 0 0 5px rgba(213, 74, 85, .12); }
+.afc-dashboard-router-alert > div { min-width: 0; flex: 1; }
+.afc-dashboard-router-alert strong,
+.afc-dashboard-router-alert small { display: block; }
+.afc-dashboard-router-alert strong { margin-bottom: 2px; font-size: 12px; }
+.afc-dashboard-router-alert small { overflow: hidden; color: var(--afc-dashboard-muted); font-size: 10px; text-overflow: ellipsis; white-space: nowrap; }
+.afc-dashboard-router-alert button { border: 0; background: transparent; color: var(--afc-dashboard-blue); font-size: 11px; font-weight: 750; cursor: pointer; }
+
+.afc-dashboard-grid {
+	display: grid;
+	grid-template-columns: repeat(3, minmax(0, 1fr));
+	gap: 13px;
+	align-items: start;
+}
+
+.afc-dashboard-card {
+	position: relative;
+	min-width: 0;
+	border: 1px solid var(--afc-dashboard-border);
+	border-radius: 16px;
+	background: #fff;
+	box-shadow: 0 10px 28px rgba(31, 45, 61, .055);
+	transition: box-shadow .18s ease, transform .18s ease, border-color .18s ease;
+}
+
+.afc-dashboard-card:hover { border-color: #d3deeb; box-shadow: 0 13px 34px rgba(31, 45, 61, .075); }
+.afc-dashboard-payment-card { grid-column: span 2; min-height: 260px; }
+.afc-dashboard-new-ppp { grid-column: span 1; min-height: 260px; overflow: hidden; border-color: #bce7d2; background: linear-gradient(145deg, #f2fcf7 0%, #fff 68%); }
+.afc-dashboard-network-card { grid-column: 1 / -1; }
+
+.afc-dashboard-card-head {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 10px;
+	min-height: 62px;
+	padding: 13px 14px 11px;
+	border-bottom: 1px solid #edf1f6;
+}
+
+.afc-dashboard-card-title {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	min-width: 0;
+}
+
+.afc-dashboard-card-title > div { min-width: 0; }
+.afc-dashboard-card-title h2 { overflow: hidden; margin: 2px 0 0; font-size: 15px; line-height: 1.2; text-overflow: ellipsis; white-space: nowrap; }
+.afc-dashboard-card-icon {
+	display: grid;
+	width: 36px;
+	height: 36px;
+	flex: 0 0 36px;
+	place-items: center;
+	border-radius: 11px;
+	background: #edf5ff;
+	color: var(--afc-dashboard-blue);
+	font-size: 18px;
+	font-weight: 900;
+}
+
+.afc-dashboard-new-ppp .afc-dashboard-card-icon { background: #dff7eb; color: #13865d; }
+
+.afc-dashboard-drag {
+	display: grid;
+	grid-template-columns: repeat(2, 3px);
+	grid-auto-rows: 3px;
+	gap: 3px;
+	width: 31px;
+	height: 31px;
+	place-content: center;
+	border: 0;
+	border-radius: 9px;
+	background: transparent;
+	cursor: grab;
+	touch-action: none;
+}
+
+.afc-dashboard-drag:hover { background: #f1f5f9; }
+.afc-dashboard-drag:active { cursor: grabbing; }
+.afc-dashboard-drag span { width: 3px; height: 3px; border-radius: 50%; background: #9aa7b8; }
+
+.afc-dashboard-ghost { opacity: .24 !important; }
+.afc-dashboard-chosen { border-color: #8bb8ee !important; box-shadow: 0 18px 44px rgba(32, 107, 196, .16) !important; }
+.afc-dashboard-dragging { transform: rotate(.4deg) scale(1.012); }
+.afc-dashboard-is-sorting, .afc-dashboard-is-sorting * { cursor: grabbing !important; }
+
+.afc-dashboard-payment-mount { padding: 11px 14px 15px; }
+.afc-dashboard-payment-mount > p { margin: 9px 0 0; color: var(--afc-dashboard-muted); font-size: 11px; }
+
+.afc-dashboard-payment-card #afc-basic-payment-app {
+	display: block !important;
+	margin: 0 !important;
+	padding: 0 !important;
+	border: 0 !important;
+	background: transparent !important;
+	box-shadow: none !important;
+}
+
+.afc-dashboard-payment-card #afc-basic-payment-app .afc-basic-payment-heading { display: none; }
+.afc-dashboard-payment-card #afc-basic-payment-app .afc-basic-payment-search-wrap { max-width: none; margin: 0; }
+.afc-dashboard-payment-card #afc-basic-payment-app .afc-basic-payment-search-box { min-height: 52px; border-radius: 13px; box-shadow: 0 5px 14px rgba(31,45,61,.05); }
+.afc-dashboard-payment-card #afc-basic-payment-app .afc-basic-payment-results { max-height: 290px; overflow: auto; }
+.afc-dashboard-payment-card #afc-basic-payment-app .afc-basic-payment-selected { margin-top: 9px; }
+
+.afc-dashboard-new-ppp-body {
+	display: flex;
+	min-height: 196px;
+	flex-direction: column;
+	align-items: flex-start;
+	justify-content: center;
+	padding: 17px;
+}
+
+.afc-dashboard-new-ppp-mark {
+	display: grid;
+	width: 52px;
+	height: 52px;
+	place-items: center;
+	border-radius: 15px;
+	background: #159f6b;
+	color: #fff;
+	box-shadow: 0 10px 24px rgba(21,159,107,.22);
+	font-size: 29px;
+	font-weight: 500;
+}
+
+.afc-dashboard-new-ppp-body p { max-width: 340px; margin: 13px 0 16px; color: #536172; font-size: 12px; line-height: 1.5; }
+.afc-dashboard-primary-action {
+	min-height: 40px;
+	padding: 9px 14px;
+	border: 0;
+	border-radius: 10px;
+	background: #159f6b;
+	color: #fff;
+	font-size: 12px;
+	font-weight: 800;
+	cursor: pointer;
+	box-shadow: 0 7px 17px rgba(21,159,107,.18);
+}
+.afc-dashboard-primary-action:hover { background: #11885b; }
+
+.afc-dashboard-list { min-height: 232px; max-height: 320px; overflow: auto; padding: 5px; }
+.afc-dashboard-list-item {
+	display: grid;
+	grid-template-columns: 34px minmax(0, 1fr) auto;
+	align-items: center;
+	gap: 9px;
+	width: 100%;
+	padding: 9px;
+	border: 0;
+	border-radius: 11px;
+	background: transparent;
+	color: var(--afc-dashboard-ink);
+	text-align: left;
+	cursor: pointer;
+}
+.afc-dashboard-list-item:hover { background: #f5f8fc; }
+.afc-dashboard-list-avatar {
+	display: grid;
+	width: 34px;
+	height: 34px;
+	place-items: center;
+	border: 1px solid #d5e2f1;
+	border-radius: 11px;
+	background: #f5f9fe;
+	color: #3978b9;
+	font-size: 12px;
+	font-weight: 850;
+}
+.afc-dashboard-list-copy { min-width: 0; }
+.afc-dashboard-list-copy strong,
+.afc-dashboard-list-copy small,
+.afc-dashboard-list-copy em { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.afc-dashboard-list-copy strong { font-size: 11px; }
+.afc-dashboard-list-copy small { margin-top: 1px; color: #8390a2; font-size: 9px; }
+.afc-dashboard-list-copy em { margin-top: 3px; color: #566476; font-size: 10px; font-style: normal; }
+
+.afc-dashboard-item-badge {
+	padding: 4px 6px;
+	border-radius: 999px;
+	background: #eef2f6;
+	color: #475467;
+	font-size: 8px;
+	font-weight: 850;
+	letter-spacing: .025em;
+	text-transform: uppercase;
+}
+.afc-dashboard-item-badge.is-due { background: #fff3d9; color: #9a6400; }
+.afc-dashboard-item-badge.is-expired,
+.afc-dashboard-item-badge.is-failed { background: #fee9eb; color: #b42332; }
+.afc-dashboard-item-badge.is-paid,
+.afc-dashboard-item-badge.is-delivered,
+.afc-dashboard-item-badge.is-sent { background: #def7ea; color: #15704d; }
+.afc-dashboard-item-badge.is-install { background: #e8efff; color: #315fb3; }
+.afc-dashboard-item-badge.is-queued,
+.afc-dashboard-item-badge.is-submitted { background: #e8f2ff; color: #2766a9; }
+
+.afc-dashboard-list-loading,
+.afc-dashboard-empty {
+	display: flex;
+	min-height: 220px;
+	align-items: center;
+	justify-content: center;
+	gap: 8px;
+	padding: 20px;
+	color: #8591a3;
+	font-size: 11px;
+	text-align: center;
+}
+.afc-dashboard-list-loading span { width: 13px; height: 13px; border: 2px solid #d7e2ef; border-top-color: var(--afc-dashboard-blue); border-radius: 50%; animation: afc-dashboard-spin .75s linear infinite; }
+
+.afc-dashboard-card-footer {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 10px;
+	min-height: 39px;
+	padding: 8px 12px;
+	border-top: 1px solid #edf1f6;
+	color: #7b8798;
+	font-size: 9px;
+}
+.afc-dashboard-card-footer button { border: 0; background: transparent; color: var(--afc-dashboard-blue); font-size: 10px; font-weight: 750; cursor: pointer; }
+
+.afc-dashboard-router-metrics {
+	display: grid;
+	grid-template-columns: repeat(4, minmax(0, 1fr));
+	gap: 8px;
+	padding: 13px 13px 5px;
+}
+.afc-dashboard-metric { padding: 11px 12px; border: 1px solid #e3eaf3; border-radius: 12px; background: #f8fafc; }
+.afc-dashboard-metric > span { display: block; margin-bottom: 4px; color: #7b8798; font-size: 9px; font-weight: 750; text-transform: uppercase; }
+.afc-dashboard-metric > strong { overflow: hidden; display: block; color: #273548; font-size: 18px; text-overflow: ellipsis; white-space: nowrap; }
+.afc-dashboard-metric > strong small { margin-left: 2px; font-size: 10px; }
+.afc-dashboard-metric.is-good strong { color: #15805a; }
+.afc-dashboard-metric.is-danger { border-color: #f1c3c8; background: #fff5f6; }
+.afc-dashboard-metric.is-danger strong { color: #b42332; }
+
+.afc-dashboard-ports {
+	display: grid;
+	grid-template-columns: repeat(4, minmax(0, 1fr));
+	gap: 8px;
+	padding: 8px 13px 13px;
+}
+.afc-dashboard-port { min-width: 0; padding: 10px; border: 1px solid #e2e8f0; border-radius: 12px; background: #fff; }
+.afc-dashboard-port.is-online { border-color: #c5ead9; background: #f7fcf9; }
+.afc-dashboard-port.is-offline { background: #fafbfc; }
+.afc-dashboard-port header { display: grid; grid-template-columns: 8px minmax(0, 1fr) auto; align-items: center; gap: 6px; }
+.afc-dashboard-port header > span { width: 8px; height: 8px; border-radius: 50%; background: #a7b2c0; }
+.afc-dashboard-port.is-online header > span { background: #18a36d; box-shadow: 0 0 0 3px rgba(24,163,109,.12); }
+.afc-dashboard-port header strong { overflow: hidden; font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
+.afc-dashboard-port header em { color: #8793a4; font-size: 8px; font-style: normal; }
+.afc-dashboard-port > div { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; margin-top: 9px; }
+.afc-dashboard-port > div span { padding: 6px; border-radius: 8px; background: rgba(255,255,255,.8); color: #6d7888; font-size: 8px; }
+.afc-dashboard-port > div strong { color: #2f3c4f; font-size: 11px; }
+.afc-dashboard-port > small { overflow: hidden; display: block; margin-top: 7px; color: #8591a3; font-size: 8px; text-overflow: ellipsis; white-space: nowrap; }
+.afc-dashboard-network-error { grid-column: 1 / -1; padding: 13px; border: 1px solid #f2c5ca; border-radius: 11px; background: #fff5f6; color: #a52c39; font-size: 11px; }
+
+.afc-dashboard-skeleton-line { height: 44px; border-radius: 11px; background: linear-gradient(90deg, #eef2f6 25%, #f7f9fb 50%, #eef2f6 75%); background-size: 220% 100%; animation: afc-dashboard-shimmer 1.25s linear infinite; }
+.afc-dashboard-skeleton-line.is-wide { width: 100%; }
+
+@keyframes afc-dashboard-spin { to { transform: rotate(360deg); } }
+@keyframes afc-dashboard-shimmer { to { background-position: -220% 0; } }
+
+@media (max-width: 1100px) {
+	.afc-dashboard-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+	.afc-dashboard-payment-card { grid-column: 1 / -1; }
+	.afc-dashboard-new-ppp { grid-column: span 1; }
+	.afc-dashboard-network-card { grid-column: 1 / -1; }
+	.afc-dashboard-ports { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (max-width: 720px) {
+	.afc-dashboard-shell { padding: 12px; }
+	.afc-dashboard-header { display: block; }
+	.afc-dashboard-header-actions { justify-content: space-between; margin-top: 12px; }
+	.afc-dashboard-save-state { text-align: left; }
+	.afc-dashboard-router-alert { align-items: flex-start; }
+	.afc-dashboard-router-alert button { display: none; }
+	.afc-dashboard-grid { grid-template-columns: 1fr; }
+	.afc-dashboard-card,
+	.afc-dashboard-payment-card,
+	.afc-dashboard-new-ppp,
+	.afc-dashboard-network-card { grid-column: 1; }
+	.afc-dashboard-router-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+	.afc-dashboard-ports { grid-template-columns: 1fr; }
+	.afc-dashboard-list { max-height: 350px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.afc-dashboard-card,
+	.afc-dashboard-refresh,
+	.afc-dashboard-list-item { transition: none; }
+	.afc-dashboard-shell.is-loading .afc-dashboard-refresh span,
+	.afc-dashboard-list-loading span,
+	.afc-dashboard-skeleton-line { animation: none; }
+}
