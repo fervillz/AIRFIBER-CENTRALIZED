@@ -1,0 +1,210 @@
+.afc-dashboard-direct-payment-dialog {
+	width: min( 520px, calc( 100vw - 28px ) );
+	max-width: 520px;
+	padding: 0;
+	border: 0;
+	border-radius: 22px;
+	background: #fff;
+	color: #172033;
+	box-shadow: 0 26px 80px rgba( 20, 34, 55, .28 );
+}
+
+.afc-dashboard-direct-payment-dialog::backdrop {
+	background: rgba( 18, 28, 43, .58 );
+	backdrop-filter: blur( 3px );
+}
+
+.afc-dashboard-direct-payment-dialog form {
+	margin: 0;
+}
+
+.afc-dashboard-direct-payment-dialog header,
+.afc-dashboard-direct-payment-dialog footer {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 16px;
+	padding: 20px 22px;
+}
+
+.afc-dashboard-direct-payment-dialog header {
+	border-bottom: 1px solid #e5ebf3;
+}
+
+.afc-dashboard-direct-payment-dialog header small {
+	display: block;
+	margin-bottom: 4px;
+	color: #2070c8;
+	font-size: 13px;
+	font-weight: 800;
+	letter-spacing: .04em;
+	text-transform: uppercase;
+}
+
+.afc-dashboard-direct-payment-dialog header h2 {
+	margin: 0;
+	font-size: 20px;
+	line-height: 1.25;
+}
+
+.afc-dashboard-direct-payment-dialog header p {
+	margin: 4px 0 0;
+	color: #708095;
+	font-size: 14px;
+}
+
+.afc-dashboard-direct-payment-close {
+	display: grid;
+	width: 38px;
+	height: 38px;
+	flex: 0 0 38px;
+	place-items: center;
+	padding: 0;
+	border: 0;
+	border-radius: 50%;
+	background: #eef3f8;
+	color: #526277;
+	font-size: 25px;
+	line-height: 1;
+	cursor: pointer;
+}
+
+.afc-dashboard-direct-payment-close:hover,
+.afc-dashboard-direct-payment-close:focus-visible {
+	background: #e3ebf4;
+	color: #172033;
+}
+
+.afc-dashboard-direct-payment-body {
+	padding: 22px;
+}
+
+.afc-dashboard-direct-payment-note,
+.afc-dashboard-direct-payment-alert {
+	margin-bottom: 18px;
+	padding: 12px 14px;
+	border-radius: 12px;
+	font-size: 14px;
+	line-height: 1.45;
+}
+
+.afc-dashboard-direct-payment-note {
+	background: #edf6ff;
+	color: #285a86;
+}
+
+.afc-dashboard-direct-payment-alert {
+	background: #fff0f0;
+	color: #b33a3a;
+}
+
+.afc-dashboard-direct-payment-body label {
+	display: block;
+	margin: 0 0 7px;
+	font-size: 14px;
+	font-weight: 700;
+}
+
+.afc-dashboard-direct-payment-amount {
+	display: flex;
+	align-items: center;
+	margin-bottom: 18px;
+	border: 1px solid #cfdbea;
+	border-radius: 13px;
+	background: #fff;
+	overflow: hidden;
+}
+
+.afc-dashboard-direct-payment-amount:focus-within {
+	border-color: #2d7fd3;
+	box-shadow: 0 0 0 3px rgba( 45, 127, 211, .13 );
+}
+
+.afc-dashboard-direct-payment-amount span {
+	padding: 0 14px;
+	color: #5f7086;
+	font-size: 16px;
+	font-weight: 700;
+}
+
+.afc-dashboard-direct-payment-amount input,
+.afc-dashboard-direct-payment-body select {
+	width: 100%;
+	min-height: 48px;
+	border: 1px solid #cfdbea;
+	border-radius: 13px;
+	background: #fff;
+	color: #172033;
+	font-size: 16px;
+}
+
+.afc-dashboard-direct-payment-amount input {
+	border: 0;
+	border-left: 1px solid #e2e9f1;
+	border-radius: 0;
+	padding: 0 14px;
+	outline: 0;
+}
+
+.afc-dashboard-direct-payment-body select {
+	padding: 0 13px;
+}
+
+.afc-dashboard-direct-payment-dialog footer {
+	justify-content: flex-end;
+	border-top: 1px solid #e5ebf3;
+	background: #f9fbfd;
+}
+
+.afc-dashboard-direct-payment-dialog footer button {
+	min-height: 44px;
+	padding: 0 18px;
+	border-radius: 12px;
+	font-size: 14px;
+	font-weight: 800;
+	cursor: pointer;
+}
+
+.afc-dashboard-direct-payment-cancel {
+	border: 1px solid #cfd9e6;
+	background: #fff;
+	color: #526277;
+}
+
+.afc-dashboard-direct-payment-confirm {
+	border: 1px solid #11a66d;
+	background: #11a66d;
+	color: #fff;
+}
+
+.afc-dashboard-direct-payment-confirm:hover,
+.afc-dashboard-direct-payment-confirm:focus-visible {
+	background: #0d915f;
+}
+
+.afc-dashboard-direct-payment-confirm:disabled {
+	opacity: .65;
+	cursor: wait;
+}
+
+@media ( max-width: 600px ) {
+	.afc-dashboard-direct-payment-dialog {
+		width: calc( 100vw - 18px );
+		border-radius: 18px;
+	}
+
+	.afc-dashboard-direct-payment-dialog header,
+	.afc-dashboard-direct-payment-dialog footer,
+	.afc-dashboard-direct-payment-body {
+		padding: 17px;
+	}
+
+	.afc-dashboard-direct-payment-dialog footer {
+		align-items: stretch;
+		flex-direction: column-reverse;
+	}
+
+	.afc-dashboard-direct-payment-dialog footer button {
+		width: 100%;
+	}
+}
