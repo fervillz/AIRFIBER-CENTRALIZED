@@ -42,6 +42,13 @@ class AFC_Main_Dashboard_Advanced_Mode {
 			AFC_VERSION
 		);
 
+		wp_enqueue_style(
+			'afc-dashboard-direct-payment-dialog',
+			AFC_URL . 'assets/css/dashboard-direct-payment-dialog.css',
+			array( 'afc-main-dashboard-payment-tool' ),
+			AFC_VERSION
+		);
+
 		wp_enqueue_script(
 			'afc-main-dashboard-advanced-mode',
 			AFC_URL . 'assets/js/main-dashboard-advanced-mode.js',
@@ -62,6 +69,14 @@ class AFC_Main_Dashboard_Advanced_Mode {
 			'afc-dashboard-dialog-bridge',
 			AFC_URL . 'assets/js/dashboard-dialog-bridge.js',
 			array( 'afc-main-dashboard-payment-tool', 'afc-ppp-manager', 'afc-ppp-users' ),
+			AFC_VERSION,
+			true
+		);
+
+		wp_enqueue_script(
+			'afc-dashboard-direct-payment-dialog',
+			AFC_URL . 'assets/js/dashboard-direct-payment-dialog.js',
+			array( 'jquery', 'afc-dashboard-dialog-bridge' ),
 			AFC_VERSION,
 			true
 		);
