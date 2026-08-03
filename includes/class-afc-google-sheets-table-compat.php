@@ -160,7 +160,7 @@ class AFC_Google_Sheets_Table_Compat {
 			array(
 				'timeout' => 25,
 				'body'    => array(
-					'grant_type' => 'urn:ietf:params:oauth2:grant-type:jwt-bearer',
+					'grant_type' => 'urn:ietf:params:oauth:grant-type:jwt-bearer',
 					'assertion'  => $unsigned . '.' . self::base64url( $signature ),
 				),
 			)
