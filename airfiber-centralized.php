@@ -2,14 +2,14 @@
 /**
  * Plugin Name: Airfiber - Centralized
  * Description: Customer, billing, payment, installation, notification, and MikroTik management for Airfiber.
- * Version: 2.2.10
+ * Version: 2.3.0
  * Author: Airfiber
  * Text Domain: airfiber-centralized
  */
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'AFC_VERSION', '2.2.10' );
+define( 'AFC_VERSION', '2.3.0' );
 define( 'AFC_FILE', __FILE__ );
 define( 'AFC_PATH', plugin_dir_path( __FILE__ ) );
 define( 'AFC_URL', plugin_dir_url( __FILE__ ) );
@@ -47,6 +47,7 @@ require_once AFC_PATH . 'includes/class-afc-advance-payments.php';
 require_once AFC_PATH . 'includes/class-afc-frontend-page.php';
 require_once AFC_PATH . 'includes/class-afc-app-typography.php';
 require_once AFC_PATH . 'includes/class-afc-integrations.php';
+require_once AFC_PATH . 'includes/class-afc-google-sheets-sync.php';
 require_once AFC_PATH . 'includes/class-afc-main-dashboard.php';
 require_once AFC_PATH . 'includes/class-afc-main-dashboard-advanced-mode.php';
 require_once AFC_PATH . 'includes/class-afc-sms-center.php';
@@ -80,6 +81,7 @@ function afc_boot_plugin() {
 	AFC_Frontend_Page::init();
 	AFC_App_Typography::init();
 	AFC_Integrations::init();
+	AFC_Google_Sheets_Sync::init();
 	AFC_Main_Dashboard::init();
 	AFC_Main_Dashboard_Advanced_Mode::init();
 	AFC_SMS_Center::init();
@@ -115,6 +117,7 @@ function afc_activate_plugin() {
 	AFC_SMS_Templates::install();
 	AFC_SMS_Payer_Ratings::schedule();
 	AFC_PPP_Manager::ensure_schema_and_schedule();
+	AFC_Google_Sheets_Sync::ensure_schedule();
 	flush_rewrite_rules();
 }
 register_activation_hook( __FILE__, 'afc_activate_plugin' );
@@ -122,6 +125,7 @@ register_activation_hook( __FILE__, 'afc_activate_plugin' );
 function afc_deactivate_plugin() {
 	AFC_SMS_Payer_Ratings::unschedule();
 	AFC_PPP_Manager::unschedule();
+	AFC_Google_Sheets_Sync::deactivate();
 	flush_rewrite_rules();
 }
 register_deactivation_hook( __FILE__, 'afc_deactivate_plugin' );
