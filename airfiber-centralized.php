@@ -2,14 +2,14 @@
 /**
  * Plugin Name: Airfiber - Centralized
  * Description: Customer, billing, payment, installation, notification, and MikroTik management for Airfiber.
- * Version: 2.3.7
+ * Version: 2.3.8
  * Author: Airfiber
  * Text Domain: airfiber-centralized
  */
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'AFC_VERSION', '2.3.7' );
+define( 'AFC_VERSION', '2.3.8' );
 define( 'AFC_FILE', __FILE__ );
 define( 'AFC_PATH', plugin_dir_path( __FILE__ ) );
 define( 'AFC_URL', plugin_dir_url( __FILE__ ) );
@@ -51,6 +51,7 @@ require_once AFC_PATH . 'includes/class-afc-google-sheets-sync.php';
 require_once AFC_PATH . 'includes/class-afc-google-sheets-table-compat.php';
 require_once AFC_PATH . 'includes/class-afc-google-sheets-overview-compat.php';
 require_once AFC_PATH . 'includes/class-afc-google-sheets-paid-history.php';
+require_once AFC_PATH . 'includes/class-afc-google-sheets-targeted-payment-sync.php';
 require_once AFC_PATH . 'includes/class-afc-main-dashboard.php';
 require_once AFC_PATH . 'includes/class-afc-main-dashboard-advanced-mode.php';
 require_once AFC_PATH . 'includes/class-afc-sms-center.php';
@@ -87,6 +88,7 @@ function afc_boot_plugin() {
 	AFC_Google_Sheets_Table_Compat::init();
 	AFC_Google_Sheets_Overview_Compat::init();
 	AFC_Google_Sheets_Paid_History::init();
+	AFC_Google_Sheets_Targeted_Payment_Sync::init();
 	AFC_Google_Sheets_Sync::init();
 	AFC_Main_Dashboard::init();
 	AFC_Main_Dashboard_Advanced_Mode::init();
@@ -133,6 +135,7 @@ function afc_deactivate_plugin() {
 	AFC_PPP_Manager::unschedule();
 	AFC_Google_Sheets_Sync::deactivate();
 	wp_clear_scheduled_hook( AFC_Google_Sheets_Paid_History::CRON_REFRESH );
+	wp_clear_scheduled_hook( AFC_Google_Sheets_Targeted_Payment_Sync::CRON_TARGETED );
 	flush_rewrite_rules();
 }
 register_deactivation_hook( __FILE__, 'afc_deactivate_plugin' );
