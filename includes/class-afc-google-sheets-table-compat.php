@@ -3,11 +3,14 @@
 defined( 'ABSPATH' ) || exit;
 
 /**
- * Converted Excel workbooks can retain native Google "table" objects. Google
- * does not allow the prepare request to apply data validation to a table header
- * row, even when the requested grid range starts below row one. Remove only the
- * table objects from Airfiber-managed tabs before the normal preparation runs;
- * cell values remain in place and Airfiber reapplies its own formatting.
+ * Compatibility fixes for Google Sheets created from the original Excel file.
+ *
+ * Converted workbooks can retain native Google table objects. Google does not
+ * allow data validation on a table header row, so the table wrappers are
+ * removed from Airfiber-managed tabs before preparation. Google also supports
+ * fewer CellFormat properties inside conditional rules than normal cell
+ * formatting; unsupported alignment keys are stripped before requests leave
+ * WordPress.
  */
 class AFC_Google_Sheets_Table_Compat {
 
@@ -17,6 +20,64 @@ class AFC_Google_Sheets_Table_Compat {
 
 	public static function init() {
 		add_action( 'wp_ajax_afc_google_prepare_sheet', array( __CLASS__, 'before_prepare' ), 1 );
+		add_filter( 'http_request_args', array( __CLASS__, 'sanitize_conditional_formats' ), 20, 2 );
+	}
+
+	/**
+	 * ConditionalFormatRule.format only accepts background and limited text
+	 * styling. Alignment is valid for repeatCell, but Google rejects it inside
+	 * addConditionalFormatRule. Keep only the officially supported properties.
+	 */
+	public static function sanitize_conditional_formats( $args, $url ) {
+		if ( false === strpos( (string) $url, 'https://sheets.googleapis.com/' ) || false === strpos( (string) $url, ':batchUpdate' ) ) {
+			return $args;
+		}
+		if ( empty( $args['body'] ) || ! is_string( $args['body'] ) ) {
+			return $args;
+		}
+
+		$payload = json_decode( $args['body'], true );
+		if ( ! is_array( $payload ) || empty( $payload['requests'] ) || ! is_array( $payload['requests'] ) ) {
+			return $args;
+		}
+
+		$changed = false;
+		foreach ( $payload['requests'] as &$request ) {
+			if ( empty( $request['addConditionalFormatRule']['rule']['booleanRule']['format'] ) || ! is_array( $request['addConditionalFormatRule']['rule']['booleanRule']['format'] ) ) {
+				continue;
+			}
+
+			$format = $request['addConditionalFormatRule']['rule']['booleanRule']['format'];
+			$clean  = array();
+			if ( isset( $format['backgroundColor'] ) ) {
+				$clean['backgroundColor'] = $format['backgroundColor'];
+			}
+			if ( isset( $format['backgroundColorStyle'] ) ) {
+				$clean['backgroundColorStyle'] = $format['backgroundColorStyle'];
+			}
+			if ( ! empty( $format['textFormat'] ) && is_array( $format['textFormat'] ) ) {
+				$text_format = array();
+				foreach ( array( 'bold', 'italic', 'strikethrough', 'foregroundColor', 'foregroundColorStyle' ) as $key ) {
+					if ( array_key_exists( $key, $format['textFormat'] ) ) {
+						$text_format[ $key ] = $format['textFormat'][ $key ];
+					}
+				}
+				if ( $text_format ) {
+					$clean['textFormat'] = $text_format;
+				}
+			}
+
+			if ( $clean !== $format ) {
+				$request['addConditionalFormatRule']['rule']['booleanRule']['format'] = $clean;
+				$changed = true;
+			}
+		}
+		unset( $request );
+
+		if ( $changed ) {
+			$args['body'] = wp_json_encode( $payload );
+		}
+		return $args;
 	}
 
 	private static function authorize() {
@@ -99,7 +160,7 @@ class AFC_Google_Sheets_Table_Compat {
 			array(
 				'timeout' => 25,
 				'body'    => array(
-					'grant_type' => 'urn:ietf:params:oauth:grant-type:jwt-bearer',
+					'grant_type' => 'urn:ietf:params:oauth2:grant-type:jwt-bearer',
 					'assertion'  => $unsigned . '.' . self::base64url( $signature ),
 				),
 			)
@@ -161,7 +222,7 @@ class AFC_Google_Sheets_Table_Compat {
 			wp_send_json_error( array( 'message' => $meta->get_error_message() ) );
 		}
 
-		$managed = array( (string) current_time( 'Y' ), 'Transactions' );
+		$managed  = array( (string) current_time( 'Y' ), 'Transactions' );
 		$requests = array();
 		foreach ( isset( $meta['sheets'] ) && is_array( $meta['sheets'] ) ? $meta['sheets'] : array() as $sheet ) {
 			$title = isset( $sheet['properties']['title'] ) ? (string) $sheet['properties']['title'] : '';
