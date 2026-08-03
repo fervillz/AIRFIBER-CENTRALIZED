@@ -173,6 +173,23 @@ class AFC_Integrations {
 		return (string) $body['access_token'];
 	}
 
+	private static function google_sheet_error_message( $body, $credentials ) {
+		$message = isset( $body['error']['message'] )
+			? sanitize_text_field( $body['error']['message'] )
+			: __( 'Google could not open the spreadsheet. Share it with the service-account email as Editor.', 'airfiber-centralized' );
+		$lower = strtolower( $message );
+
+		if ( false !== strpos( $lower, 'office file' ) || false !== strpos( $lower, 'not supported for this document' ) ) {
+			return sprintf(
+				/* translators: %s: Google service-account email. */
+				__( 'Google authentication worked, but this Drive file is still an Excel/Office file. Open it in Google Sheets, choose File → Save as Google Sheets, share the newly created Google Sheet with %s as Editor, paste its new Spreadsheet ID here, save, and test again.', 'airfiber-centralized' ),
+				sanitize_email( $credentials['client_email'] ?? '' )
+			);
+		}
+
+		return $message;
+	}
+
 	private static function test_google() {
 		$credentials = self::credentials();
 		if ( ! $credentials ) {
@@ -196,8 +213,7 @@ class AFC_Integrations {
 		}
 		$body = json_decode( wp_remote_retrieve_body( $response ), true );
 		if ( 200 !== wp_remote_retrieve_response_code( $response ) || empty( $body['spreadsheetId'] ) ) {
-			$message = $body['error']['message'] ?? __( 'Google could not open the spreadsheet. Share it with the service-account email as Editor.', 'airfiber-centralized' );
-			return new WP_Error( 'afc_google_sheet_failed', sanitize_text_field( $message ) );
+			return new WP_Error( 'afc_google_sheet_failed', self::google_sheet_error_message( $body, $credentials ) );
 		}
 		$tabs = array();
 		foreach ( $body['sheets'] ?? array() as $sheet ) {
