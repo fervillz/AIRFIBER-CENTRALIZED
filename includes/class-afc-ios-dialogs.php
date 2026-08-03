@@ -44,5 +44,13 @@ class AFC_IOS_Dialogs {
 			AFC_VERSION,
 			true
 		);
+
+		wp_enqueue_script(
+			'afc-ppp-create-fixes',
+			AFC_URL . 'assets/js/ppp-create-fixes.js',
+			array( 'jquery', 'afc-ppp-manager', 'afc-basic-ppp-wizard' ),
+			AFC_VERSION,
+			true
+		);
 	}
 }
