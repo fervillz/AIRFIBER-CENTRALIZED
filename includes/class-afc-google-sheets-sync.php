@@ -3,9 +3,10 @@
 defined( 'ABSPATH' ) || exit;
 
 /**
- * Google Sheets is a reporting mirror only. WordPress keeps the payment ledger
- * and MikroTik keeps the live PPP/service state. All Google writes are safe to
- * retry and must never block a payment from being recorded locally.
+ * Google Sheets reporting mirror.
+ *
+ * WordPress remains the payment ledger and MikroTik remains the source for PPP
+ * and service state. Google failures are queued and never block a payment.
  */
 class AFC_Google_Sheets_Sync {
 
@@ -46,10 +47,7 @@ class AFC_Google_Sheets_Sync {
 			'afcGoogleSync',
 			array(
 				'year'        => (int) current_time( 'Y' ),
-				'downloadUrl' => wp_nonce_url(
-					admin_url( 'admin-post.php?action=afc_google_download_backup' ),
-					'afc_google_download_backup'
-				),
+				'downloadUrl' => wp_nonce_url( admin_url( 'admin-post.php?action=afc_google_download_backup' ), 'afc_google_download_backup' ),
 			)
 		);
 	}
@@ -127,7 +125,6 @@ class AFC_Google_Sheets_Sync {
 		if ( ! $credentials || empty( $credentials['client_email'] ) || empty( $credentials['private_key'] ) ) {
 			return new WP_Error( 'afc_google_missing', __( 'The Google credential is missing. Save and test the connection first.', 'airfiber-centralized' ) );
 		}
-
 		$cache_key = 'afc_gsheet_token_' . substr( md5( $credentials['client_email'] ), 0, 20 );
 		$cached    = get_transient( $cache_key );
 		if ( is_string( $cached ) && '' !== $cached ) {
@@ -269,22 +266,13 @@ class AFC_Google_Sheets_Sync {
 
 	private static function read_values( $range ) {
 		$id = self::spreadsheet_id();
-		$result = self::google_request(
-			'GET',
-			'/v4/spreadsheets/' . rawurlencode( $id ) . '/values/' . rawurlencode( $range ),
-			null,
-			array( 'majorDimension' => 'ROWS' )
-		);
+		$result = self::google_request( 'GET', '/v4/spreadsheets/' . rawurlencode( $id ) . '/values/' . rawurlencode( $range ), null, array( 'majorDimension' => 'ROWS' ) );
 		return is_wp_error( $result ) ? $result : ( isset( $result['values'] ) && is_array( $result['values'] ) ? $result['values'] : array() );
 	}
 
 	private static function clear_values( $range ) {
 		$id = self::spreadsheet_id();
-		return self::google_request(
-			'POST',
-			'/v4/spreadsheets/' . rawurlencode( $id ) . '/values/' . rawurlencode( $range ) . ':clear',
-			new stdClass()
-		);
+		return self::google_request( 'POST', '/v4/spreadsheets/' . rawurlencode( $id ) . '/values/' . rawurlencode( $range ) . ':clear', new stdClass() );
 	}
 
 	private static function append_values( $range, $values ) {
@@ -297,23 +285,27 @@ class AFC_Google_Sheets_Sync {
 		);
 	}
 
-	private static function prepare_sheet( $year = 0 ) {
+	private static function prepare_sheet( $year = 0, $force = false ) {
 		if ( ! self::connected() ) {
 			return new WP_Error( 'afc_google_not_connected', __( 'Test the Google Sheets connection before preparing the spreadsheet.', 'airfiber-centralized' ) );
 		}
-		$year = $year ? absint( $year ) : (int) current_time( 'Y' );
-		$title = (string) $year;
-		$meta  = self::metadata();
+		$year     = $year ? absint( $year ) : (int) current_time( 'Y' );
+		$title    = (string) $year;
+		$meta     = self::metadata();
+		$settings = self::settings();
 		if ( is_wp_error( $meta ) ) {
 			return $meta;
 		}
 		$map      = self::sheet_map( $meta );
 		$requests = array();
+		$created  = false;
 		if ( ! isset( $map[ $title ] ) ) {
 			$requests[] = array( 'addSheet' => array( 'properties' => array( 'title' => $title, 'gridProperties' => array( 'rowCount' => self::MAX_ROWS, 'columnCount' => 24, 'frozenRowCount' => 1 ) ) ) );
+			$created = true;
 		}
 		if ( ! isset( $map['Transactions'] ) ) {
 			$requests[] = array( 'addSheet' => array( 'properties' => array( 'title' => 'Transactions', 'gridProperties' => array( 'rowCount' => self::MAX_ROWS, 'columnCount' => 10, 'frozenRowCount' => 1 ) ) ) );
+			$created = true;
 		}
 		if ( $requests ) {
 			$result = self::google_request( 'POST', '/v4/spreadsheets/' . rawurlencode( self::spreadsheet_id() ) . ':batchUpdate', array( 'requests' => $requests ) );
@@ -333,6 +325,18 @@ class AFC_Google_Sheets_Sync {
 			return new WP_Error( 'afc_google_tabs_missing', __( 'The yearly and Transactions tabs could not be created.', 'airfiber-centralized' ) );
 		}
 
+		$year_grid = isset( $year_sheet['properties']['gridProperties'] ) ? $year_sheet['properties']['gridProperties'] : array();
+		$tx_grid   = isset( $tx_sheet['properties']['gridProperties'] ) ? $tx_sheet['properties']['gridProperties'] : array();
+		$grid_small =
+			( isset( $year_grid['rowCount'] ) ? (int) $year_grid['rowCount'] : 0 ) < self::MAX_ROWS ||
+			( isset( $year_grid['columnCount'] ) ? (int) $year_grid['columnCount'] : 0 ) < 24 ||
+			( isset( $tx_grid['rowCount'] ) ? (int) $tx_grid['rowCount'] : 0 ) < self::MAX_ROWS ||
+			( isset( $tx_grid['columnCount'] ) ? (int) $tx_grid['columnCount'] : 0 ) < 10;
+		$already_prepared = isset( $settings['google_prepared_year'] ) && (int) $settings['google_prepared_year'] === $year;
+		if ( ! $force && ! $created && ! $grid_small && $already_prepared ) {
+			return array( 'year' => $year, 'yearTab' => $title, 'transactionTab' => 'Transactions', 'prepared' => true );
+		}
+
 		$result = self::update_values( self::a1_title( $title ) . '!A1:X1', array( self::year_headers() ) );
 		if ( is_wp_error( $result ) ) {
 			return $result;
@@ -344,27 +348,32 @@ class AFC_Google_Sheets_Sync {
 
 		$year_id = (int) $year_sheet['properties']['sheetId'];
 		$tx_id   = (int) $tx_sheet['properties']['sheetId'];
-		$format_requests = array();
+		$format  = array();
 		$conditional_count = isset( $year_sheet['conditionalFormats'] ) && is_array( $year_sheet['conditionalFormats'] ) ? count( $year_sheet['conditionalFormats'] ) : 0;
 		for ( $index = $conditional_count - 1; $index >= 0; $index-- ) {
-			$format_requests[] = array( 'deleteConditionalFormatRule' => array( 'sheetId' => $year_id, 'index' => $index ) );
+			$format[] = array( 'deleteConditionalFormatRule' => array( 'sheetId' => $year_id, 'index' => $index ) );
 		}
-		foreach ( array( array( $year_id, 24 ), array( $tx_id, 10 ) ) as $sheet_info ) {
-			$format_requests[] = array(
+
+		$sheet_specs = array(
+			array( 'id' => $year_id, 'columns' => 24, 'rows' => max( self::MAX_ROWS, isset( $year_grid['rowCount'] ) ? (int) $year_grid['rowCount'] : 0 ) ),
+			array( 'id' => $tx_id, 'columns' => 10, 'rows' => max( self::MAX_ROWS, isset( $tx_grid['rowCount'] ) ? (int) $tx_grid['rowCount'] : 0 ) ),
+		);
+		foreach ( $sheet_specs as $spec ) {
+			$format[] = array(
 				'updateSheetProperties' => array(
-					'properties' => array( 'sheetId' => $sheet_info[0], 'gridProperties' => array( 'frozenRowCount' => 1 ) ),
-					'fields'     => 'gridProperties.frozenRowCount',
+					'properties' => array( 'sheetId' => $spec['id'], 'gridProperties' => array( 'frozenRowCount' => 1, 'rowCount' => $spec['rows'], 'columnCount' => $spec['columns'] ) ),
+					'fields'     => 'gridProperties(frozenRowCount,rowCount,columnCount)',
 				),
 			);
-			$format_requests[] = array(
+			$format[] = array(
 				'repeatCell' => array(
-					'range'  => array( 'sheetId' => $sheet_info[0], 'startRowIndex' => 0, 'endRowIndex' => 1, 'startColumnIndex' => 0, 'endColumnIndex' => $sheet_info[1] ),
+					'range'  => array( 'sheetId' => $spec['id'], 'startRowIndex' => 0, 'endRowIndex' => 1, 'startColumnIndex' => 0, 'endColumnIndex' => $spec['columns'] ),
 					'cell'   => array( 'userEnteredFormat' => array( 'backgroundColor' => array( 'red' => 0.125, 'green' => 0.42, 'blue' => 0.77 ), 'textFormat' => array( 'foregroundColor' => array( 'red' => 1, 'green' => 1, 'blue' => 1 ), 'bold' => true ), 'horizontalAlignment' => 'CENTER', 'verticalAlignment' => 'MIDDLE' ) ),
 					'fields' => 'userEnteredFormat(backgroundColor,textFormat,horizontalAlignment,verticalAlignment)',
 				),
 			);
 		}
-		$format_requests[] = array(
+		$format[] = array(
 			'setDataValidation' => array(
 				'range' => array( 'sheetId' => $year_id, 'startRowIndex' => 1, 'endRowIndex' => self::MAX_ROWS, 'startColumnIndex' => 7, 'endColumnIndex' => 19 ),
 				'rule'  => array( 'condition' => array( 'type' => 'ONE_OF_LIST', 'values' => array( array( 'userEnteredValue' => 'PAID' ), array( 'userEnteredValue' => 'DUE' ), array( 'userEnteredValue' => 'EXPIRED' ) ) ), 'strict' => true, 'showCustomUi' => true ),
@@ -376,32 +385,26 @@ class AFC_Google_Sheets_Sync {
 			'EXPIRED' => array( array( 'red' => 0.98, 'green' => 0.80, 'blue' => 0.80 ), array( 'red' => 0.68, 'green' => 0.10, 'blue' => 0.10 ) ),
 		);
 		foreach ( $colors as $value => $palette ) {
-			$format_requests[] = array(
+			$format[] = array(
 				'addConditionalFormatRule' => array(
 					'index' => 0,
 					'rule'  => array(
-						'ranges'       => array( array( 'sheetId' => $year_id, 'startRowIndex' => 1, 'endRowIndex' => self::MAX_ROWS, 'startColumnIndex' => 7, 'endColumnIndex' => 19 ) ),
-						'booleanRule'  => array( 'condition' => array( 'type' => 'TEXT_EQ', 'values' => array( array( 'userEnteredValue' => $value ) ) ), 'format' => array( 'backgroundColor' => $palette[0], 'textFormat' => array( 'foregroundColor' => $palette[1], 'bold' => true ), 'horizontalAlignment' => 'CENTER' ) ),
+						'ranges'      => array( array( 'sheetId' => $year_id, 'startRowIndex' => 1, 'endRowIndex' => self::MAX_ROWS, 'startColumnIndex' => 7, 'endColumnIndex' => 19 ) ),
+						'booleanRule' => array( 'condition' => array( 'type' => 'TEXT_EQ', 'values' => array( array( 'userEnteredValue' => $value ) ) ), 'format' => array( 'backgroundColor' => $palette[0], 'textFormat' => array( 'foregroundColor' => $palette[1], 'bold' => true ), 'horizontalAlignment' => 'CENTER' ) ),
 					),
 				),
 			);
 		}
-		$format_requests[] = array( 'updateDimensionProperties' => array( 'range' => array( 'sheetId' => $year_id, 'dimension' => 'COLUMNS', 'startIndex' => 0, 'endIndex' => 24 ), 'properties' => array( 'pixelSize' => 120 ), 'fields' => 'pixelSize' ) );
-		$format_requests[] = array( 'updateDimensionProperties' => array( 'range' => array( 'sheetId' => $year_id, 'dimension' => 'COLUMNS', 'startIndex' => 1, 'endIndex' => 4 ), 'properties' => array( 'pixelSize' => 185 ), 'fields' => 'pixelSize' ) );
-		$format_requests[] = array( 'updateDimensionProperties' => array( 'range' => array( 'sheetId' => $year_id, 'dimension' => 'COLUMNS', 'startIndex' => 7, 'endIndex' => 19 ), 'properties' => array( 'pixelSize' => 82 ), 'fields' => 'pixelSize' ) );
+		$format[] = array( 'updateDimensionProperties' => array( 'range' => array( 'sheetId' => $year_id, 'dimension' => 'COLUMNS', 'startIndex' => 0, 'endIndex' => 24 ), 'properties' => array( 'pixelSize' => 120 ), 'fields' => 'pixelSize' ) );
+		$format[] = array( 'updateDimensionProperties' => array( 'range' => array( 'sheetId' => $year_id, 'dimension' => 'COLUMNS', 'startIndex' => 1, 'endIndex' => 4 ), 'properties' => array( 'pixelSize' => 185 ), 'fields' => 'pixelSize' ) );
+		$format[] = array( 'updateDimensionProperties' => array( 'range' => array( 'sheetId' => $year_id, 'dimension' => 'COLUMNS', 'startIndex' => 7, 'endIndex' => 19 ), 'properties' => array( 'pixelSize' => 82 ), 'fields' => 'pixelSize' ) );
 
-		$result = self::google_request( 'POST', '/v4/spreadsheets/' . rawurlencode( self::spreadsheet_id() ) . ':batchUpdate', array( 'requests' => $format_requests ) );
+		$result = self::google_request( 'POST', '/v4/spreadsheets/' . rawurlencode( self::spreadsheet_id() ) . ':batchUpdate', array( 'requests' => $format ) );
 		if ( is_wp_error( $result ) ) {
 			return $result;
 		}
-
-		self::save_settings(
-			array(
-				'google_prepared_year' => $year,
-				'google_last_prepare'  => current_time( 'mysql' ),
-			)
-		);
-		return array( 'year' => $year, 'yearTab' => $title, 'transactionTab' => 'Transactions' );
+		self::save_settings( array( 'google_prepared_year' => $year, 'google_last_prepare' => current_time( 'mysql' ) ) );
+		return array( 'year' => $year, 'yearTab' => $title, 'transactionTab' => 'Transactions', 'prepared' => true );
 	}
 
 	private static function parse_comment( $comment ) {
@@ -447,7 +450,6 @@ class AFC_Google_Sheets_Sync {
 				'disabled'       => isset( $secret['disabled'] ) && 'true' === $secret['disabled'],
 				'installed'      => sanitize_text_field( $details['installed'] ),
 				'next_due'       => sanitize_text_field( $details['nextDue'] ),
-				'cutoff'         => sanitize_text_field( $details['cutoffDate'] ),
 				'paid_through'   => sanitize_text_field( $details['paidThrough'] ),
 				'payment_date'   => sanitize_text_field( $details['paymentDate'] ),
 				'payment_amount' => (float) $details['paymentAmount'],
@@ -458,7 +460,7 @@ class AFC_Google_Sheets_Sync {
 		return $users;
 	}
 
-	private static function row_status_for_month( $user, $year, $month, $existing ) {
+	private static function month_status( $user, $year, $month, $existing ) {
 		$existing = strtoupper( trim( (string) $existing ) );
 		if ( 'PAID' === $existing ) {
 			return 'PAID';
@@ -467,8 +469,7 @@ class AFC_Google_Sheets_Sync {
 		if ( 0 === strpos( (string) $user['payment_date'], $prefix ) || 0 === strpos( (string) $user['paid_through'], $prefix ) ) {
 			return 'PAID';
 		}
-		$current_prefix = current_time( 'Y-m' );
-		if ( $prefix !== $current_prefix ) {
+		if ( $prefix !== current_time( 'Y-m' ) ) {
 			return in_array( $existing, array( 'DUE', 'EXPIRED' ), true ) ? $existing : '';
 		}
 		if ( 0 === strcasecmp( $user['actual_profile'], 'Expired' ) ) {
@@ -483,7 +484,7 @@ class AFC_Google_Sheets_Sync {
 		return '';
 	}
 
-	private static function build_customer_rows( $users, $existing_rows, $year ) {
+	private static function customer_rows( $users, $existing_rows, $year ) {
 		$existing = array();
 		foreach ( $existing_rows as $row ) {
 			$key = isset( $row[0] ) ? trim( (string) $row[0] ) : '';
@@ -497,11 +498,9 @@ class AFC_Google_Sheets_Sync {
 			$billing_date = $user['next_due'] ? $user['next_due'] : $user['installed'];
 			$billing_day  = $billing_date && preg_match( '/^\d{4}-\d{2}-(\d{2})$/', $billing_date, $match ) ? (int) $match[1] : '';
 			$status       = $user['disabled'] ? 'Disabled' : ( 0 === strcasecmp( $user['actual_profile'], 'Expired' ) ? 'Expired' : 'Active' );
-			$row = array(
-				$user['username'], $user['customer_name'], $user['phone'], $user['address'], $user['plan'], $billing_day, $status,
-			);
+			$row = array( $user['username'], $user['customer_name'], $user['phone'], $user['address'], $user['plan'], $billing_day, $status );
 			for ( $month = 1; $month <= 12; $month++ ) {
-				$row[] = self::row_status_for_month( $user, $year, $month, isset( $old[ 6 + $month ] ) ? $old[ 6 + $month ] : '' );
+				$row[] = self::month_status( $user, $year, $month, isset( $old[ 6 + $month ] ) ? $old[ 6 + $month ] : '' );
 			}
 			$row[] = $user['payment_date'];
 			$row[] = $user['payment_amount'] ? $user['payment_amount'] : '';
@@ -515,7 +514,7 @@ class AFC_Google_Sheets_Sync {
 
 	private static function sync_customers( $reconcile = false ) {
 		$year = (int) current_time( 'Y' );
-		$prepared = self::prepare_sheet( $year );
+		$prepared = self::prepare_sheet( $year, false );
 		if ( is_wp_error( $prepared ) ) {
 			return $prepared;
 		}
@@ -523,18 +522,17 @@ class AFC_Google_Sheets_Sync {
 		if ( is_wp_error( $users ) ) {
 			return $users;
 		}
-		$title = (string) $year;
-		$existing = self::read_values( self::a1_title( $title ) . '!A2:X' . self::MAX_ROWS );
+		$existing = self::read_values( self::a1_title( (string) $year ) . '!A2:X' . self::MAX_ROWS );
 		if ( is_wp_error( $existing ) ) {
 			return $existing;
 		}
-		$rows = self::build_customer_rows( $users, $existing, $year );
-		$clear = self::clear_values( self::a1_title( $title ) . '!A2:X' . self::MAX_ROWS );
+		$rows = self::customer_rows( $users, $existing, $year );
+		$clear = self::clear_values( self::a1_title( (string) $year ) . '!A2:X' . self::MAX_ROWS );
 		if ( is_wp_error( $clear ) ) {
 			return $clear;
 		}
 		if ( $rows ) {
-			$result = self::update_values( self::a1_title( $title ) . '!A2:X' . ( count( $rows ) + 1 ), $rows );
+			$result = self::update_values( self::a1_title( (string) $year ) . '!A2:X' . ( count( $rows ) + 1 ), $rows );
 			if ( is_wp_error( $result ) ) {
 				return $result;
 			}
@@ -615,29 +613,26 @@ class AFC_Google_Sheets_Sync {
 			return;
 		}
 		$paid_date = (string) get_post_meta( $payment_id, '_afc_payment_date', true );
-		$amount    = (float) get_post_meta( $payment_id, '_afc_payment_amount', true );
-		$method    = (string) get_post_meta( $payment_id, '_afc_payment_method', true );
-		$username  = (string) get_post_meta( $payment_id, '_afc_ppp_username', true );
 		$user_id   = absint( get_post_meta( $payment_id, '_afc_recorded_by', true ) );
 		$user      = $user_id ? get_userdata( $user_id ) : null;
 		$paid_at   = $paid_date ? $paid_date . ' ' . current_time( 'H:i:s' ) : current_time( 'mysql' );
 		$item = array(
-			'payment_id'       => sprintf( 'AFC-PAY-%s-%06d', substr( $paid_at, 0, 4 ), $payment_id ),
-			'wp_payment_id'    => $payment_id,
-			'customer_id'      => $customer_id,
-			'ppp_username'     => sanitize_text_field( $username ),
-			'customer_name'    => $customer_id ? get_the_title( $customer_id ) : $username,
-			'phone'            => $customer_id ? (string) get_post_meta( $customer_id, '_afc_phone', true ) : '',
-			'address'          => $customer_id ? (string) get_post_meta( $customer_id, '_afc_address', true ) : '',
-			'plan'             => $customer_id ? (string) get_post_meta( $customer_id, '_afc_plan', true ) : '',
-			'customer_status'  => $customer_id ? (string) get_post_meta( $customer_id, '_afc_customer_status', true ) : '',
-			'paid_at'          => $paid_at,
-			'amount'           => $amount,
-			'method'           => sanitize_text_field( $method ),
-			'recorded_by'      => $user ? $user->display_name : (string) $user_id,
-			'attempts'         => 0,
-			'last_error'       => '',
-			'queued_at'        => current_time( 'mysql' ),
+			'payment_id'      => sprintf( 'AFC-PAY-%s-%06d', substr( $paid_at, 0, 4 ), $payment_id ),
+			'wp_payment_id'   => $payment_id,
+			'customer_id'     => $customer_id,
+			'ppp_username'    => sanitize_text_field( (string) get_post_meta( $payment_id, '_afc_ppp_username', true ) ),
+			'customer_name'   => $customer_id ? get_the_title( $customer_id ) : '',
+			'phone'           => $customer_id ? (string) get_post_meta( $customer_id, '_afc_phone', true ) : '',
+			'address'         => $customer_id ? (string) get_post_meta( $customer_id, '_afc_address', true ) : '',
+			'plan'            => $customer_id ? (string) get_post_meta( $customer_id, '_afc_plan', true ) : '',
+			'customer_status' => $customer_id ? (string) get_post_meta( $customer_id, '_afc_customer_status', true ) : '',
+			'paid_at'         => $paid_at,
+			'amount'          => (float) get_post_meta( $payment_id, '_afc_payment_amount', true ),
+			'method'          => sanitize_text_field( (string) get_post_meta( $payment_id, '_afc_payment_method', true ) ),
+			'recorded_by'     => $user ? $user->display_name : (string) $user_id,
+			'attempts'        => 0,
+			'last_error'      => '',
+			'queued_at'       => current_time( 'mysql' ),
 		);
 		self::append_payment_backup( $item );
 		$queue = self::queue();
@@ -668,19 +663,16 @@ class AFC_Google_Sheets_Sync {
 			return $row;
 		}
 		$base = array_fill( 0, 24, '' );
-		$base[0] = $item['ppp_username'];
-		$base[1] = $item['customer_name'];
-		$base[2] = $item['phone'];
-		$base[3] = $item['address'];
-		$base[4] = $item['plan'];
-		$base[6] = $item['customer_status'] ? ucfirst( $item['customer_status'] ) : 'Active';
+		$base[0]  = $item['ppp_username'];
+		$base[1]  = $item['customer_name'];
+		$base[2]  = $item['phone'];
+		$base[3]  = $item['address'];
+		$base[4]  = $item['plan'];
+		$base[6]  = $item['customer_status'] ? ucfirst( $item['customer_status'] ) : 'Active';
 		$base[22] = current_time( 'mysql' );
 		$base[23] = 'WordPress payment';
 		$result = self::append_values( self::a1_title( (string) $year ) . '!A:X', array( $base ) );
-		if ( is_wp_error( $result ) ) {
-			return $result;
-		}
-		return self::find_account_row( $year, $item['ppp_username'] );
+		return is_wp_error( $result ) ? $result : self::find_account_row( $year, $item['ppp_username'] );
 	}
 
 	private static function transaction_exists( $payment_id ) {
@@ -697,31 +689,25 @@ class AFC_Google_Sheets_Sync {
 	}
 
 	private static function sync_payment( $item ) {
-		$year = (int) substr( $item['paid_at'], 0, 4 );
+		$year  = (int) substr( $item['paid_at'], 0, 4 );
 		$month = (int) substr( $item['paid_at'], 5, 2 );
 		if ( $year < 2000 || $month < 1 || $month > 12 ) {
 			return new WP_Error( 'afc_google_payment_date', __( 'The payment date is invalid.', 'airfiber-centralized' ) );
 		}
-		$prepared = self::prepare_sheet( $year );
+		$prepared = self::prepare_sheet( $year, false );
 		if ( is_wp_error( $prepared ) ) {
 			return $prepared;
 		}
 		$row = self::ensure_payment_customer_row( $item, $year );
-		if ( is_wp_error( $row ) ) {
-			return $row;
-		}
-		if ( ! $row ) {
-			return new WP_Error( 'afc_google_payment_row', __( 'The yearly customer row could not be created.', 'airfiber-centralized' ) );
+		if ( is_wp_error( $row ) || ! $row ) {
+			return is_wp_error( $row ) ? $row : new WP_Error( 'afc_google_payment_row', __( 'The yearly customer row could not be created.', 'airfiber-centralized' ) );
 		}
 		$month_column = self::column_letter( 7 + $month );
 		$result = self::update_values( self::a1_title( (string) $year ) . '!' . $month_column . $row, array( array( 'PAID' ) ) );
 		if ( is_wp_error( $result ) ) {
 			return $result;
 		}
-		$result = self::update_values(
-			self::a1_title( (string) $year ) . '!T' . $row . ':W' . $row,
-			array( array( substr( $item['paid_at'], 0, 10 ), $item['amount'], $item['method'], current_time( 'mysql' ) ) )
-		);
+		$result = self::update_values( self::a1_title( (string) $year ) . '!T' . $row . ':W' . $row, array( array( substr( $item['paid_at'], 0, 10 ), $item['amount'], $item['method'], current_time( 'mysql' ) ) ) );
 		if ( is_wp_error( $result ) ) {
 			return $result;
 		}
@@ -746,8 +732,8 @@ class AFC_Google_Sheets_Sync {
 		return true;
 	}
 
-	public static function process_queue() {
-		if ( ! self::connected() || ! self::auto_sync_enabled() ) {
+	public static function process_queue( $force = false ) {
+		if ( ! self::connected() || ( ! $force && ! self::auto_sync_enabled() ) ) {
 			return;
 		}
 		$queue = self::queue();
@@ -776,13 +762,8 @@ class AFC_Google_Sheets_Sync {
 			$processed++;
 		}
 		self::save_queue( $queue );
-		self::save_settings(
-			array(
-				'google_last_queue_run' => current_time( 'mysql' ),
-				'google_queue_pending'  => count( $queue ),
-			)
-		);
-		if ( $queue && ! wp_next_scheduled( self::CRON_QUEUE ) ) {
+		self::save_settings( array( 'google_last_queue_run' => current_time( 'mysql' ), 'google_queue_pending' => count( $queue ) ) );
+		if ( $queue && self::auto_sync_enabled() && ! wp_next_scheduled( self::CRON_QUEUE ) ) {
 			wp_schedule_single_event( time() + ( 15 * MINUTE_IN_SECONDS ), self::CRON_QUEUE );
 		}
 	}
@@ -830,7 +811,7 @@ class AFC_Google_Sheets_Sync {
 
 	public static function ajax_prepare_sheet() {
 		self::authorize();
-		$result = self::prepare_sheet( (int) current_time( 'Y' ) );
+		$result = self::prepare_sheet( (int) current_time( 'Y' ), true );
 		if ( is_wp_error( $result ) ) {
 			wp_send_json_error( array( 'message' => $result->get_error_message() ) );
 		}
@@ -854,7 +835,7 @@ class AFC_Google_Sheets_Sync {
 			self::save_settings( array( 'google_last_sync_error' => $result->get_error_message() ) );
 			wp_send_json_error( array( 'message' => $result->get_error_message() ) );
 		}
-		self::process_queue();
+		self::process_queue( true );
 		wp_send_json_success( array_merge( self::status(), array( 'message' => sprintf( __( 'Reconciliation completed for %d PPP account(s), including pending payments.', 'airfiber-centralized' ), $result['count'] ) ) ) );
 	}
 
@@ -867,7 +848,7 @@ class AFC_Google_Sheets_Sync {
 			$queue[ $key ]      = $item;
 		}
 		self::save_queue( $queue );
-		self::process_queue();
+		self::process_queue( true );
 		wp_send_json_success( array_merge( self::status(), array( 'message' => __( 'Pending Google Sheet updates were retried.', 'airfiber-centralized' ) ) ) );
 	}
 
