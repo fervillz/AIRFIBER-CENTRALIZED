@@ -67,6 +67,14 @@ class AFC_Google_Sheets_Paid_History {
 		return '';
 	}
 
+	/** Read legacy/single-line comment values even when a suggested field was not added to the schema. */
+	private static function raw_comment_date( $comment, $key ) {
+		$key = preg_quote( (string) $key, '/' );
+		return preg_match( '/(?:^|\s)' . $key . '\s*:\s*(\d{4}-\d{2}-\d{2})(?=\s|$)/i', (string) $comment, $match )
+			? self::valid_date( $match[1] )
+			: '';
+	}
+
 	private static function latest_date( $dates ) {
 		$latest = '';
 		foreach ( $dates as $date ) {
@@ -106,14 +114,21 @@ class AFC_Google_Sheets_Paid_History {
 				continue;
 			}
 
-			$details      = AFC_Comment_Fields::parse_comment( isset( $secret['comment'] ) ? $secret['comment'] : '' );
+			$comment      = isset( $secret['comment'] ) ? (string) $secret['comment'] : '';
+			$details      = AFC_Comment_Fields::parse_comment( $comment );
 			$installed    = self::valid_date( isset( $details['installed'] ) ? $details['installed'] : '' );
 			$payment_date = self::valid_date( isset( $details['payment_date'] ) ? $details['payment_date'] : '' );
 			$paid_through = self::valid_date( self::custom_value( $details, 'paidThrough' ) );
 			$next_due     = self::valid_date( self::custom_value( $details, 'nextDue' ) );
-			$profile      = isset( $secret['profile'] ) ? trim( (string) $secret['profile'] ) : '';
-			$disabled     = isset( $secret['disabled'] ) && 'true' === strtolower( (string) $secret['disabled'] );
-			$expired      = $disabled || 0 === strcasecmp( $profile, 'Expired' );
+			if ( ! $paid_through ) {
+				$paid_through = self::raw_comment_date( $comment, 'paidThrough' );
+			}
+			if ( ! $next_due ) {
+				$next_due = self::raw_comment_date( $comment, 'nextDue' );
+			}
+			$profile  = isset( $secret['profile'] ) ? trim( (string) $secret['profile'] ) : '';
+			$disabled = isset( $secret['disabled'] ) && 'true' === strtolower( (string) $secret['disabled'] );
+			$expired  = $disabled || 0 === strcasecmp( $profile, 'Expired' );
 
 			$coverage_candidates = array( $payment_date, $paid_through );
 			if ( ! $expired && $next_due ) {
