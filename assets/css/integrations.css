@@ -1,0 +1,237 @@
+body.afc-admin-mode-basic [data-afc-app-panel="integrations"],
+body.afc-admin-mode-basic [data-afc-panel="integrations"] {
+	display: none !important;
+}
+
+.afc-integrations-page {
+	padding: 0.8rem 0.2rem 2rem;
+}
+
+.afc-integrations-header {
+	display: flex;
+	align-items: end;
+	justify-content: space-between;
+	gap: 1rem;
+	margin-bottom: 1rem;
+}
+
+.afc-integrations-header span,
+.afc-integration-card header small {
+	color: #206bc4;
+	font-size: 13px;
+	font-weight: 800;
+	letter-spacing: .08em;
+}
+
+.afc-integrations-header h1 {
+	margin: .15rem 0 .25rem;
+	font-size: 20px;
+}
+
+.afc-integrations-header p {
+	margin: 0;
+	color: #667382;
+	font-size: 14px;
+}
+
+.afc-integrations-grid {
+	display: grid;
+	grid-template-columns: minmax(0, 1.5fr) minmax(300px, .8fr);
+	gap: 1rem;
+}
+
+.afc-integration-card {
+	overflow: hidden;
+	border: 1px solid #dce4ed;
+	border-radius: 18px;
+	background: #fff;
+	box-shadow: 0 9px 30px rgba(24, 36, 51, .07);
+}
+
+.afc-integration-card > header {
+	display: grid;
+	grid-template-columns: 46px minmax(0, 1fr) auto;
+	align-items: center;
+	gap: .75rem;
+	padding: 1rem 1.1rem;
+	border-bottom: 1px solid #e6ebf1;
+}
+
+.afc-integration-card h2 {
+	margin: .1rem 0 0;
+	font-size: 16px;
+}
+
+.afc-integration-logo {
+	display: grid;
+	width: 46px;
+	height: 46px;
+	place-items: center;
+	border-radius: 14px;
+	background: linear-gradient(135deg, #e8f1fc, #f3f8fe);
+	color: #206bc4;
+	font-size: 20px;
+	font-weight: 900;
+}
+
+.afc-messenger-card .afc-integration-logo {
+	background: linear-gradient(135deg, #e7f0ff, #f1eaff);
+	color: #6f42c1;
+}
+
+.afc-integration-status {
+	padding: .35rem .65rem;
+	border-radius: 999px;
+	background: #fff3cd;
+	color: #8a6100;
+	font-size: 13px;
+	font-weight: 750;
+	white-space: nowrap;
+}
+
+.afc-integration-status.is-connected {
+	background: #e8f7ed;
+	color: #1f7a39;
+}
+
+.afc-integration-status.is-muted {
+	background: #eef1f4;
+	color: #667382;
+}
+
+.afc-integration-body {
+	padding: 1.1rem;
+}
+
+.afc-integration-body > label {
+	display: block;
+	margin: 0 0 .35rem;
+	font-size: 14px;
+	font-weight: 700;
+}
+
+.afc-integration-body > label:not(:first-of-type) {
+	margin-top: 1rem;
+}
+
+.afc-integration-body input[type="text"],
+.afc-integration-body input[type="file"] {
+	width: 100%;
+	min-height: 46px;
+	padding: .65rem .75rem;
+	border: 1px solid #cfd8e3;
+	border-radius: 12px;
+	background: #fff;
+	font-size: 16px;
+}
+
+.afc-integration-body input:focus {
+	border-color: #206bc4;
+	outline: 0;
+	box-shadow: 0 0 0 3px rgba(32, 107, 196, .12);
+}
+
+.afc-file-row {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) auto;
+	align-items: center;
+	gap: .75rem;
+}
+
+.afc-file-row span,
+.afc-field-help {
+	color: #667382;
+	font-size: 13px;
+}
+
+.afc-field-help {
+	display: block;
+	margin-top: .35rem;
+}
+
+.afc-integration-message {
+	margin-bottom: 1rem;
+	padding: .75rem .9rem;
+	border-radius: 12px;
+	background: #eef4fb;
+	color: #335b85;
+	font-size: 14px;
+}
+
+.afc-integration-message.is-success {
+	background: #e9f8ed;
+	color: #246c38;
+}
+
+.afc-integration-message.is-error {
+	background: #fdecec;
+	color: #a12e2e;
+}
+
+.afc-integration-facts {
+	display: grid;
+	grid-template-columns: repeat(3, minmax(0, 1fr));
+	gap: .7rem;
+	margin: 1rem 0 0;
+}
+
+.afc-integration-facts div {
+	min-width: 0;
+	padding: .75rem;
+	border: 1px solid #e3e9f0;
+	border-radius: 12px;
+	background: #f8fafc;
+}
+
+.afc-integration-facts dt {
+	margin-bottom: .25rem;
+	color: #667382;
+	font-size: 13px;
+}
+
+.afc-integration-facts dd {
+	margin: 0;
+	overflow-wrap: anywhere;
+	font-size: 14px;
+	font-weight: 700;
+}
+
+.afc-integration-actions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: .6rem;
+	margin-top: 1rem;
+}
+
+.afc-messenger-card .afc-integration-body p {
+	margin-top: 0;
+	color: #667382;
+	font-size: 14px;
+	line-height: 1.6;
+}
+
+@media (max-width: 900px) {
+	.afc-integrations-grid {
+		grid-template-columns: 1fr;
+	}
+}
+
+@media (max-width: 620px) {
+	.afc-integration-card > header {
+		grid-template-columns: 42px minmax(0, 1fr);
+	}
+
+	.afc-integration-status {
+		grid-column: 1 / -1;
+		justify-self: start;
+	}
+
+	.afc-file-row,
+	.afc-integration-facts {
+		grid-template-columns: 1fr;
+	}
+
+	.afc-integration-actions .btn {
+		width: 100%;
+	}
+}
