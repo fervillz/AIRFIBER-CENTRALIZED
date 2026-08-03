@@ -2,17 +2,16 @@
 	'use strict';
 
 	const dialogIds = [
-		'afc-payment-dialog',
 		'afc-ppp-create-dialog',
 		'afc-ppp-manage-dialog',
 	];
 
 	/**
 	 * The Operations panel is hidden while the Advanced dashboard is open.
-	 * Native dialogs left inside that hidden panel can still create a modal
-	 * backdrop, but the dialog itself remains invisible. That makes the entire
-	 * page appear frozen. Keep shared dialogs directly under <body> so they can
-	 * be opened safely from either Dashboard or Operations.
+	 * PPP dialogs opened from dashboard actions must live directly under body so
+	 * their modal box and backdrop stay together. The payment dialog is no longer
+	 * moved because the dashboard now owns a dedicated body-level payment dialog;
+	 * Operations keeps its original styled payment dialog in place.
 	 */
 	function promoteDialog( dialog ) {
 		if ( ! dialog || dialog.parentNode === document.body ) return;
@@ -31,8 +30,6 @@
 			if ( ! dialog || ! dialog.open ) return;
 			promoteDialog( dialog );
 
-			// A modal should always have a visible box. If another legacy rule still
-			// hides it, close it rather than leaving an invisible backdrop over the app.
 			window.requestAnimationFrame( function () {
 				if ( dialog.open && dialog.getClientRects().length === 0 ) {
 					dialog.close();
@@ -44,9 +41,6 @@
 	function initialize() {
 		promoteSharedDialogs();
 
-		// Some modules render or re-render their dialog markup after initial boot.
-		// Re-promote only matching dialog nodes; this observer does not touch cards,
-		// forms, tables, or the dashboard layout.
 		const observer = new MutationObserver( function ( mutations ) {
 			let shouldCheck = false;
 			mutations.forEach( function ( mutation ) {
@@ -61,15 +55,14 @@
 		} );
 		observer.observe( document.body, { childList: true, subtree: true } );
 
-		// Promote before dashboard actions reach the existing PPP/payment handlers.
 		document.addEventListener( 'pointerdown', function ( event ) {
-			if ( event.target.closest( '[data-afc-dashboard-add-ppp], [data-afc-dashboard-payment-account]' ) ) {
+			if ( event.target.closest( '[data-afc-dashboard-add-ppp]' ) ) {
 				promoteSharedDialogs();
 			}
 		}, true );
 
 		document.addEventListener( 'click', function ( event ) {
-			if ( event.target.closest( '[data-afc-dashboard-add-ppp], [data-afc-dashboard-payment-account]' ) ) {
+			if ( event.target.closest( '[data-afc-dashboard-add-ppp]' ) ) {
 				promoteSharedDialogs();
 				window.setTimeout( recoverInvisibleModal, 80 );
 				window.setTimeout( recoverInvisibleModal, 700 );
