@@ -5,7 +5,9 @@ defined( 'ABSPATH' ) || exit;
 trait AFC_PPP_Manager_Create_Trait {
 	public static function ajax_create() {
 		self::authorize();
-		$mode          = class_exists( 'AFC_Admin_Mode' ) ? AFC_Admin_Mode::current_mode() : 'basic';
+		$request_mode = isset( $_POST['interface_mode'] ) ? sanitize_key( wp_unslash( $_POST['interface_mode'] ) ) : '';
+		$saved_mode   = class_exists( 'AFC_Admin_Mode' ) ? AFC_Admin_Mode::current_mode() : 'basic';
+		$mode         = in_array( $request_mode, array( 'basic', 'advanced' ), true ) ? $request_mode : $saved_mode;
 		$name          = self::clean_name( isset( $_POST['customer_name'] ) ? wp_unslash( $_POST['customer_name'] ) : '' );
 		$phone         = self::normalize_phone( isset( $_POST['phone'] ) ? wp_unslash( $_POST['phone'] ) : '' );
 		$address       = sanitize_textarea_field( isset( $_POST['address'] ) ? wp_unslash( $_POST['address'] ) : '' );
@@ -19,7 +21,31 @@ trait AFC_PPP_Manager_Create_Trait {
 		$installed       = self::date( $installed_value );
 
 		if ( ! $name || ! $phone || ! $address || ! $profile || ! $installed ) {
-			wp_send_json_error( array( 'message' => __( 'Name, CP number, address, and plan are required.', 'airfiber-centralized' ) ) );
+			$missing = array();
+			if ( ! $name ) {
+				$missing[] = __( 'name', 'airfiber-centralized' );
+			}
+			if ( ! $phone ) {
+				$missing[] = __( 'CP number', 'airfiber-centralized' );
+			}
+			if ( ! $address ) {
+				$missing[] = __( 'address', 'airfiber-centralized' );
+			}
+			if ( ! $profile ) {
+				$missing[] = __( 'plan', 'airfiber-centralized' );
+			}
+			if ( ! $installed ) {
+				$missing[] = __( 'installation date', 'airfiber-centralized' );
+			}
+			wp_send_json_error(
+				array(
+					'message' => sprintf(
+						/* translators: %s: comma-separated missing PPP fields. */
+						__( 'Please complete: %s.', 'airfiber-centralized' ),
+						implode( ', ', $missing )
+					),
+				)
+			);
 		}
 
 		if ( 'basic' === $mode && ( ! $wifi || strlen( $wifi_password ) < 8 ) ) {
