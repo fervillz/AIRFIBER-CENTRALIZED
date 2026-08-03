@@ -1,0 +1,206 @@
+/*
+ * Airfiber application typography scale.
+ * Primary UI text stays readable at 16px, supporting text at 14px, and only
+ * compact metadata uses 13px. This loads last so individual modules cannot
+ * accidentally make whole screens oversized or unreadably small.
+ */
+:root {
+	--afc-type-primary: 16px;
+	--afc-type-secondary: 14px;
+	--afc-type-meta: 13px;
+	--afc-type-title: 20px;
+	--afc-type-number: 20px;
+}
+
+body.afc-frontend-page,
+body.afc-frontend-page .afc-frontend-shell,
+body.afc-frontend-page .afc-frontend-shell input,
+body.afc-frontend-page .afc-frontend-shell select,
+body.afc-frontend-page .afc-frontend-shell textarea,
+body.afc-frontend-page .afc-frontend-shell button,
+body.afc-frontend-page .afc-frontend-shell table,
+body.afc-frontend-page .afc-frontend-shell dialog,
+.afc-admin-page,
+.afc-admin-page input,
+.afc-admin-page select,
+.afc-admin-page textarea,
+.afc-admin-page button,
+.afc-admin-page table,
+.afc-admin-page dialog {
+	font-size: var(--afc-type-primary);
+	line-height: 1.45;
+}
+
+/* Page-level headings may lead the screen, but should not dominate it. */
+body.afc-frontend-page .afc-frontend-shell .page-title,
+body.afc-frontend-page .afc-frontend-shell h1,
+.afc-admin-page .page-title,
+.afc-admin-page h1 {
+	font-size: var(--afc-type-title) !important;
+	line-height: 1.25 !important;
+}
+
+body.afc-frontend-page .afc-frontend-shell h2,
+body.afc-frontend-page .afc-frontend-shell h3,
+body.afc-frontend-page .afc-frontend-shell h4,
+body.afc-frontend-page .afc-frontend-shell h5,
+body.afc-frontend-page .afc-frontend-shell h6,
+body.afc-frontend-page .afc-frontend-shell .card-title,
+.afc-admin-page h2,
+.afc-admin-page h3,
+.afc-admin-page h4,
+.afc-admin-page h5,
+.afc-admin-page h6,
+.afc-admin-page .card-title {
+	font-size: var(--afc-type-primary) !important;
+	line-height: 1.35 !important;
+}
+
+/* Normal controls and important content. */
+body.afc-frontend-page .afc-frontend-shell .form-control,
+body.afc-frontend-page .afc-frontend-shell .form-select,
+body.afc-frontend-page .afc-frontend-shell .input-group-text,
+body.afc-frontend-page .afc-frontend-shell td,
+body.afc-frontend-page .afc-frontend-shell .afc-dashboard-list-copy strong,
+body.afc-frontend-page .afc-frontend-shell .afc-basic-customer-main strong,
+body.afc-frontend-page .afc-frontend-shell .afc-sms-list-identity strong,
+.afc-admin-page .form-control,
+.afc-admin-page .form-select,
+.afc-admin-page .input-group-text,
+.afc-admin-page td {
+	font-size: var(--afc-type-primary) !important;
+}
+
+/* Buttons, labels, table headings, descriptions and secondary lines. */
+body.afc-frontend-page .afc-frontend-shell .btn,
+body.afc-frontend-page .afc-frontend-shell .form-label,
+body.afc-frontend-page .afc-frontend-shell th,
+body.afc-frontend-page .afc-frontend-shell .text-secondary,
+body.afc-frontend-page .afc-frontend-shell .card-subtitle,
+body.afc-frontend-page .afc-frontend-shell small,
+body.afc-frontend-page .afc-frontend-shell .small,
+body.afc-frontend-page .afc-frontend-shell .afc-dashboard-list-copy small,
+body.afc-frontend-page .afc-frontend-shell .afc-dashboard-list-copy em,
+body.afc-frontend-page .afc-frontend-shell .afc-basic-customer-main span,
+body.afc-frontend-page .afc-frontend-shell .afc-basic-customer-side strong,
+body.afc-frontend-page .afc-frontend-shell .afc-basic-customer-location,
+body.afc-frontend-page .afc-frontend-shell .afc-dashboard-primary-action,
+.afc-admin-page .btn,
+.afc-admin-page .form-label,
+.afc-admin-page th,
+.afc-admin-page .text-secondary,
+.afc-admin-page .card-subtitle,
+.afc-admin-page small,
+.afc-admin-page .small {
+	font-size: var(--afc-type-secondary) !important;
+	line-height: 1.45 !important;
+}
+
+/* Compact metadata only: badges, timestamps, counters and helper labels. */
+body.afc-frontend-page .afc-frontend-shell .badge,
+body.afc-frontend-page .afc-frontend-shell .form-text,
+body.afc-frontend-page .afc-frontend-shell .page-pretitle,
+body.afc-frontend-page .afc-frontend-shell .afc-dashboard-kicker,
+body.afc-frontend-page .afc-frontend-shell .afc-dashboard-card-title small,
+body.afc-frontend-page .afc-frontend-shell .afc-dashboard-item-badge,
+body.afc-frontend-page .afc-frontend-shell .afc-dashboard-card-footer,
+body.afc-frontend-page .afc-frontend-shell .afc-dashboard-metric > span,
+body.afc-frontend-page .afc-frontend-shell .afc-dashboard-port header em,
+body.afc-frontend-page .afc-frontend-shell .afc-dashboard-port > div span,
+body.afc-frontend-page .afc-frontend-shell .afc-dashboard-port > small,
+body.afc-frontend-page .afc-frontend-shell .afc-sms-list-meta,
+body.afc-frontend-page .afc-frontend-shell .afc-sms-message-footer,
+body.afc-frontend-page .afc-frontend-shell .afc-basic-selected-label,
+body.afc-frontend-page .afc-frontend-shell .afc-basic-selected-details span,
+.afc-admin-page .badge,
+.afc-admin-page .form-text,
+.afc-admin-page .page-pretitle {
+	font-size: var(--afc-type-meta) !important;
+	line-height: 1.35 !important;
+}
+
+/* Summary figures remain noticeable without becoming billboard-sized. */
+body.afc-frontend-page .afc-frontend-shell .h1,
+body.afc-frontend-page .afc-frontend-shell .h2,
+body.afc-frontend-page .afc-frontend-shell .h3,
+body.afc-frontend-page .afc-frontend-shell [data-summary],
+body.afc-frontend-page .afc-frontend-shell .afc-dashboard-metric > strong,
+body.afc-frontend-page .afc-frontend-shell .afc-dashboard-today-total > strong,
+.afc-admin-page .h1,
+.afc-admin-page .h2,
+.afc-admin-page .h3,
+.afc-admin-page [data-summary] {
+	font-size: var(--afc-type-number) !important;
+	line-height: 1.2 !important;
+}
+
+/* Header navigation should be compact but never tiny. */
+body.afc-frontend-page .afc-frontend-shell .afc-frontend-brand-copy strong,
+body.afc-frontend-page .afc-frontend-shell .afc-frontend-nav button,
+body.afc-frontend-page .afc-frontend-shell .afc-frontend-mode-toggle button,
+body.afc-frontend-page .afc-frontend-shell .afc-frontend-user span {
+	font-size: var(--afc-type-secondary) !important;
+}
+
+body.afc-frontend-page .afc-frontend-shell .afc-frontend-brand-copy small,
+body.afc-frontend-page .afc-frontend-shell .afc-frontend-user a {
+	font-size: var(--afc-type-meta) !important;
+}
+
+/* The operations list is the densest screen: keep names at 16 and details at 14. */
+body.afc-frontend-page .afc-frontend-shell #afc-ppp-table tbody strong,
+body.afc-frontend-page .afc-frontend-shell #afc-ppp-table .fw-bold,
+body.afc-frontend-page .afc-frontend-shell #afc-ppp-table .fw-semibold,
+.afc-admin-page #afc-ppp-table tbody strong,
+.afc-admin-page #afc-ppp-table .fw-bold,
+.afc-admin-page #afc-ppp-table .fw-semibold {
+	font-size: var(--afc-type-primary) !important;
+}
+
+body.afc-frontend-page .afc-frontend-shell #afc-ppp-table tbody small,
+body.afc-frontend-page .afc-frontend-shell #afc-ppp-table .text-secondary,
+body.afc-frontend-page .afc-frontend-shell #afc-ppp-table .small,
+.afc-admin-page #afc-ppp-table tbody small,
+.afc-admin-page #afc-ppp-table .text-secondary,
+.afc-admin-page #afc-ppp-table .small {
+	font-size: var(--afc-type-secondary) !important;
+}
+
+/* Dashboard-specific correction for the older oversized desktop rules. */
+body.afc-frontend-page .afc-frontend-shell .afc-dashboard-header h1 {
+	font-size: var(--afc-type-title) !important;
+}
+
+body.afc-frontend-page .afc-frontend-shell .afc-dashboard-header p,
+body.afc-frontend-page .afc-frontend-shell .afc-dashboard-router-alert strong,
+body.afc-frontend-page .afc-frontend-shell .afc-dashboard-card-title h2,
+body.afc-frontend-page .afc-frontend-shell .afc-dashboard-new-ppp-body p,
+body.afc-frontend-page .afc-frontend-shell .afc-dashboard-port header strong,
+body.afc-frontend-page .afc-frontend-shell .afc-dashboard-port > div strong,
+body.afc-frontend-page .afc-frontend-shell .afc-basic-selected-account,
+body.afc-frontend-page .afc-frontend-shell .afc-basic-selected-details strong {
+	font-size: var(--afc-type-primary) !important;
+}
+
+body.afc-frontend-page .afc-frontend-shell .afc-dashboard-refresh,
+body.afc-frontend-page .afc-frontend-shell .afc-dashboard-router-alert small,
+body.afc-frontend-page .afc-frontend-shell .afc-dashboard-router-alert button,
+body.afc-frontend-page .afc-frontend-shell .afc-dashboard-list-loading,
+body.afc-frontend-page .afc-frontend-shell .afc-dashboard-empty,
+body.afc-frontend-page .afc-frontend-shell .afc-dashboard-network-error,
+body.afc-frontend-page .afc-frontend-shell .afc-basic-payment-search-help,
+body.afc-frontend-page .afc-frontend-shell .afc-basic-payment-message,
+body.afc-frontend-page .afc-frontend-shell .afc-basic-customer-side span {
+	font-size: var(--afc-type-secondary) !important;
+}
+
+/* Mobile remains readable and slightly more compact without dropping below 13px. */
+@media (max-width: 782px) {
+	:root {
+		--afc-type-primary: 15px;
+		--afc-type-secondary: 14px;
+		--afc-type-meta: 13px;
+		--afc-type-title: 19px;
+		--afc-type-number: 19px;
+	}
+}
