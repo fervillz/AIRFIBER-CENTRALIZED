@@ -58,6 +58,14 @@ class AFC_Main_Dashboard_Advanced_Mode {
 			true
 		);
 
+		wp_enqueue_script(
+			'afc-dashboard-dialog-bridge',
+			AFC_URL . 'assets/js/dashboard-dialog-bridge.js',
+			array( 'afc-main-dashboard-payment-tool', 'afc-ppp-manager', 'afc-ppp-users' ),
+			AFC_VERSION,
+			true
+		);
+
 		wp_localize_script(
 			'afc-main-dashboard-payment-tool',
 			'afcDashboardPaymentTool',
