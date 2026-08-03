@@ -82,6 +82,7 @@ class AFC_Google_Sheets_Paid_History {
 			if ( $date && ( ! $latest || $date > $latest ) ) {
 				$latest = $date;
 			}
+		}
 		return $latest;
 	}
 
