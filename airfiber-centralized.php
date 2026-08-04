@@ -2,14 +2,14 @@
 /**
  * Plugin Name: Airfiber - Centralized
  * Description: Customer, billing, payment, installation, notification, and MikroTik management for Airfiber.
- * Version: 2.4.0
+ * Version: 2.5.0
  * Author: Airfiber
  * Text Domain: airfiber-centralized
  */
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'AFC_VERSION', '2.4.0' );
+define( 'AFC_VERSION', '2.5.0' );
 define( 'AFC_FILE', __FILE__ );
 define( 'AFC_PATH', plugin_dir_path( __FILE__ ) );
 define( 'AFC_URL', plugin_dir_url( __FILE__ ) );
@@ -48,6 +48,7 @@ require_once AFC_PATH . 'includes/class-afc-frontend-page.php';
 require_once AFC_PATH . 'includes/class-afc-app-typography.php';
 require_once AFC_PATH . 'includes/class-afc-integrations.php';
 require_once AFC_PATH . 'includes/class-afc-messenger-settings.php';
+require_once AFC_PATH . 'includes/class-afc-advanced-workspace.php';
 require_once AFC_PATH . 'includes/class-afc-google-sheets-sync.php';
 require_once AFC_PATH . 'includes/class-afc-google-sheets-table-compat.php';
 require_once AFC_PATH . 'includes/class-afc-google-sheets-overview-compat.php';
@@ -87,6 +88,7 @@ function afc_boot_plugin() {
 	AFC_App_Typography::init();
 	AFC_Integrations::init();
 	AFC_Messenger_Settings::init();
+	AFC_Advanced_Workspace::init();
 	AFC_Google_Sheets_Table_Compat::init();
 	AFC_Google_Sheets_Overview_Compat::init();
 	AFC_Google_Sheets_Paid_History::init();
