@@ -1,0 +1,188 @@
+.afc-workspace-sms-activity {
+	margin: 10px 10px 8px;
+	padding: 10px;
+	border: 1px solid rgba(148, 163, 184, .24);
+	border-radius: 14px;
+	background: rgba(255, 255, 255, .72);
+	box-shadow: 0 5px 16px rgba(15, 23, 42, .045);
+}
+
+.afc-workspace-sms-activity > header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 8px;
+	margin-bottom: 8px;
+}
+
+.afc-workspace-sms-activity > header div {
+	display: flex;
+	min-width: 0;
+	flex-direction: column;
+}
+
+.afc-workspace-sms-activity > header small {
+	color: #2b74c8;
+	font-size: 9px;
+	font-weight: 900;
+	letter-spacing: .12em;
+}
+
+.afc-workspace-sms-activity > header strong {
+	color: #253247;
+	font-size: 12px;
+	font-weight: 850;
+}
+
+.afc-workspace-sms-activity > header button {
+	display: grid;
+	width: 27px;
+	height: 27px;
+	place-items: center;
+	padding: 0;
+	border: 0;
+	border-radius: 9px;
+	background: #edf4fc;
+	color: #2f73bd;
+	font-size: 16px;
+	font-weight: 800;
+	cursor: pointer;
+}
+
+.afc-workspace-sms-activity.is-loading > header button {
+	animation: afc-sms-log-spin .8s linear infinite;
+}
+
+.afc-workspace-sms-activity-list {
+	display: grid;
+	gap: 5px;
+	max-height: 245px;
+	overflow-y: auto;
+	overscroll-behavior: contain;
+}
+
+.afc-workspace-sms-activity-list > p {
+	margin: 0;
+	padding: 9px;
+	border-radius: 10px;
+	background: #f4f7fa;
+	color: #718096;
+	font-size: 10px;
+	line-height: 1.45;
+}
+
+.afc-workspace-sms-activity article {
+	display: grid;
+	grid-template-columns: 8px minmax(0, 1fr);
+	gap: 8px;
+	align-items: start;
+	padding: 8px;
+	border: 1px solid #e4eaf1;
+	border-radius: 10px;
+	background: #fff;
+}
+
+.afc-workspace-sms-activity article > span {
+	width: 8px;
+	height: 8px;
+	margin-top: 4px;
+	border-radius: 50%;
+	background: #f59f00;
+	box-shadow: 0 0 0 3px rgba(245, 159, 0, .12);
+}
+
+.afc-workspace-sms-activity article.is-phone > span {
+	background: #367bd6;
+	box-shadow: 0 0 0 3px rgba(54, 123, 214, .12);
+}
+
+.afc-workspace-sms-activity article.is-success > span {
+	background: #2fb344;
+	box-shadow: 0 0 0 3px rgba(47, 179, 68, .12);
+}
+
+.afc-workspace-sms-activity article.is-danger > span {
+	background: #d63939;
+	box-shadow: 0 0 0 3px rgba(214, 57, 57, .12);
+}
+
+.afc-workspace-sms-activity article div {
+	display: flex;
+	min-width: 0;
+	flex-direction: column;
+}
+
+.afc-workspace-sms-activity article strong {
+	overflow: hidden;
+	color: #273449;
+	font-size: 10.5px;
+	font-weight: 850;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.afc-workspace-sms-activity article small {
+	margin-top: 1px;
+	color: #57677c;
+	font-size: 9.5px;
+	font-weight: 750;
+}
+
+.afc-workspace-sms-activity article em {
+	margin-top: 2px;
+	color: #8a96a8;
+	font-size: 8.5px;
+	font-style: normal;
+	line-height: 1.35;
+}
+
+.afc-workspace-sms-activity > footer {
+	margin-top: 8px;
+}
+
+.afc-workspace-sms-activity > footer button {
+	width: 100%;
+	padding: 7px 9px;
+	border: 0;
+	border-radius: 9px;
+	background: #edf5ff;
+	color: #286eb8;
+	font-size: 10px;
+	font-weight: 850;
+	cursor: pointer;
+}
+
+.afc-workspace-sidebar-collapsed .afc-workspace-sms-activity {
+	display: none;
+}
+
+.afc-due-resend-button {
+	border-color: #f0cf94 !important;
+	background: #fff5dc !important;
+	color: #8d5c00 !important;
+}
+
+.afc-due-resend-button span {
+	font-size: 15px;
+	font-weight: 900;
+}
+
+.afc-due-resend-button b {
+	font: inherit;
+}
+
+@keyframes afc-sms-log-spin {
+	to { transform: rotate(360deg); }
+}
+
+@media (max-width: 760px) {
+	.afc-workspace-sms-activity-list {
+		max-height: 190px;
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.afc-workspace-sms-activity.is-loading > header button {
+		animation: none;
+	}
+}
