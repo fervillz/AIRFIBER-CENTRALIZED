@@ -1,0 +1,189 @@
+/* Shared payment UI regression fixes for Basic and Advanced modes. */
+
+/* Keep the Basic Add PPP action to one intentional plus symbol. */
+#afc-basic-add-ppp > svg.afc-ui-icon,
+#afc-basic-add-ppp > .afc-ui-icon {
+	display: none !important;
+}
+
+#afc-basic-add-ppp {
+	align-items: center;
+	justify-content: center;
+}
+
+#afc-basic-add-ppp > span[aria-hidden="true"] {
+	display: grid;
+	width: 100%;
+	height: 100%;
+	place-items: center;
+	font-size: 30px;
+	font-weight: 500;
+	line-height: 1;
+}
+
+/* Any visible Expired status gets the same unmistakable soft-red treatment. */
+.afc-expired-copy,
+[data-status="expired"].afc-expired-copy {
+	display: inline-flex !important;
+	width: fit-content;
+	max-width: 100%;
+	align-items: center;
+	justify-content: center;
+	padding: 3px 8px;
+	border: 1px solid #f1bcbc;
+	border-radius: 999px;
+	background: #fde8e8 !important;
+	color: #bf2f3a !important;
+	font-weight: 800 !important;
+	line-height: 1.2;
+}
+
+.afc-dashboard-payment-result-meta .afc-expired-copy,
+.afc-basic-customer-side .afc-expired-copy {
+	margin-top: 4px;
+	margin-left: auto;
+}
+
+/* Make Account options an obvious, reliable accordion. */
+details.afc-payment-account-options {
+	overflow: hidden;
+}
+
+details.afc-payment-account-options > summary {
+	position: relative;
+	padding-right: 42px;
+	user-select: none;
+}
+
+details.afc-payment-account-options > summary::after {
+	position: absolute;
+	top: 50%;
+	right: 15px;
+	width: 9px;
+	height: 9px;
+	border-right: 2px solid #64748b;
+	border-bottom: 2px solid #64748b;
+	content: '';
+	transform: translateY(-68%) rotate(45deg);
+	transition: transform .16s ease;
+}
+
+details.afc-payment-account-options[open] > summary::after,
+details.afc-payment-account-options.is-open > summary::after {
+	transform: translateY(-30%) rotate(225deg);
+}
+
+details.afc-payment-account-options:not([open]) > [data-afc-inline-options] {
+	display: none !important;
+}
+
+details.afc-payment-account-options[open] > [data-afc-inline-options] {
+	display: block !important;
+}
+
+details.afc-payment-account-options > summary:hover,
+details.afc-payment-account-options > summary:focus-visible {
+	background: #eef5fd;
+	outline: 0;
+}
+
+/* Prevent the payment sheet from growing beyond the phone viewport. */
+.afc-dashboard-direct-payment-dialog {
+	max-height: calc(100dvh - 18px);
+	overflow: hidden;
+}
+
+.afc-dashboard-direct-payment-dialog > form {
+	display: flex;
+	max-height: calc(100dvh - 18px);
+	flex-direction: column;
+}
+
+.afc-dashboard-direct-payment-dialog header,
+.afc-dashboard-direct-payment-dialog footer {
+	flex: 0 0 auto;
+}
+
+.afc-dashboard-direct-payment-body {
+	min-height: 0;
+	overflow-y: auto;
+	overscroll-behavior: contain;
+}
+
+.afc-dashboard-direct-payment-dialog footer {
+	position: sticky;
+	bottom: 0;
+	z-index: 2;
+}
+
+@media (max-width: 600px) {
+	.afc-dashboard-direct-payment-dialog {
+		width: calc(100vw - 12px);
+		max-height: calc(100dvh - 12px);
+		border-radius: 17px;
+	}
+
+	.afc-dashboard-direct-payment-dialog > form {
+		max-height: calc(100dvh - 12px);
+	}
+
+	.afc-dashboard-direct-payment-dialog header {
+		padding: 16px 17px 14px;
+	}
+
+	.afc-dashboard-direct-payment-body {
+		padding: 16px 17px;
+	}
+
+	.afc-dashboard-direct-payment-dialog footer {
+		display: grid;
+		grid-template-columns: minmax(0, .72fr) minmax(0, 1.28fr);
+		gap: 10px;
+		padding: 14px 17px max(14px, env(safe-area-inset-bottom));
+	}
+
+	.afc-dashboard-direct-payment-dialog footer button {
+		width: 100%;
+		min-width: 0;
+		padding: 0 12px;
+	}
+
+	.afc-payment-account-options > div,
+	details.afc-payment-account-options > [data-afc-inline-options] {
+		padding-right: 10px;
+		padding-left: 10px;
+	}
+
+	.afc-account-option-grid,
+	.afc-account-option-grid.is-compact {
+		grid-template-columns: 1fr !important;
+	}
+
+	.afc-account-option-actions button {
+		flex: 1 1 calc(50% - 5px);
+	}
+}
+
+@media (max-width: 420px) {
+	.afc-dashboard-direct-payment-dialog footer {
+		grid-template-columns: 1fr;
+	}
+
+	.afc-dashboard-direct-payment-confirm {
+		grid-row: 1;
+	}
+
+	.afc-dashboard-direct-payment-cancel {
+		grid-row: 2;
+	}
+
+	.afc-account-option-actions button {
+		flex-basis: 100%;
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	details.afc-payment-account-options > summary::after {
+		transition: none;
+	}
+}
