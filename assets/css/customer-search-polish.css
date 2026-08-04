@@ -1,0 +1,317 @@
+/* Search-result polish for Airfiber 2.6.1. */
+.afc-dashboard-panel .afc-dashboard-payment-result > .afc-ui-icon {
+	display: none !important;
+}
+
+.afc-dashboard-panel .afc-dashboard-payment-result.is-polished {
+	position: relative;
+	grid-template-columns: 46px minmax(0, 1fr) minmax(132px, auto) auto;
+	min-height: 78px;
+	gap: 13px;
+	padding: 12px 14px;
+	overflow: hidden;
+	border-color: #dce6f1;
+	border-radius: 15px;
+	box-shadow: 0 4px 15px rgba(31, 45, 61, .045);
+}
+
+.afc-dashboard-panel .afc-dashboard-payment-result.is-polished::before {
+	position: absolute;
+	top: 12px;
+	bottom: 12px;
+	left: 0;
+	width: 3px;
+	border-radius: 0 4px 4px 0;
+	background: #d7e2ee;
+	content: '';
+}
+
+.afc-dashboard-panel .afc-dashboard-payment-result.is-polished[data-afc-tone="expired"]::before {
+	background: #d63939;
+}
+
+.afc-dashboard-panel .afc-dashboard-payment-result.is-polished[data-afc-tone="due"]::before,
+.afc-dashboard-panel .afc-dashboard-payment-result.is-polished[data-afc-tone="sms"]::before {
+	background: #f59f00;
+}
+
+.afc-dashboard-panel .afc-dashboard-payment-result.is-polished[data-afc-tone="message"]::before {
+	background: #7950f2;
+}
+
+.afc-dashboard-panel .afc-dashboard-payment-result.is-polished[data-afc-tone="paid"]::before {
+	background: #2fb344;
+}
+
+.afc-dashboard-panel .afc-dashboard-payment-result.is-polished:hover,
+.afc-dashboard-panel .afc-dashboard-payment-result.is-polished:focus-visible {
+	border-color: #9ec2ea;
+	background: linear-gradient(135deg, #f8fbff, #fff);
+	box-shadow: 0 9px 24px rgba(32, 107, 196, .1);
+}
+
+.afc-dashboard-panel .afc-dashboard-payment-result.is-polished .afc-dashboard-payment-result-avatar {
+	width: 46px;
+	height: 46px;
+	border: 1px solid #dbe9fb;
+	border-radius: 14px;
+	background: linear-gradient(145deg, #edf5ff, #e3efff);
+	box-shadow: inset 0 1px 0 rgba(255,255,255,.85);
+	font-size: 16px;
+}
+
+.afc-dashboard-panel .afc-dashboard-payment-result.is-polished .afc-dashboard-payment-result-copy {
+	display: flex;
+	min-width: 0;
+	flex-direction: column;
+	align-self: center;
+}
+
+.afc-dashboard-panel .afc-dashboard-payment-result.is-polished .afc-dashboard-payment-result-copy strong {
+	color: #1d2738;
+	font-size: 15px;
+	font-weight: 850;
+	line-height: 1.25;
+}
+
+.afc-dashboard-panel .afc-dashboard-payment-result.is-polished .afc-dashboard-payment-result-copy > small {
+	margin-top: 3px;
+	color: #7a889d;
+	font-size: 12px;
+}
+
+.afc-dashboard-panel .afc-dashboard-payment-result.is-polished .afc-dashboard-payment-result-meta {
+	max-width: 175px;
+	align-self: center;
+}
+
+.afc-dashboard-panel .afc-dashboard-payment-result.is-polished .afc-dashboard-payment-result-meta strong {
+	color: #344258;
+	font-size: 12px;
+	font-weight: 780;
+}
+
+.afc-dashboard-panel .afc-dashboard-payment-result.is-polished .afc-dashboard-payment-result-meta small {
+	color: #7b8798;
+	font-size: 12px;
+}
+
+.afc-dashboard-panel .afc-dashboard-payment-result.is-polished .afc-dashboard-payment-result-action {
+	display: inline-flex;
+	min-width: 83px;
+	height: 38px;
+	align-items: center;
+	justify-content: center;
+	gap: 6px;
+	align-self: center;
+	padding: 0 12px;
+	border: 1px solid #cbead8;
+	border-radius: 11px;
+	background: linear-gradient(145deg, #eaf8f0, #ddf4e7);
+	color: #16764f;
+	box-shadow: 0 4px 10px rgba(21, 128, 90, .08);
+	font-size: 12px;
+	font-weight: 850;
+}
+
+.afc-dashboard-panel .afc-dashboard-payment-result.is-polished .afc-dashboard-payment-result-action .afc-ui-icon {
+	width: 14px;
+	height: 14px;
+}
+
+.afc-dashboard-panel .afc-dashboard-payment-result.is-polished .afc-dashboard-payment-result-action b {
+	font: inherit;
+}
+
+.afc-dashboard-panel .afc-dashboard-payment-result.is-polished:hover .afc-dashboard-payment-result-action,
+.afc-dashboard-panel .afc-dashboard-payment-result.is-polished:focus-visible .afc-dashboard-payment-result-action {
+	border-color: #9ed4b4;
+	background: #dff5e8;
+}
+
+.afc-dashboard-panel .afc-dashboard-payment-result > .afc-dashboard-signal-row {
+	display: none !important;
+}
+
+.afc-polished-signal-row,
+.afc-polished-basic-signal-row,
+.afc-polished-operations-signal-row {
+	display: flex;
+	align-items: center;
+	flex-wrap: wrap;
+	gap: 5px;
+}
+
+.afc-polished-signal-row {
+	min-height: 23px;
+	margin-top: 7px;
+}
+
+.afc-polished-signal {
+	display: inline-flex;
+	height: 22px;
+	min-width: 25px;
+	align-items: center;
+	justify-content: center;
+	gap: 4px;
+	padding: 0 7px;
+	border: 1px solid transparent;
+	border-radius: 999px;
+	background: #f1f4f7;
+	color: #637083;
+	font-size: 9px;
+	font-weight: 900;
+	line-height: 1;
+	letter-spacing: .035em;
+	white-space: nowrap;
+}
+
+.afc-polished-signal .afc-ui-icon {
+	width: 12px;
+	height: 12px;
+	stroke-width: 2;
+}
+
+.afc-polished-signal b {
+	font: inherit;
+}
+
+.afc-polished-signal.is-expired {
+	border-color: #f2c1c1;
+	background: #fde8e8;
+	color: #b4232f;
+}
+
+.afc-polished-signal.is-due,
+.afc-polished-signal.is-due-soon,
+.afc-polished-signal.is-upcoming,
+.afc-polished-signal.is-sms-queued,
+.afc-polished-signal.is-sms-due,
+.afc-polished-signal.is-sms-scheduled {
+	border-color: #f0d39a;
+	background: #fff2cf;
+	color: #946000;
+}
+
+.afc-polished-signal.is-safe {
+	border-color: #cde6d5;
+	background: #eaf7ee;
+	color: #287640;
+}
+
+.afc-polished-signal.is-sms-sent,
+.afc-polished-signal.is-paid,
+.afc-polished-signal.is-install {
+	border-color: #c7e8d1;
+	background: #e7f7ec;
+	color: #21783b;
+}
+
+.afc-polished-signal.is-install {
+	border-color: #c8def5;
+	background: #eaf4ff;
+	color: #246da8;
+}
+
+.afc-polished-signal.is-sms-received {
+	border-color: #d8c6f8;
+	background: #f1eaff;
+	color: #6840ad;
+}
+
+.afc-polished-signal.is-loading {
+	border-color: #e1e6ec;
+	background: #f5f7f9;
+	color: #8a94a1;
+}
+
+.afc-polished-signal.is-loading i {
+	width: 8px;
+	height: 8px;
+	border: 1.5px solid currentColor;
+	border-top-color: transparent;
+	border-radius: 50%;
+	animation: afc-polish-spin .7s linear infinite;
+}
+
+.afc-polished-signal.is-pulsing {
+	animation: afc-polish-message-pulse 1.5s ease-in-out infinite;
+}
+
+.afc-basic-customer-result > .afc-customer-signal-row {
+	display: none !important;
+}
+
+.afc-basic-customer-result .afc-polished-basic-signal-row {
+	grid-column: 1 / -1;
+	min-height: 22px;
+	padding-top: 5px;
+}
+
+#afc-ppp-table .afc-operations-signal-row {
+	display: none !important;
+}
+
+.afc-polished-operations-signal-row {
+	margin-top: 7px;
+}
+
+.afc-polished-basic-signal-row .afc-polished-signal,
+.afc-polished-operations-signal-row .afc-polished-signal {
+	height: 23px;
+}
+
+@keyframes afc-polish-spin {
+	to { transform: rotate(360deg); }
+}
+
+@keyframes afc-polish-message-pulse {
+	0%, 100% { box-shadow: 0 0 0 0 rgba(104, 64, 173, .08); }
+	50% { box-shadow: 0 0 0 6px rgba(104, 64, 173, .15); }
+}
+
+@media (max-width: 820px) {
+	.afc-dashboard-panel .afc-dashboard-payment-result.is-polished {
+		grid-template-columns: 42px minmax(0, 1fr) auto;
+		min-height: 76px;
+		padding: 11px 12px;
+	}
+
+	.afc-dashboard-panel .afc-dashboard-payment-result.is-polished .afc-dashboard-payment-result-avatar {
+		width: 42px;
+		height: 42px;
+	}
+
+	.afc-dashboard-panel .afc-dashboard-payment-result.is-polished .afc-dashboard-payment-result-meta {
+		display: none;
+	}
+}
+
+@media (max-width: 520px) {
+	.afc-dashboard-panel .afc-dashboard-payment-result.is-polished {
+		grid-template-columns: 40px minmax(0, 1fr) 40px;
+		gap: 10px;
+	}
+
+	.afc-dashboard-panel .afc-dashboard-payment-result.is-polished .afc-dashboard-payment-result-action {
+		width: 38px;
+		min-width: 38px;
+		height: 38px;
+		padding: 0;
+	}
+
+	.afc-dashboard-panel .afc-dashboard-payment-result.is-polished .afc-dashboard-payment-result-action b {
+		display: none;
+	}
+
+	.afc-polished-signal {
+		padding: 0 6px;
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.afc-polished-signal.is-pulsing,
+	.afc-polished-signal.is-loading i {
+		animation: none;
+	}
+}
