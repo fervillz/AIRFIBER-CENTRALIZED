@@ -61,6 +61,39 @@
 	color: #c92a3a !important;
 }
 
+.afc-immediate-expired-status {
+	display: inline-flex;
+	height: 22px;
+	width: fit-content;
+	align-items: center;
+	justify-content: center;
+	gap: 4px;
+	margin-top: 7px;
+	padding: 0 7px;
+	border: 1px solid #efb7bd;
+	border-radius: 999px;
+	background: #fde7e9;
+	color: #c92a3a;
+	font-size: 9px;
+	font-weight: 900;
+	line-height: 1;
+	letter-spacing: .035em;
+}
+
+.afc-immediate-expired-status svg {
+	width: 12px;
+	height: 12px;
+	fill: none;
+	stroke: currentColor;
+	stroke-width: 1.9;
+	stroke-linecap: round;
+	stroke-linejoin: round;
+}
+
+.afc-immediate-expired-status b {
+	font: inherit;
+}
+
 /* Make Account options an obvious, reliable accordion. */
 details.afc-payment-account-options {
 	overflow: hidden;
@@ -96,6 +129,9 @@ details.afc-payment-account-options:not([open]) > [data-afc-inline-options] {
 
 details.afc-payment-account-options[open] > [data-afc-inline-options] {
 	display: block !important;
+	padding: 12px 14px 14px;
+	border-top: 1px solid #dbe5f0;
+	background: #fff;
 }
 
 details.afc-payment-account-options > summary:hover,
