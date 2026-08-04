@@ -22,7 +22,7 @@ class AFC_Main_Dashboard {
 		return array( 'payment', 'new-ppp', 'recent-expired', 'due-soon', 'recent-payments', 'sent-sms', 'new-installs', 'network' );
 	}
 
-	private static function layout() {
+	public static function layout() {
 		$allowed = self::widget_ids();
 		$saved   = get_user_meta( get_current_user_id(), self::LAYOUT_KEY, true );
 		$saved   = is_array( $saved ) ? array_values( array_intersect( $saved, $allowed ) ) : array();
@@ -266,7 +266,7 @@ class AFC_Main_Dashboard {
 
 			$installed_date = self::parse_date( $item['installed'] );
 			if ( $installed_date ) {
-				$item['daysAgo']     = max( 0, - self::day_difference( $today, $installed_date ) );
+				$item['daysAgo']      = max( 0, - self::day_difference( $today, $installed_date ) );
 				$groups['installs'][] = $item;
 			}
 		}
@@ -293,13 +293,13 @@ class AFC_Main_Dashboard {
 		}
 
 		$items = $wpdb->get_results(
-			"SELECT id, customer_name, ppp_username, phone, message, status, created_at, sent_at, delivered_at FROM {$table} ORDER BY id DESC LIMIT " . self::LIMIT, // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+			"SELECT id, customer_name, ppp_username, phone, message, status, created_at, sent_at, delivered_at FROM {$table} ORDER BY id DESC LIMIT " . self::LIMIT,
 			ARRAY_A
 		);
 		$today = current_time( 'Y-m-d' ) . ' 00:00:00';
 		$count = (int) $wpdb->get_var(
 			$wpdb->prepare(
-				"SELECT COUNT(*) FROM {$table} WHERE status IN ('sent','delivered') AND created_at >= %s", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+				"SELECT COUNT(*) FROM {$table} WHERE status IN ('sent','delivered') AND created_at >= %s",
 				$today
 			)
 		);
