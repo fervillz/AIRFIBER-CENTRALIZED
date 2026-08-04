@@ -2,14 +2,14 @@
 /**
  * Plugin Name: Airfiber - Centralized
  * Description: Customer, billing, payment, installation, notification, and MikroTik management for Airfiber.
- * Version: 2.5.0
+ * Version: 2.6.0
  * Author: Airfiber
  * Text Domain: airfiber-centralized
  */
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'AFC_VERSION', '2.5.0' );
+define( 'AFC_VERSION', '2.6.0' );
 define( 'AFC_FILE', __FILE__ );
 define( 'AFC_PATH', plugin_dir_path( __FILE__ ) );
 define( 'AFC_URL', plugin_dir_url( __FILE__ ) );
@@ -63,6 +63,7 @@ require_once AFC_PATH . 'includes/class-afc-sms-templates.php';
 require_once AFC_PATH . 'includes/class-afc-sms-inquiry-fields.php';
 require_once AFC_PATH . 'includes/class-afc-sms-payer-ratings.php';
 require_once AFC_PATH . 'includes/class-afc-sms-payer-hooks.php';
+require_once AFC_PATH . 'includes/class-afc-sms-precutoff.php';
 require_once AFC_PATH . 'includes/class-afc-pwa.php';
 
 function afc_boot_plugin() {
@@ -103,6 +104,7 @@ function afc_boot_plugin() {
 	AFC_SMS_Inquiry_Fields::init();
 	AFC_SMS_Payer_Ratings::init();
 	AFC_SMS_Payer_Hooks::init();
+	AFC_SMS_PreCutoff::init();
 	AFC_PWA::init();
 	AFC_Prepaid_Service_Policy::init();
 
@@ -128,6 +130,7 @@ function afc_activate_plugin() {
 	AFC_SMS_Center::install();
 	AFC_SMS_Templates::install();
 	AFC_SMS_Payer_Ratings::schedule();
+	AFC_SMS_PreCutoff::schedule();
 	AFC_PPP_Manager::ensure_schema_and_schedule();
 	AFC_Google_Sheets_Sync::ensure_schedule();
 	flush_rewrite_rules();
@@ -136,6 +139,7 @@ register_activation_hook( __FILE__, 'afc_activate_plugin' );
 
 function afc_deactivate_plugin() {
 	AFC_SMS_Payer_Ratings::unschedule();
+	AFC_SMS_PreCutoff::unschedule();
 	AFC_PPP_Manager::unschedule();
 	AFC_Google_Sheets_Sync::deactivate();
 	wp_clear_scheduled_hook( AFC_Google_Sheets_Paid_History::CRON_REFRESH );
