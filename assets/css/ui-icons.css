@@ -1,0 +1,33 @@
+.afc-ui-icon {
+	display: inline-block;
+	width: 16px;
+	height: 16px;
+	flex: 0 0 auto;
+	vertical-align: -3px;
+}
+
+button.afc-has-ui-icon,
+a.btn.afc-has-ui-icon {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: 7px;
+}
+
+button.afc-has-ui-icon > .afc-ui-icon,
+a.btn.afc-has-ui-icon > .afc-ui-icon {
+	width: 15px;
+	height: 15px;
+}
+
+.afc-dashboard-card-footer button.afc-has-ui-icon,
+.afc-workspace-menu-item.afc-has-ui-icon {
+	gap: 5px;
+}
+
+@media (max-width: 480px) {
+	button.afc-has-ui-icon,
+	a.btn.afc-has-ui-icon {
+		gap: 5px;
+	}
+}
