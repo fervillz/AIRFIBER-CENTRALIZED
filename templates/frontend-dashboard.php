@@ -13,20 +13,23 @@ $dashboard_layout = isset( $dashboard_layout ) && is_array( $dashboard_layout ) 
 				<p><?php esc_html_e( 'Your daily payment, subscriber, scheduler, SMS, and MikroTik information in one place.', 'airfiber-centralized' ); ?></p>
 			</div>
 			<div class="afc-dashboard-header-actions">
-				<span class="afc-dashboard-save-state" data-afc-dashboard-save-state><?php esc_html_e( 'Drag cards to arrange', 'airfiber-centralized' ); ?></span>
+				<span class="afc-dashboard-save-state" data-afc-dashboard-save-state><?php esc_html_e( 'Loading the daily tools in stages…', 'airfiber-centralized' ); ?></span>
 				<button type="button" class="afc-dashboard-refresh" data-afc-dashboard-refresh><span aria-hidden="true">↻</span><?php esc_html_e( 'Refresh', 'airfiber-centralized' ); ?></button>
 			</div>
 		</header>
 
 		<div class="afc-dashboard-router-alert is-loading" data-afc-dashboard-router-alert>
 			<span class="afc-dashboard-router-dot"></span>
-			<div><strong><?php esc_html_e( 'Checking MikroTik…', 'airfiber-centralized' ); ?></strong><small><?php esc_html_e( 'Reading router and ISP port health.', 'airfiber-centralized' ); ?></small></div>
+			<div><strong><?php esc_html_e( 'Dashboard ready', 'airfiber-centralized' ); ?></strong><small><?php esc_html_e( 'Live router details load when Advanced is opened.', 'airfiber-centralized' ); ?></small></div>
 		</div>
 
 		<div class="afc-dashboard-grid" data-afc-dashboard-grid>
-			<?php foreach ( $dashboard_layout as $dashboard_widget_id ) : ?>
-				<?php AFC_Main_Dashboard::render_widget( $dashboard_widget_id ); ?>
-			<?php endforeach; ?>
+			<?php AFC_Main_Dashboard::render_widget( 'payment' ); ?>
+			<?php AFC_Main_Dashboard::render_widget( 'new-ppp' ); ?>
+			<div data-afc-ajaxify-fragment="dashboard-rest">
+				<span class="afc-ajaxify-spinner" aria-hidden="true"></span>
+				<?php esc_html_e( 'Loading the remaining dashboard cards…', 'airfiber-centralized' ); ?>
+			</div>
 		</div>
 	</div>
 </section>
