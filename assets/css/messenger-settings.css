@@ -1,0 +1,397 @@
+.afc-messenger-card.is-settings-ready {
+	grid-column: 1 / -1;
+	position: relative;
+}
+
+.afc-messenger-card.is-settings-ready.is-busy::after {
+	position: absolute;
+	inset: 0;
+	z-index: 8;
+	border-radius: inherit;
+	background: rgba(255, 255, 255, .68);
+	content: '';
+	cursor: progress;
+}
+
+.afc-integration-status.is-prepared {
+	background: #eaf2ff;
+	color: #245f9d;
+}
+
+.afc-messenger-message {
+	margin-bottom: 1rem;
+	padding: .8rem .95rem;
+	border-radius: 12px;
+	background: #eef4fb;
+	color: #335b85;
+	font-size: 14px;
+}
+
+.afc-messenger-message.is-success {
+	background: #e9f8ed;
+	color: #246c38;
+}
+
+.afc-messenger-message.is-error {
+	background: #fdecec;
+	color: #a12e2e;
+}
+
+.afc-messenger-section {
+	margin-top: 1rem;
+	padding: 1rem;
+	border: 1px solid #dfe6ee;
+	border-radius: 16px;
+	background: #fbfcfe;
+}
+
+.afc-messenger-section:first-of-type {
+	margin-top: 0;
+}
+
+.afc-messenger-section > header {
+	display: flex;
+	align-items: flex-start;
+	justify-content: space-between;
+	gap: 1rem;
+	margin-bottom: .9rem;
+}
+
+.afc-messenger-section > header small {
+	color: #6f42c1;
+	font-size: 12px;
+	font-weight: 850;
+	letter-spacing: .08em;
+}
+
+.afc-messenger-section > header h3 {
+	margin: .12rem 0 .25rem;
+	font-size: 16px;
+}
+
+.afc-messenger-section > header p {
+	max-width: 760px;
+	margin: 0;
+	color: #667382;
+	font-size: 14px;
+	line-height: 1.55;
+}
+
+.afc-messenger-section code {
+	padding: .12rem .3rem;
+	border-radius: 5px;
+	background: #eef1f6;
+	color: #4d3a79;
+	font-size: 12px;
+}
+
+.afc-messenger-fields {
+	display: grid;
+	gap: .85rem;
+}
+
+.afc-messenger-fields-3 {
+	grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.afc-messenger-fields label,
+.afc-messenger-verify-row label {
+	display: flex;
+	min-width: 0;
+	flex-direction: column;
+	gap: .35rem;
+	margin: 0;
+}
+
+.afc-messenger-fields label > span,
+.afc-messenger-verify-row label > span,
+.afc-messenger-template label {
+	font-size: 13px;
+	font-weight: 750;
+}
+
+.afc-messenger-fields input,
+.afc-messenger-fields select,
+.afc-messenger-section > textarea,
+.afc-messenger-template textarea,
+.afc-messenger-verify-row input {
+	width: 100%;
+	min-height: 44px;
+	padding: .62rem .72rem;
+	border: 1px solid #cfd8e3;
+	border-radius: 11px;
+	background: #fff;
+	color: #172033;
+	font-size: 16px;
+}
+
+.afc-messenger-section > textarea,
+.afc-messenger-template textarea {
+	min-height: 88px;
+	line-height: 1.45;
+	resize: vertical;
+}
+
+.afc-messenger-fields input:focus,
+.afc-messenger-fields select:focus,
+.afc-messenger-section > textarea:focus,
+.afc-messenger-template textarea:focus,
+.afc-messenger-verify-row input:focus {
+	border-color: #6f42c1;
+	outline: 0;
+	box-shadow: 0 0 0 3px rgba(111, 66, 193, .12);
+}
+
+.afc-messenger-fields em {
+	color: #667382;
+	font-size: 12px;
+	font-style: normal;
+}
+
+.afc-messenger-secret-actions,
+.afc-messenger-toggles {
+	display: flex;
+	flex-wrap: wrap;
+	gap: .6rem 1rem;
+	margin-top: .8rem;
+}
+
+.afc-messenger-secret-actions label,
+.afc-messenger-toggles label {
+	display: inline-flex;
+	align-items: flex-start;
+	gap: .45rem;
+	color: #536274;
+	font-size: 13px;
+	line-height: 1.4;
+}
+
+.afc-messenger-secret-actions input,
+.afc-messenger-toggles input {
+	margin-top: .15rem;
+}
+
+.afc-messenger-verify-row {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) auto auto;
+	align-items: end;
+	gap: .65rem;
+	margin-top: .9rem;
+}
+
+.afc-messenger-setup-note {
+	margin-top: .85rem;
+	padding: .75rem .85rem;
+	border-left: 3px solid #6f42c1;
+	border-radius: 8px;
+	background: #f4f0fb;
+	color: #5b4b75;
+	font-size: 13px;
+	line-height: 1.5;
+}
+
+.afc-messenger-switch {
+	display: inline-flex;
+	flex: 0 0 auto;
+	align-items: center;
+	gap: .5rem;
+	cursor: pointer;
+}
+
+.afc-messenger-switch input {
+	position: absolute;
+	opacity: 0;
+	pointer-events: none;
+}
+
+.afc-messenger-switch span {
+	position: relative;
+	width: 42px;
+	height: 24px;
+	border-radius: 999px;
+	background: #cfd7e1;
+	transition: background .18s ease;
+}
+
+.afc-messenger-switch span::after {
+	position: absolute;
+	top: 3px;
+	left: 3px;
+	width: 18px;
+	height: 18px;
+	border-radius: 50%;
+	background: #fff;
+	box-shadow: 0 2px 5px rgba(24, 36, 51, .25);
+	content: '';
+	transition: transform .18s ease;
+}
+
+.afc-messenger-switch input:checked + span {
+	background: #6f42c1;
+}
+
+.afc-messenger-switch input:checked + span::after {
+	transform: translateX(18px);
+}
+
+.afc-messenger-switch input:focus-visible + span {
+	box-shadow: 0 0 0 3px rgba(111, 66, 193, .18);
+}
+
+.afc-messenger-switch b {
+	font-size: 13px;
+	white-space: nowrap;
+}
+
+.afc-messenger-placeholders {
+	display: flex;
+	flex-wrap: wrap;
+	gap: .4rem;
+	margin-bottom: .9rem;
+}
+
+.afc-messenger-placeholders code {
+	padding: .28rem .42rem;
+	border: 1px solid #ddd6ee;
+	background: #f7f4fc;
+	color: #62439a;
+}
+
+.afc-messenger-template-list {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: .85rem;
+}
+
+.afc-messenger-template {
+	display: grid;
+	align-content: start;
+	gap: .55rem;
+	padding: .8rem;
+	border: 1px solid #e0e6ee;
+	border-radius: 13px;
+	background: #fff;
+}
+
+.afc-messenger-template > div {
+	display: flex;
+	flex-direction: column;
+	gap: .15rem;
+}
+
+.afc-messenger-template small {
+	color: #667382;
+	font-size: 12px;
+	line-height: 1.4;
+}
+
+.afc-messenger-template pre {
+	min-height: 54px;
+	margin: 0;
+	padding: .65rem .7rem;
+	overflow-x: auto;
+	border: 1px dashed #d6ddea;
+	border-radius: 9px;
+	background: #f8fafc;
+	color: #4f5d70;
+	font-family: inherit;
+	font-size: 12px;
+	line-height: 1.45;
+	white-space: pre-wrap;
+}
+
+.afc-messenger-alias-count {
+	padding: .32rem .6rem;
+	border-radius: 999px;
+	background: #f0ebfa;
+	color: #65439f;
+	font-size: 12px;
+	font-weight: 750;
+	white-space: nowrap;
+}
+
+.afc-messenger-alias-actions {
+	display: flex;
+	justify-content: flex-end;
+	margin-top: .7rem;
+}
+
+.afc-messenger-savebar {
+	position: sticky;
+	bottom: .75rem;
+	z-index: 4;
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 1rem;
+	margin-top: 1rem;
+	padding: .85rem 1rem;
+	border: 1px solid #d4dce6;
+	border-radius: 14px;
+	background: rgba(255, 255, 255, .96);
+	box-shadow: 0 10px 28px rgba(24, 36, 51, .13);
+	backdrop-filter: blur(10px);
+}
+
+.afc-messenger-savebar > div {
+	display: flex;
+	min-width: 0;
+	flex-direction: column;
+	gap: .15rem;
+}
+
+.afc-messenger-savebar strong {
+	font-size: 14px;
+}
+
+.afc-messenger-savebar span {
+	color: #667382;
+	font-size: 12px;
+}
+
+@media (max-width: 900px) {
+	.afc-messenger-fields-3,
+	.afc-messenger-template-list {
+		grid-template-columns: 1fr 1fr;
+	}
+}
+
+@media (max-width: 620px) {
+	.afc-messenger-section {
+		padding: .85rem;
+	}
+
+	.afc-messenger-section > header,
+	.afc-messenger-savebar {
+		align-items: stretch;
+		flex-direction: column;
+	}
+
+	.afc-messenger-fields-3,
+	.afc-messenger-template-list,
+	.afc-messenger-verify-row {
+		grid-template-columns: 1fr;
+	}
+
+	.afc-messenger-section > header .btn,
+	.afc-messenger-verify-row .btn,
+	.afc-messenger-alias-actions .btn,
+	.afc-messenger-savebar .btn {
+		width: 100%;
+	}
+
+	.afc-messenger-switch {
+		align-self: flex-start;
+	}
+
+	.afc-messenger-savebar {
+		position: static;
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.afc-messenger-switch span,
+	.afc-messenger-switch span::after {
+		transition: none;
+	}
+}
