@@ -1,0 +1,391 @@
+/* Unified SMS audience filters and clickable summary cards. */
+
+.afc-sms-page-header .col-auto {
+	display: flex;
+	align-items: center;
+	flex-wrap: wrap;
+	gap: .45rem;
+}
+
+.afc-sms-overview-filter {
+	appearance: none;
+	border: 0;
+	border-right: 1px solid var(--tblr-border-color, #e6e7e9);
+	background: transparent;
+	color: inherit;
+	font: inherit;
+	text-align: left;
+	cursor: pointer;
+	transition: background .16s ease, box-shadow .16s ease;
+}
+
+.afc-sms-overview-filter:hover,
+.afc-sms-overview-filter.is-active,
+.afc-sms-overview-filter[aria-pressed="true"] {
+	background: #eef6ff;
+	box-shadow: inset 0 -3px 0 #206bc4;
+}
+
+.afc-sms-overview-filter:focus-visible,
+.afc-sms-filter-button:focus-visible,
+.afc-sms-audience-row:focus-visible,
+.afc-workspace-stats > span[data-afc-sms-filter]:focus-visible {
+	outline: 2px solid #206bc4;
+	outline-offset: -2px;
+}
+
+.afc-sms-filter-bar {
+	display: flex;
+	align-items: center;
+	gap: .38rem;
+	overflow-x: auto;
+	padding: .55rem .65rem;
+	border-bottom: 1px solid var(--tblr-border-color, #e6e7e9);
+	background: #fff;
+	scrollbar-width: thin;
+}
+
+.afc-sms-filter-button {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: .35rem;
+	min-height: 30px;
+	padding: .35rem .64rem;
+	border: 1px solid #dce5ef;
+	border-radius: 999px;
+	background: #f7f9fc;
+	color: #5d6a7b;
+	font-size: .73rem;
+	font-weight: 800;
+	line-height: 1;
+	white-space: nowrap;
+	cursor: pointer;
+}
+
+.afc-sms-filter-button strong {
+	display: inline-grid;
+	min-width: 19px;
+	height: 19px;
+	place-items: center;
+	padding: 0 .3rem;
+	border-radius: 999px;
+	background: #e8edf4;
+	color: #475569;
+	font-size: .66rem;
+}
+
+.afc-sms-filter-button:hover,
+.afc-sms-filter-button.is-active,
+.afc-sms-filter-button[aria-pressed="true"] {
+	border-color: #a9cbed;
+	background: #eaf4ff;
+	color: #1769aa;
+}
+
+.afc-sms-filter-button.is-active strong,
+.afc-sms-filter-button[aria-pressed="true"] strong {
+	background: #206bc4;
+	color: #fff;
+}
+
+.afc-sms-audience-row {
+	display: grid;
+	grid-template-columns: 40px minmax(0, 1fr) auto 18px;
+	gap: .65rem;
+	align-items: center;
+	width: 100%;
+	min-height: 74px;
+	padding: .65rem .7rem;
+	border: 0;
+	border-bottom: 1px solid var(--tblr-border-color, #edf0f3);
+	background: #fff;
+	color: inherit;
+	font: inherit;
+	text-align: left;
+	cursor: pointer;
+	transition: background .16s ease, box-shadow .16s ease;
+}
+
+.afc-sms-audience-row:hover {
+	background: #f7faff;
+}
+
+.afc-sms-audience-row.is-active {
+	background: #eef6ff;
+	box-shadow: inset 4px 0 0 #206bc4;
+}
+
+.afc-sms-audience-identity {
+	display: flex;
+	min-width: 0;
+	flex-direction: column;
+	gap: .08rem;
+}
+
+.afc-sms-audience-identity strong,
+.afc-sms-audience-identity small,
+.afc-sms-audience-identity em {
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.afc-sms-audience-identity strong {
+	color: #1f2937;
+	font-size: .88rem;
+	font-style: normal;
+}
+
+.afc-sms-audience-identity small {
+	color: #738095;
+	font-size: .69rem;
+}
+
+.afc-sms-audience-identity em {
+	color: #516174;
+	font-size: .72rem;
+	font-style: normal;
+}
+
+.afc-sms-audience-chips,
+.afc-sms-audience-profile-chips {
+	display: flex;
+	align-items: center;
+	justify-content: flex-end;
+	flex-wrap: wrap;
+	gap: .28rem;
+}
+
+.afc-sms-audience-chips span,
+.afc-sms-audience-profile-chips span {
+	display: inline-flex;
+	align-items: center;
+	min-height: 22px;
+	padding: .22rem .48rem;
+	border-radius: 999px;
+	font-size: .63rem;
+	font-weight: 900;
+	line-height: 1;
+	white-space: nowrap;
+}
+
+.afc-sms-audience-chips .is-queued,
+.afc-sms-audience-profile-chips .is-queued {
+	background: #fff0c7;
+	color: #8a5a00;
+}
+
+.afc-sms-audience-chips .is-delivered,
+.afc-sms-audience-profile-chips .is-delivered,
+.afc-sms-audience-chips .is-sent,
+.afc-sms-audience-profile-chips .is-sent {
+	background: #e5f7eb;
+	color: #20733b;
+}
+
+.afc-sms-audience-chips .is-due,
+.afc-sms-audience-profile-chips .is-due {
+	background: #fff0d7;
+	color: #a45c00;
+}
+
+.afc-sms-audience-chips .is-prepared,
+.afc-sms-audience-profile-chips .is-prepared {
+	background: #e9f2ff;
+	color: #2467a8;
+}
+
+.afc-sms-audience-chips .is-blocked,
+.afc-sms-audience-profile-chips .is-blocked {
+	background: #fde7e9;
+	color: #bd2636;
+}
+
+.afc-sms-audience-chips .is-paused,
+.afc-sms-audience-profile-chips .is-paused {
+	background: #f2ecff;
+	color: #6844a8;
+}
+
+.afc-sms-audience-arrow {
+	color: #94a3b8;
+	font-size: 1.25rem;
+}
+
+.afc-sms-audience-info {
+	display: grid;
+	grid-template-columns: 44px minmax(0, 1fr);
+	gap: .75rem;
+	margin: .75rem;
+	padding: .95rem;
+	border: 1px solid #d9e4ef;
+	border-radius: 14px;
+	background: linear-gradient(145deg, #f8fbff, #eef6ff);
+}
+
+.afc-sms-audience-info-icon {
+	display: grid;
+	width: 44px;
+	height: 44px;
+	place-items: center;
+	border-radius: 14px;
+	background: #e3edf8;
+	color: #4d647c;
+	font-size: 1.15rem;
+	font-weight: 900;
+}
+
+.afc-sms-audience-info-icon.is-online {
+	background: #dff6e8;
+	color: #1b7b42;
+}
+
+.afc-sms-audience-info small,
+.afc-sms-audience-profile small {
+	color: #206bc4;
+	font-size: .68rem;
+	font-weight: 900;
+	letter-spacing: .06em;
+}
+
+.afc-sms-audience-info h4,
+.afc-sms-audience-profile h3 {
+	margin: .12rem 0 .2rem;
+	text-transform: capitalize;
+}
+
+.afc-sms-audience-info p {
+	margin: 0;
+	color: #5f6d7c;
+	font-size: .76rem;
+}
+
+.afc-sms-audience-info dl {
+	grid-column: 1 / -1;
+	display: grid;
+	gap: .45rem;
+	margin: .35rem 0 0;
+}
+
+.afc-sms-audience-info dl div,
+.afc-sms-audience-profile dl div {
+	display: grid;
+	grid-template-columns: 90px minmax(0, 1fr);
+	gap: .6rem;
+}
+
+.afc-sms-audience-info dt,
+.afc-sms-audience-profile dt {
+	color: #7a8797;
+	font-size: .7rem;
+}
+
+.afc-sms-audience-info dd,
+.afc-sms-audience-profile dd {
+	margin: 0;
+	color: #253044;
+	font-size: .75rem;
+	font-weight: 700;
+	word-break: break-word;
+}
+
+.afc-sms-audience-profile {
+	width: min(620px, 100%);
+	margin: auto;
+	padding: 1.1rem;
+	border: 1px solid #dce5ee;
+	border-radius: 18px;
+	background: #fff;
+	box-shadow: 0 14px 40px rgba(35, 53, 72, .09);
+}
+
+.afc-sms-audience-profile > header {
+	display: flex;
+	align-items: flex-start;
+	justify-content: space-between;
+	gap: 1rem;
+}
+
+.afc-sms-audience-profile header p {
+	margin: 0;
+	color: #748195;
+	font-size: .75rem;
+}
+
+.afc-sms-audience-rating {
+	display: inline-flex;
+	padding: .35rem .55rem;
+	border-radius: 999px;
+	background: #fff4ce;
+	color: #8f6100;
+	font-size: .75rem;
+	font-weight: 900;
+}
+
+.afc-sms-audience-profile-chips {
+	justify-content: flex-start;
+	margin: .9rem 0;
+}
+
+.afc-sms-audience-profile dl {
+	display: grid;
+	gap: .58rem;
+	margin: 0;
+	padding: .85rem;
+	border-radius: 12px;
+	background: #f8fafc;
+}
+
+.afc-sms-audience-profile footer {
+	display: flex;
+	justify-content: flex-end;
+	margin-top: .9rem;
+}
+
+.afc-workspace-stats > span[data-afc-sms-filter] {
+	cursor: pointer;
+	transition: background .16s ease, box-shadow .16s ease;
+}
+
+.afc-workspace-stats > span[data-afc-sms-filter]:hover,
+.afc-workspace-stats > span[data-afc-sms-filter][aria-pressed="true"] {
+	background: #eaf4ff;
+	box-shadow: inset 0 -2px 0 #206bc4;
+}
+
+@media (max-width: 900px) {
+	.afc-sms-overview-row {
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+	}
+
+	.afc-sms-overview-filter,
+	.afc-sms-gateway-details {
+		border-bottom: 1px solid var(--tblr-border-color, #e6e7e9);
+	}
+}
+
+@media (max-width: 640px) {
+	.afc-sms-filter-bar {
+		padding-right: .5rem;
+		padding-left: .5rem;
+	}
+
+	.afc-sms-audience-row {
+		grid-template-columns: 38px minmax(0, 1fr) 16px;
+	}
+
+	.afc-sms-audience-chips {
+		grid-column: 2 / 3;
+		justify-content: flex-start;
+	}
+
+	.afc-sms-audience-arrow {
+		grid-column: 3;
+		grid-row: 1 / span 2;
+	}
+
+	.afc-sms-page-header .col-auto .btn {
+		flex: 1 1 auto;
+	}
+}
