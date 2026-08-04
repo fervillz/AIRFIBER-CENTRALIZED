@@ -165,6 +165,8 @@
 			button.setAttribute( 'aria-pressed', filter === activeFilter ? 'true' : 'false' );
 			const counter = button.querySelector( '[data-afc-sms-filter-count]' );
 			if ( counter && Object.prototype.hasOwnProperty.call( counts, filter ) ) counter.textContent = String( counts[ filter ] || 0 );
+			const overviewCount = button.querySelector( '[data-afc-sms-count]' );
+			if ( overviewCount && Object.prototype.hasOwnProperty.call( counts, filter ) ) overviewCount.textContent = String( counts[ filter ] || 0 );
 		} );
 	}
 
@@ -179,6 +181,12 @@
 			stat.setAttribute( 'role', 'button' );
 			stat.setAttribute( 'tabindex', '0' );
 			stat.setAttribute( 'aria-pressed', map[ label ] === activeFilter ? 'true' : 'false' );
+			const value = stat.querySelector( 'strong' );
+			if ( value ) {
+				value.textContent = map[ label ] === 'gateway'
+					? text( gateway.state || 'not configured' ).replace( /-/g, ' ' )
+					: String( counts[ map[ label ] ] || 0 );
+			}
 		} );
 	}
 
