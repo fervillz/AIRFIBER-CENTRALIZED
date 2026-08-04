@@ -140,7 +140,7 @@
 		const node = document.querySelector( '[data-afc-panel="' + panel + '"]' );
 		if ( ! node ) return;
 		node.classList.toggle( 'is-ajaxifying', Boolean( busy ) );
-		node.classList.toggle( 'is-ajaxify-failed', Boolean( failed ) );
+		if ( typeof failed === 'boolean' ) node.classList.toggle( 'is-ajaxify-failed', failed );
 		const placeholder = node.querySelector( '.afc-ajaxify-placeholder small' );
 		if ( placeholder ) {
 			placeholder.textContent = failed ? ( cfg.labels && cfg.labels.failed || 'Tap to try again.' ) : ( cfg.labels && cfg.labels.loading || 'Loading this tool…' );
@@ -152,7 +152,6 @@
 		const replacement = parseNode( html );
 		if ( ! current || ! replacement ) throw new Error( 'Airfiber panel markup was not found.' );
 		current.replaceWith( replacement );
-		loadedPanels.add( panel );
 		document.dispatchEvent( new CustomEvent( 'afc:ajaxify-panel-loaded', { detail: { panel: panel, node: replacement } } ) );
 		return replacement;
 	}
@@ -179,7 +178,6 @@
 	}
 
 	function loadServerPanel( panel ) {
-		if ( loadedPanels.has( panel ) ) return Promise.resolve( document.querySelector( '[data-afc-panel="' + panel + '"]' ) );
 		return requestFragment( panel ).then( function ( html ) { return replacePanel( panel, html ); } );
 	}
 
@@ -229,12 +227,12 @@
 		} ).then( function ( node ) {
 			loadedPanels.add( panel );
 			if ( panel === 'dashboard' ) scheduleDashboardRest();
+			setPanelBusy( panel, false, false );
 			return node;
 		} ).catch( function ( error ) {
 			setPanelBusy( panel, false, true );
 			throw error;
 		} ).finally( function () {
-			setPanelBusy( panel, false, false );
 			loadingPanels.delete( panel );
 		} );
 
@@ -248,6 +246,7 @@
 
 	function replayClick( button ) {
 		if ( ! button || ! button.isConnected ) return;
+		button.disabled = false;
 		button.setAttribute( 'data-afc-ajaxify-pass', '1' );
 		button.click();
 		button.removeAttribute( 'data-afc-ajaxify-pass' );
@@ -270,7 +269,9 @@
 				event.preventDefault();
 				event.stopImmediatePropagation();
 				modeButton.disabled = true;
-				showAdvancedAfterReady( modeButton ).finally( function () { modeButton.disabled = false; } );
+				showAdvancedAfterReady( modeButton ).catch( function () {
+					modeButton.disabled = false;
+				} );
 				return;
 			}
 
@@ -289,7 +290,7 @@
 					fresh = document.querySelector( '[data-afc-app-panel="' + panel + '"], [data-afc-ws-panel="' + panel + '"]' );
 				}
 				replayClick( fresh );
-			} ).finally( function () {
+			} ).catch( function () {
 				if ( panelButton.isConnected ) panelButton.disabled = false;
 			} );
 		}, true );
