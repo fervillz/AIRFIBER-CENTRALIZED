@@ -1,0 +1,85 @@
+/* Lightweight placeholders shown before an Advanced tool is requested. */
+.afc-ajaxify-panel {
+	min-height: 180px;
+}
+
+.afc-ajaxify-placeholder {
+	display: grid;
+	min-height: 180px;
+	place-items: center;
+	align-content: center;
+	gap: 8px;
+	padding: 28px;
+	border: 1px solid #dbe5ef;
+	border-radius: 18px;
+	background: #fff;
+	color: #64748b;
+	text-align: center;
+}
+
+.afc-ajaxify-placeholder strong {
+	color: #243249;
+	font-size: 15px;
+}
+
+.afc-ajaxify-placeholder small {
+	font-size: 12px;
+}
+
+.afc-ajaxify-spinner {
+	width: 28px;
+	height: 28px;
+	border: 3px solid #dce8f5;
+	border-top-color: #206bc4;
+	border-radius: 50%;
+	animation: afcAjaxifySpin .75s linear infinite;
+}
+
+.afc-ajaxify-panel.is-ajaxify-failed .afc-ajaxify-placeholder {
+	border-color: #efb7bd;
+	background: #fff4f5;
+	color: #b42335;
+}
+
+.afc-ajaxify-panel.is-ajaxify-failed .afc-ajaxify-spinner {
+	border-color: #f2c7cc;
+	border-top-color: #c92a3a;
+	animation: none;
+}
+
+[data-afc-ajaxify-fragment="dashboard-rest"] {
+	grid-column: 1 / -1;
+	display: grid;
+	min-height: 88px;
+	place-items: center;
+	border: 1px dashed #cfdae7;
+	border-radius: 15px;
+	background: rgba(255, 255, 255, .72);
+	color: #7b8797;
+	font-size: 12px;
+}
+
+[data-afc-frontend-mode="advanced"]:disabled,
+[data-afc-app-panel]:disabled,
+[data-afc-ws-panel]:disabled {
+	cursor: progress;
+	opacity: .68;
+}
+
+@keyframes afcAjaxifySpin {
+	to { transform: rotate(360deg); }
+}
+
+@media (max-width: 782px) {
+	.afc-ajaxify-placeholder {
+		min-height: 150px;
+		padding: 22px 16px;
+		border-radius: 15px;
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.afc-ajaxify-spinner {
+		animation: none;
+	}
+}
