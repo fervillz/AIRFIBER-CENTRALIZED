@@ -2,14 +2,14 @@
 /**
  * Plugin Name: Airfiber - Centralized
  * Description: Customer, billing, payment, installation, notification, and MikroTik management for Airfiber.
- * Version: 2.6.2
+ * Version: 2.6.3
  * Author: Airfiber
  * Text Domain: airfiber-centralized
  */
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'AFC_VERSION', '2.6.2' );
+define( 'AFC_VERSION', '2.6.3' );
 define( 'AFC_FILE', __FILE__ );
 define( 'AFC_PATH', plugin_dir_path( __FILE__ ) );
 define( 'AFC_URL', plugin_dir_url( __FILE__ ) );
@@ -66,6 +66,7 @@ require_once AFC_PATH . 'includes/class-afc-sms-payer-hooks.php';
 require_once AFC_PATH . 'includes/class-afc-sms-precutoff.php';
 require_once AFC_PATH . 'includes/class-afc-customer-search-polish.php';
 require_once AFC_PATH . 'includes/class-afc-customer-search-icons-hotfix.php';
+require_once AFC_PATH . 'includes/class-afc-ui-regression-fixes.php';
 require_once AFC_PATH . 'includes/class-afc-pwa.php';
 
 function afc_boot_plugin() {
@@ -109,6 +110,7 @@ function afc_boot_plugin() {
 	AFC_SMS_PreCutoff::init();
 	AFC_Customer_Search_Polish::init();
 	AFC_Customer_Search_Icons_Hotfix::init();
+	AFC_UI_Regression_Fixes::init();
 	AFC_PWA::init();
 	AFC_Prepaid_Service_Policy::init();
 
