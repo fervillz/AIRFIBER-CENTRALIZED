@@ -1,12 +1,15 @@
 /* Shared payment UI regression fixes for Basic and Advanced modes. */
 
-/* Keep the Basic Add PPP action to one intentional plus symbol. */
+/* Keep both Basic and Advanced Add PPP actions to one intentional plus symbol. */
 #afc-basic-add-ppp > svg.afc-ui-icon,
-#afc-basic-add-ppp > .afc-ui-icon {
+#afc-basic-add-ppp > .afc-ui-icon,
+[data-afc-dashboard-add-ppp] > svg.afc-ui-icon,
+[data-afc-dashboard-add-ppp] > .afc-ui-icon:not(span[aria-hidden="true"]) {
 	display: none !important;
 }
 
-#afc-basic-add-ppp {
+#afc-basic-add-ppp,
+[data-afc-dashboard-add-ppp] {
 	align-items: center;
 	justify-content: center;
 }
@@ -21,27 +24,41 @@
 	line-height: 1;
 }
 
+[data-afc-dashboard-add-ppp] > span[aria-hidden="true"] {
+	display: inline-grid;
+	width: 18px;
+	height: 18px;
+	place-items: center;
+	font-size: 18px;
+	font-weight: 700;
+	line-height: 1;
+}
+
 /* Any visible Expired status gets the same unmistakable soft-red treatment. */
 .afc-expired-copy,
-[data-status="expired"].afc-expired-copy {
+[data-status="expired"].afc-expired-copy,
+[data-afc-expired="1"] {
 	display: inline-flex !important;
 	width: fit-content;
 	max-width: 100%;
 	align-items: center;
 	justify-content: center;
 	padding: 3px 8px;
-	border: 1px solid #f1bcbc;
+	border: 1px solid #efb7bd !important;
 	border-radius: 999px;
-	background: #fde8e8 !important;
-	color: #bf2f3a !important;
+	background: #fde7e9 !important;
+	color: #c92a3a !important;
 	font-weight: 800 !important;
 	line-height: 1.2;
 }
 
-.afc-dashboard-payment-result-meta .afc-expired-copy,
+.afc-dashboard-panel .afc-dashboard-payment-result-meta small.afc-expired-copy,
+.afc-dashboard-panel .afc-dashboard-payment-result-meta small[data-afc-expired="1"],
 .afc-basic-customer-side .afc-expired-copy {
 	margin-top: 4px;
 	margin-left: auto;
+	background: #fde7e9 !important;
+	color: #c92a3a !important;
 }
 
 /* Make Account options an obvious, reliable accordion. */
