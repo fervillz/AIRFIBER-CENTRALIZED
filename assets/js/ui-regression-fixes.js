@@ -37,7 +37,7 @@
 
 	function hasLoadedExpiredChip( result ) {
 		return Boolean( result.querySelector(
-			'.afc-polished-signal.is-expired, .afc-signal-chip.is-due-expired, .afc-v262-chip.is-expired, [data-afc-live-expired="1"]'
+			'.afc-polished-signal.is-expired, .afc-signal-chip.is-due-expired, .afc-v262-chip.is-expired'
 		) );
 	}
 
