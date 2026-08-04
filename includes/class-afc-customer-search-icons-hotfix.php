@@ -3,8 +3,8 @@
 defined( 'ABSPATH' ) || exit;
 
 /**
- * Ensures payment-search status icons remain visible and can load live PPP data
- * even when the hidden Operations table has not finished rendering.
+ * Ensures payment-search status icons load immediately and remain visible even
+ * when the hidden Operations table has not rendered yet.
  */
 class AFC_Customer_Search_Icons_Hotfix {
 
@@ -31,9 +31,19 @@ class AFC_Customer_Search_Icons_Hotfix {
 		wp_enqueue_script(
 			'afc-customer-search-icons-hotfix',
 			AFC_URL . 'assets/js/customer-search-icons-hotfix.js',
-			array( 'jquery', 'afc-customer-search-polish', 'afc-ppp-users' ),
+			array( 'jquery' ),
 			AFC_VERSION,
 			true
+		);
+
+		wp_localize_script(
+			'afc-customer-search-icons-hotfix',
+			'afcCustomerSearchIcons',
+			array(
+				'ajaxUrl'  => admin_url( 'admin-ajax.php' ),
+				'nonce'    => wp_create_nonce( AFC_Customer_Search_Polish::NONCE ),
+				'pppNonce' => wp_create_nonce( 'afc_ppp_users' ),
+			)
 		);
 	}
 }
