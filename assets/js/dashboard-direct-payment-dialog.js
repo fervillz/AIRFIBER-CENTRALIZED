@@ -89,6 +89,32 @@
 		alert.hidden = ! message;
 	}
 
+	function refreshAccountOptions( dialog, user ) {
+		const body = dialog.querySelector( '.afc-dashboard-direct-payment-body' );
+		if ( ! body ) return;
+
+		const section = body.querySelector( '.afc-payment-account-options' );
+		const inline = section && section.querySelector( '[data-afc-inline-options]' );
+		if ( section && inline && ! inline.children.length && ! inline.textContent.trim() ) {
+			section.remove();
+		}
+
+		/* Customer actions listens for body mutations. This marker guarantees a
+		 * refresh after the account text is populated, instead of leaving the
+		 * empty options shell created while the dialog was still blank. */
+		const marker = document.createElement( 'span' );
+		marker.hidden = true;
+		marker.setAttribute( 'data-afc-payment-user-ready', user.name || '' );
+		body.appendChild( marker );
+		window.requestAnimationFrame( function () {
+			if ( marker.parentNode ) marker.parentNode.removeChild( marker );
+		} );
+
+		document.dispatchEvent( new CustomEvent( 'afc:payment-dialog-user', {
+			detail: { dialog: dialog, user: user }
+		} ) );
+	}
+
 	function openForUser( user, trigger ) {
 		if ( ! user ) return;
 		const dialog = createDialog();
@@ -100,6 +126,7 @@
 		dialog.querySelector( '[data-afc-dashboard-direct-payment-account]' ).textContent = user.name || '';
 		dialog.querySelector( '#afc-dashboard-direct-payment-amount' ).value = user.payment_amount || '';
 		dialog.querySelector( '#afc-dashboard-direct-payment-method' ).value = text( user.payment_method || 'cash' ).toLowerCase();
+		refreshAccountOptions( dialog, user );
 
 		if ( dialog.open ) dialog.close();
 		try {
