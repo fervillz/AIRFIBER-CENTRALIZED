@@ -79,6 +79,7 @@ class AFC_SMS_Audience_Filters {
 			if ( 0 === strcasecmp( (string) $key, (string) $canonical ) ) {
 				return trim( (string) $value );
 			}
+		}
 		return '';
 	}
 
@@ -105,7 +106,7 @@ class AFC_SMS_Audience_Filters {
 		foreach ( $ids as $customer_id ) {
 			$account = trim( (string) get_post_meta( $customer_id, '_afc_ppp_username', true ) );
 			if ( '' === $account ) continue;
-			$name = trim( (string) get_post_meta( $customer_id, '_afc_customer_name', true ) );
+			$name    = trim( (string) get_post_meta( $customer_id, '_afc_customer_name', true ) );
 			$profile = class_exists( 'AFC_SMS_Payer_Ratings' ) ? AFC_SMS_Payer_Ratings::profile( $customer_id ) : array( 'rating' => 3 );
 			$map[ strtolower( $account ) ] = array(
 				'customer_id'      => (int) $customer_id,
