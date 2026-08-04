@@ -22,19 +22,10 @@ class AFC_Frontend_Page {
 		add_filter( 'show_admin_bar', array( __CLASS__, 'hide_admin_bar' ) );
 	}
 
-	/**
-	 * Creates the page during plugin activation.
-	 *
-	 * @return int Created or existing page ID.
-	 */
 	public static function activate() {
 		return self::ensure_page();
 	}
 
-	/**
-	 * Recreates the page if a plugin update is installed without reactivation,
-	 * or if the managed page was removed.
-	 */
 	public static function maybe_repair_page() {
 		if ( ! current_user_can( 'manage_options' ) ) {
 			return;
@@ -46,11 +37,6 @@ class AFC_Frontend_Page {
 		}
 	}
 
-	/**
-	 * Finds or creates the Airfiber page without overwriting unrelated content.
-	 *
-	 * @return int Page ID, or 0 on failure.
-	 */
 	public static function ensure_page() {
 		$page_id = absint( get_option( self::OPTION_PAGE_ID ) );
 		if ( self::is_valid_page( $page_id ) ) {
@@ -160,11 +146,6 @@ class AFC_Frontend_Page {
 		return $page_id && is_page( $page_id );
 	}
 
-	/**
-	 * The frontend app uses the same privileged operations as the existing
-	 * dashboard. Keep the capability check server-side rather than relying on
-	 * hidden buttons or the Basic / Advanced presentation mode.
-	 */
 	public static function protect_app() {
 		if ( ! self::is_app_request() ) {
 			return;
@@ -188,9 +169,8 @@ class AFC_Frontend_Page {
 	}
 
 	/**
-	 * Loads the complete existing operations stack on the standalone frontend
-	 * page. The original modules keep their handles, AJAX nonces and dependency
-	 * order, so the frontend and wp-admin fallback use one implementation.
+	 * Basic assets remain in the initial response. Advanced assets are registered
+	 * normally, then AFC_Ajaxify groups and defers them at the end of enqueue.
 	 */
 	public static function enqueue_assets() {
 		if ( ! self::is_app_request() || ! current_user_can( 'manage_options' ) ) {
@@ -224,17 +204,18 @@ class AFC_Frontend_Page {
 		wp_enqueue_script(
 			'afc-frontend-app',
 			AFC_URL . 'assets/js/frontend-app.js',
-			array( 'jquery', 'afc-admin-mode', 'afc-quick-payments', 'afc-mikrotik-settings' ),
+			array( 'jquery', 'afc-admin-mode', 'afc-quick-payments' ),
 			AFC_VERSION,
 			true
 		);
 
 		$current_user = wp_get_current_user();
+		$initial_mode = class_exists( 'AFC_Ajaxify' ) ? AFC_Ajaxify::initial_mode() : 'basic';
 		wp_localize_script(
 			'afc-frontend-app',
 			'afcFrontendApp',
 			array(
-				'mode'        => class_exists( 'AFC_Admin_Mode' ) ? AFC_Admin_Mode::current_mode() : 'basic',
+				'mode'        => $initial_mode,
 				'operations'  => __( 'Operations', 'airfiber-centralized' ),
 				'mikrotik'    => __( 'MikroTik', 'airfiber-centralized' ),
 				'userName'    => $current_user->display_name,
@@ -264,7 +245,7 @@ class AFC_Frontend_Page {
 		include AFC_PATH . 'templates/admin/ppp-users.php';
 	}
 
-	private static function render_mikrotik_panel() {
+	public static function render_mikrotik_panel() {
 		if ( ! function_exists( 'settings_fields' ) ) {
 			require_once ABSPATH . 'wp-admin/includes/plugin.php';
 			require_once ABSPATH . 'wp-admin/includes/template.php';
@@ -279,8 +260,6 @@ class AFC_Frontend_Page {
 		include AFC_PATH . 'templates/admin/mikrotik-settings.php';
 		$settings_markup = ob_get_clean();
 
-		// The existing admin template uses a relative options.php action. Make it
-		// absolute when it is rendered from /airfiber/.
 		$settings_markup = str_replace(
 			'action="options.php"',
 			'action="' . esc_url( admin_url( 'options.php' ) ) . '"',
@@ -295,7 +274,7 @@ class AFC_Frontend_Page {
 			return '';
 		}
 
-		$mode         = class_exists( 'AFC_Admin_Mode' ) ? AFC_Admin_Mode::current_mode() : 'basic';
+		$mode         = class_exists( 'AFC_Ajaxify' ) ? AFC_Ajaxify::initial_mode() : 'basic';
 		$current_user = wp_get_current_user();
 
 		ob_start();
@@ -321,8 +300,8 @@ class AFC_Frontend_Page {
 
 				<div class="afc-frontend-header-actions">
 					<div class="afc-frontend-mode-toggle" role="group" aria-label="<?php esc_attr_e( 'Choose Basic or Advanced mode', 'airfiber-centralized' ); ?>">
-						<button type="button" data-afc-frontend-mode="basic" aria-pressed="<?php echo 'basic' === $mode ? 'true' : 'false'; ?>"><?php esc_html_e( 'Basic', 'airfiber-centralized' ); ?></button>
-						<button type="button" data-afc-frontend-mode="advanced" aria-pressed="<?php echo 'advanced' === $mode ? 'true' : 'false'; ?>"><?php esc_html_e( 'Advanced', 'airfiber-centralized' ); ?></button>
+						<button type="button" data-afc-frontend-mode="basic" aria-pressed="true"><?php esc_html_e( 'Basic', 'airfiber-centralized' ); ?></button>
+						<button type="button" data-afc-frontend-mode="advanced" aria-pressed="false"><?php esc_html_e( 'Advanced', 'airfiber-centralized' ); ?></button>
 					</div>
 					<div class="afc-frontend-user">
 						<span><?php echo esc_html( $current_user->display_name ); ?></span>
@@ -336,11 +315,14 @@ class AFC_Frontend_Page {
 					<?php self::render_operations_panel(); ?>
 				</section>
 
-				<section class="afc-frontend-panel afc-advanced-only" data-afc-panel="mikrotik" aria-hidden="true" hidden>
-					<?php self::render_mikrotik_panel(); ?>
-				</section>
-
-				<?php do_action( 'afc_frontend_app_content', $mode ); ?>
+				<?php if ( class_exists( 'AFC_Ajaxify' ) ) : ?>
+					<?php AFC_Ajaxify::render_panel_placeholders(); ?>
+				<?php else : ?>
+					<section class="afc-frontend-panel afc-advanced-only" data-afc-panel="mikrotik" aria-hidden="true" hidden>
+						<?php self::render_mikrotik_panel(); ?>
+					</section>
+					<?php do_action( 'afc_frontend_app_content', $mode ); ?>
+				<?php endif; ?>
 			</main>
 		</div>
 		<?php
