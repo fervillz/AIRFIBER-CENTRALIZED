@@ -3,7 +3,7 @@
 defined( 'ABSPATH' ) || exit;
 
 show_admin_bar( false );
-$afc_frontend_mode = class_exists( 'AFC_Admin_Mode' ) ? AFC_Admin_Mode::current_mode() : 'basic';
+$afc_frontend_mode = class_exists( 'AFC_Ajaxify' ) ? AFC_Ajaxify::initial_mode() : 'basic';
 
 ?><!doctype html>
 <html <?php language_attributes(); ?>>
