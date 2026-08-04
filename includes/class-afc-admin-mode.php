@@ -64,13 +64,17 @@ class AFC_Admin_Mode {
 			true
 		);
 
+		$initial_mode = class_exists( 'AFC_Ajaxify' ) && class_exists( 'AFC_Frontend_Page' ) && AFC_Frontend_Page::is_app_request()
+			? AFC_Ajaxify::initial_mode()
+			: self::current_mode();
+
 		wp_localize_script(
 			'afc-admin-mode',
 			'afcAdminMode',
 			array(
 				'ajaxUrl' => admin_url( 'admin-ajax.php' ),
 				'nonce'   => wp_create_nonce( 'afc_admin_mode' ),
-				'mode'    => self::current_mode(),
+				'mode'    => $initial_mode,
 				'labels'  => array(
 					'basicDescription'    => __( 'Daily tools for collections, payments and service actions.', 'airfiber-centralized' ),
 					'advancedDescription' => __( 'Full MikroTik, importing, repair and developer controls.', 'airfiber-centralized' ),
