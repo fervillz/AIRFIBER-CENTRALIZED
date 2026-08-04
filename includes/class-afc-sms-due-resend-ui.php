@@ -28,7 +28,7 @@ class AFC_SMS_Due_Resend_UI {
 			'afcCustomerDueResend',
 			array(
 				'ajaxUrl' => admin_url( 'admin-ajax.php' ),
-				'nonce'   => wp_create_nonce( AFC_SMS_Due_Runtime::NONCE ),
+				'nonce'   => wp_create_nonce( AFC_SMS_PreCutoff::NONCE ),
 			)
 		);
 	}
