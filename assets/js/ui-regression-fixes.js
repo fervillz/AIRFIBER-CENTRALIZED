@@ -36,8 +36,8 @@
 	}
 
 	function hasLoadedExpiredChip( result ) {
-		return Boolean( result.querySelector(
-			'.afc-polished-signal.is-expired, .afc-signal-chip.is-due-expired, .afc-v262-chip.is-expired'
+		return result.getAttribute( 'data-afc-signals-ready' ) === '1' || Boolean( result.querySelector(
+			'.afc-polished-signal.is-expired, .afc-signal-chip.is-due-expired, .afc-v262-chip.is-expired, .afc-v262-chip.is-danger'
 		) );
 	}
 
