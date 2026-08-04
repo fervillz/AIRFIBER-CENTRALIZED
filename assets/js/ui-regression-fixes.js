@@ -9,8 +9,7 @@
 		return /^expired\b/.test( value ) && value.length <= 40;
 	}
 
-	function markExpiredText( root ) {
-		const scope = root && root.querySelectorAll ? root : document;
+	function markExpiredText() {
 		const selectors = [
 			'.afc-dashboard-payment-result-meta small',
 			'.afc-basic-customer-side span',
@@ -23,14 +22,17 @@
 			'td > small'
 		].join( ',' );
 
-		scope.querySelectorAll( selectors ).forEach( function ( node ) {
+		/* Always scan the complete app. Search results are replaced dynamically,
+		 * and a MutationObserver target may itself be the status node. */
+		document.querySelectorAll( selectors ).forEach( function ( node ) {
 			const expired = node.matches( '[data-status="expired"]' ) || exactExpired( node );
 			node.classList.toggle( 'afc-expired-copy', expired );
+			if ( expired ) node.setAttribute( 'data-afc-expired', '1' );
+			else node.removeAttribute( 'data-afc-expired' );
 		} );
 	}
 
-	function fixBasicAddButton() {
-		const button = document.getElementById( 'afc-basic-add-ppp' );
+	function cleanAddButton( button ) {
 		if ( ! button ) return;
 
 		button.setAttribute( 'data-afc-no-auto-icon', '' );
@@ -38,11 +40,16 @@
 		delete button.dataset.afcIconDone;
 
 		Array.from( button.children ).forEach( function ( child ) {
-			if ( child.matches && child.matches( 'svg.afc-ui-icon' ) ) child.remove();
+			if ( child.matches && child.matches( 'svg.afc-ui-icon, .afc-ui-icon:not(span[aria-hidden="true"])' ) ) child.remove();
 		} );
 
 		const pluses = Array.from( button.querySelectorAll( ':scope > span[aria-hidden="true"]' ) );
 		pluses.slice( 1 ).forEach( function ( node ) { node.remove(); } );
+	}
+
+	function fixAddButtons() {
+		cleanAddButton( document.getElementById( 'afc-basic-add-ppp' ) );
+		document.querySelectorAll( '[data-afc-dashboard-add-ppp]' ).forEach( cleanAddButton );
 	}
 
 	function syncAccountOptionsState( details ) {
@@ -83,30 +90,24 @@
 		} );
 	}
 
-	function decorate( root ) {
-		fixBasicAddButton();
+	function decorate() {
+		fixAddButtons();
 		bindAccountOptions();
-		markExpiredText( root || document );
+		markExpiredText();
 	}
 
-	function schedule( root ) {
+	function schedule() {
 		window.clearTimeout( timer );
-		timer = window.setTimeout( function () { decorate( root ); }, 40 );
+		timer = window.setTimeout( decorate, 30 );
 	}
 
 	function boot() {
-		decorate( document );
-		new MutationObserver( function ( mutations ) {
-			let root = document;
-			for ( let index = 0; index < mutations.length; index++ ) {
-				const target = mutations[ index ].target;
-				if ( target && target.nodeType === 1 ) {
-					root = target;
-					break;
-				}
-			}
-			schedule( root );
-		} ).observe( document.body, { childList: true, subtree: true, characterData: true } );
+		decorate();
+		new MutationObserver( schedule ).observe( document.body, {
+			childList: true,
+			subtree: true,
+			characterData: true
+		} );
 	}
 
 	if ( document.readyState === 'loading' ) document.addEventListener( 'DOMContentLoaded', boot );
