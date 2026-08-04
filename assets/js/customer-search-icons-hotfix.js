@@ -1,12 +1,10 @@
 ( function ( $ ) {
 	'use strict';
 
-	const cfg = window.afcCustomerSearchIcons || window.afcCustomerSearchPolish || {};
-	const users = new Map();
+	const cfg = window.afcCustomerSearchIcons || {};
 	const signals = new Map();
-	const serverLoaded = new Set();
-	const loadingSignals = new Set();
-	let loadingUsers = null;
+	let requestKey = '';
+	let loading = false;
 	let timer = null;
 
 	const paths = {
@@ -21,166 +19,14 @@
 	function key( value ) { return text( value ).trim().toLowerCase(); }
 	function esc( value ) { const node = document.createElement( 'div' ); node.textContent = text( value ); return node.innerHTML; }
 	function svg( name ) { return '<svg class="afc-v262-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + ( paths[ name ] || paths.info ) + '</svg>'; }
-	function parseUser( row ) { try { return JSON.parse( decodeURIComponent( row.getAttribute( 'data-user' ) || '' ) ); } catch ( error ) { return null; } }
-	function remember( user ) { if ( user && user.name ) users.set( key( user.name ), user ); }
 
 	function accounts() {
 		const out = new Set();
-		document.querySelectorAll( '[data-afc-dashboard-payment-account]' ).forEach( function ( node ) {
+		document.querySelectorAll( '.afc-dashboard-payment-result[data-afc-dashboard-payment-account]' ).forEach( function ( node ) {
 			const account = node.getAttribute( 'data-afc-dashboard-payment-account' );
 			if ( account ) out.add( account );
 		} );
 		return Array.from( out );
-	}
-
-	function collectTable() {
-		document.querySelectorAll( '#afc-ppp-table tbody tr[data-user]' ).forEach( function ( row ) { remember( parseUser( row ) ); } );
-	}
-
-	function escapeRegex( value ) {
-		return text( value ).replace( /[.*+?^${}()|[\]\\]/g, '\\$&' );
-	}
-
-	function commentValue( comment, field ) {
-		const pattern = new RegExp( '(?:^|\\n|\\s)' + escapeRegex( field ) + '\\s*:\\s*(.*?)(?=(?:\\n|\\s)[A-Za-z][A-Za-z0-9_-]*\\s*:|$)', 'i' );
-		const match = text( comment ).replace( /\r\n?/g, '\n' ).match( pattern );
-		return match ? text( match[ 1 ] ).replace( /\s+/g, ' ' ).trim() : '';
-	}
-
-	function parseDate( value ) {
-		const match = text( value ).match( /^(\d{4})-(\d{2})-(\d{2})$/ );
-		if ( ! match ) return null;
-		const date = new Date( Number( match[ 1 ] ), Number( match[ 2 ] ) - 1, Number( match[ 3 ] ) );
-		return Number.isNaN( date.getTime() ) ? null : date;
-	}
-
-	function startToday() {
-		const now = new Date();
-		return new Date( now.getFullYear(), now.getMonth(), now.getDate() );
-	}
-
-	function daysFromToday( value ) {
-		const date = parseDate( value );
-		return date ? Math.round( ( date.getTime() - startToday().getTime() ) / 86400000 ) : null;
-	}
-
-	function ageDays( value ) {
-		const days = daysFromToday( value );
-		return days == null ? null : -days;
-	}
-
-	function fallbackSignal( user ) {
-		const nextDue = commentValue( user.comment, 'nextDue' );
-		const cutoffDate = commentValue( user.comment, 'cutoffDate' );
-		const daysToDue = daysFromToday( nextDue );
-		const daysToCutoff = daysFromToday( cutoffDate );
-		const profileExpired = key( user.actual_profile ) === 'expired';
-		let dueState = 'unknown';
-
-		if ( profileExpired || ( daysToCutoff != null && daysToCutoff < 0 ) ) dueState = 'expired';
-		else if ( daysToDue != null && daysToDue <= 0 ) dueState = 'due';
-		else if ( ( daysToDue != null && daysToDue <= 3 ) || ( daysToCutoff != null && daysToCutoff <= 3 ) ) dueState = 'soon';
-		else if ( ( daysToDue != null && daysToDue <= 7 ) || ( daysToCutoff != null && daysToCutoff <= 7 ) ) dueState = 'upcoming';
-		else if ( daysToDue != null || daysToCutoff != null ) dueState = 'safe';
-
-		const paidAge = ageDays( user.payment_date );
-		const installAge = ageDays( user.installed );
-		return {
-			account: user.name || '',
-			smsState: 'none',
-			smsLabel: '',
-			dueState: dueState,
-			daysToDue: daysToDue,
-			daysToCutoff: daysToCutoff,
-			nextDue: nextDue,
-			cutoffDate: cutoffDate,
-			paidRecent: paidAge != null && paidAge >= 0 && paidAge <= 7,
-			paymentDate: user.payment_date || '',
-			newInstall: installAge != null && installAge >= 0 && installAge <= 30,
-			installedDate: user.installed || '',
-			incomingUnread: false,
-			serviceState: profileExpired ? 'expired' : 'active',
-			phoneValid: Boolean( user.phone ),
-		};
-	}
-
-	function seedFallbacks() {
-		accounts().forEach( function ( account ) {
-			const accountKey = key( account );
-			const user = users.get( accountKey );
-			if ( user && ! signals.has( accountKey ) ) signals.set( accountKey, fallbackSignal( user ) );
-		} );
-	}
-
-	function ensureUsers() {
-		collectTable();
-		const missing = accounts().filter( function ( account ) { return ! users.has( key( account ) ); } );
-		if ( ! missing.length ) {
-			seedFallbacks();
-			return Promise.resolve();
-		}
-		if ( loadingUsers ) return loadingUsers;
-
-		const ajaxUrl = cfg.ajaxUrl || ( window.afcPPP && afcPPP.ajaxUrl ) || '';
-		const nonce = cfg.pppNonce || ( window.afcPPP && afcPPP.nonce ) || '';
-		if ( ! ajaxUrl || ! nonce ) return Promise.resolve();
-
-		loadingUsers = new Promise( function ( resolve ) {
-			$.post( ajaxUrl, { action: 'afc_get_ppp_users', nonce: nonce } )
-				.done( function ( response ) {
-					if ( response && response.success ) ( response.data.users || [] ).forEach( remember );
-				} )
-				.always( resolve );
-		} ).then( function () {
-			loadingUsers = null;
-			seedFallbacks();
-			render();
-		} );
-		return loadingUsers;
-	}
-
-	function payload( user ) {
-		return {
-			account: user.name || '',
-			customer_name: user.customer_name || '',
-			phone: user.phone || '',
-			comment: user.comment || '',
-			installed: user.installed || '',
-			payment_date: user.payment_date || '',
-			actual_profile: user.actual_profile || '',
-			profile: user.profile || '',
-		};
-	}
-
-	function loadSignals() {
-		return ensureUsers().then( function () {
-			const list = accounts().map( function ( account ) { return users.get( key( account ) ); } ).filter( function ( user ) {
-				const accountKey = key( user && user.name );
-				return user && ! serverLoaded.has( accountKey ) && ! loadingSignals.has( accountKey );
-			} );
-			if ( ! list.length || ! cfg.ajaxUrl || ! cfg.nonce ) return;
-
-			list.forEach( function ( user ) { loadingSignals.add( key( user.name ) ); } );
-			const body = new URLSearchParams();
-			body.set( 'action', 'afc_customer_search_signals_v2' );
-			body.set( 'nonce', cfg.nonce );
-			body.set( 'users', JSON.stringify( list.map( payload ) ) );
-			return window.fetch( cfg.ajaxUrl, {
-				method: 'POST',
-				credentials: 'same-origin',
-				headers: { 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8' },
-				body: body.toString(),
-			} ).then( function ( response ) { return response.json(); } ).then( function ( response ) {
-				if ( ! response || ! response.success ) return;
-				Object.keys( response.data.signals || {} ).forEach( function ( account ) {
-					signals.set( key( account ), response.data.signals[ account ] );
-					serverLoaded.add( key( account ) );
-				} );
-				render();
-			} ).finally( function () {
-				list.forEach( function ( user ) { loadingSignals.delete( key( user.name ) ); } );
-			} );
-		} );
 	}
 
 	function dateLabel( value ) {
@@ -193,7 +39,7 @@
 	}
 
 	function chips( state ) {
-		if ( ! state ) return chip( 'loading', 'clock', 'STATUS', 'Loading account status', false );
+		if ( ! state ) return chip( 'loading', 'clock', 'STATUS', 'Loading live MikroTik status', false );
 		let html = '';
 
 		if ( state.smsState === 'received' ) html += chip( 'message', 'mail', 'NEW', 'New customer SMS received', true );
@@ -201,12 +47,16 @@
 		else if ( state.smsState === 'scheduled' ) html += chip( 'warning', 'mail', state.smsLabel || 'SET', 'SMS scheduled', false );
 		else if ( state.smsState === 'sent' ) html += chip( 'success', 'mail', state.smsLabel || 'SENT', 'SMS sent', false );
 
-		if ( state.dueState === 'expired' ) html += chip( 'danger', 'clock', 'EXPIRED', 'Cutoff passed: ' + ( state.cutoffDate || '' ), false );
-		else if ( state.dueState === 'due' ) html += chip( 'warning', 'clock', 'DUE', 'Due: ' + ( state.nextDue || state.cutoffDate || '' ), false );
-		else if ( state.dueState === 'soon' || state.dueState === 'upcoming' ) {
+		if ( state.dueState === 'expired' ) {
+			html += chip( 'danger', 'clock', 'EXPIRED', 'Cutoff passed or account uses the expired profile', false );
+		} else if ( state.dueState === 'due' ) {
+			html += chip( 'warning', 'clock', 'DUE', 'Due: ' + ( state.nextDue || state.cutoffDate || '' ), false );
+		} else if ( state.dueState === 'soon' || state.dueState === 'upcoming' ) {
 			const days = state.daysToDue == null ? state.daysToCutoff : state.daysToDue;
 			html += chip( 'warning', 'clock', Number( days ) <= 1 ? 'DUE' : Number( days ) + 'D', 'Coming due: ' + ( state.nextDue || state.cutoffDate || '' ), false );
-		} else if ( state.dueState === 'safe' ) html += chip( 'success', 'clock', dateLabel( state.nextDue || state.cutoffDate ) || 'OK', 'Not near due', false );
+		} else if ( state.dueState === 'safe' ) {
+			html += chip( 'success', 'clock', dateLabel( state.nextDue || state.cutoffDate ) || 'OK', 'Not near due', false );
+		}
 
 		if ( state.paidRecent ) html += chip( 'success', 'money', dateLabel( state.paymentDate ) || 'PAID', 'Recently paid: ' + ( state.paymentDate || '' ), false );
 		if ( state.newInstall ) html += chip( 'info', 'check', 'NEW', 'New installation: ' + ( state.installedDate || '' ), false );
@@ -214,7 +64,6 @@
 	}
 
 	function render() {
-		seedFallbacks();
 		document.querySelectorAll( '.afc-dashboard-payment-result[data-afc-dashboard-payment-account]' ).forEach( function ( result ) {
 			const account = result.getAttribute( 'data-afc-dashboard-payment-account' ) || '';
 			result.setAttribute( 'data-afc-no-auto-icon', '' );
@@ -240,12 +89,45 @@
 		} );
 	}
 
-	function schedule() {
+	function load( force ) {
+		const list = accounts();
+		const nextKey = list.map( key ).sort().join( '|' );
+		if ( ! list.length || loading || ( ! force && requestKey === nextKey ) ) return;
+		if ( ! cfg.ajaxUrl || ! cfg.nonce ) return;
+
+		loading = true;
+		requestKey = nextKey;
+		const body = new URLSearchParams();
+		body.set( 'action', 'afc_live_account_signals' );
+		body.set( 'nonce', cfg.nonce );
+		body.set( 'accounts', JSON.stringify( list ) );
+
+		window.fetch( cfg.ajaxUrl, {
+			method: 'POST',
+			credentials: 'same-origin',
+			headers: { 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8' },
+			body: body.toString(),
+		} ).then( function ( response ) {
+			return response.json();
+		} ).then( function ( response ) {
+			if ( ! response || ! response.success ) return;
+			Object.keys( response.data.signals || {} ).forEach( function ( account ) {
+				signals.set( key( account ), response.data.signals[ account ] );
+			} );
+			render();
+		} ).catch( function () {
+			requestKey = '';
+		} ).finally( function () {
+			loading = false;
+		} );
+	}
+
+	function schedule( force ) {
 		window.clearTimeout( timer );
 		timer = window.setTimeout( function () {
 			render();
-			loadSignals();
-		}, 45 );
+			load( Boolean( force ) );
+		}, 35 );
 	}
 
 	function addStyles() {
@@ -263,31 +145,31 @@
 	}
 
 	$( document ).ajaxSuccess( function ( event, xhr, settings ) {
-		if ( requestHasAction( settings, 'afc_get_ppp_users' ) && xhr.responseJSON && xhr.responseJSON.success ) {
-			( xhr.responseJSON.data.users || [] ).forEach( remember );
-			serverLoaded.clear();
-			signals.clear();
-			seedFallbacks();
-			schedule();
-		}
 		if ( requestHasAction( settings, 'afc_ppp_record_payment' ) && xhr.responseJSON && xhr.responseJSON.success ) {
-			serverLoaded.clear();
 			signals.clear();
-			window.setTimeout( schedule, 200 );
+			requestKey = '';
+			window.setTimeout( function () { schedule( true ); }, 180 );
+		}
+		if ( requestHasAction( settings, 'afc_get_ppp_users' ) && xhr.responseJSON && xhr.responseJSON.success ) {
+			requestKey = '';
+			schedule( true );
 		}
 	} );
 
 	function boot() {
 		addStyles();
-		collectTable();
-		new MutationObserver( schedule ).observe( document.body, { childList: true, subtree: true } );
-		schedule();
+		new MutationObserver( function () { schedule( false ); } ).observe( document.body, { childList: true, subtree: true } );
+		document.addEventListener( 'input', function ( event ) {
+			if ( event.target && event.target.id === 'afc-dashboard-payment-search' ) {
+				requestKey = '';
+				schedule( true );
+			}
+		}, true );
+		schedule( true );
 		window.setInterval( function () {
-			serverLoaded.clear();
-			signals.clear();
-			loadingUsers = null;
-			schedule();
-		}, 60000 );
+			requestKey = '';
+			schedule( true );
+		}, 30000 );
 	}
 
 	if ( document.readyState === 'loading' ) document.addEventListener( 'DOMContentLoaded', boot );
