@@ -2,12 +2,14 @@
 	'use strict';
 
 	const cfg = window.afcAjaxify || {};
+	const nativeFetch = window.fetch.bind( window );
 	const loadedGroups = new Set();
 	const loadingGroups = new Map();
 	const loadedPanels = new Set();
 	const loadingPanels = new Map();
 	const loadedFragments = new Set();
 	let dashboardRestPromise = null;
+	let dashboardDataGate = null;
 
 	function text( value ) {
 		return value == null ? '' : String( value );
@@ -33,6 +35,51 @@
 		} else {
 			window.setTimeout( callback, 180 );
 		}
+	}
+
+	function requestAction( options ) {
+		const body = options && options.body;
+		if ( ! body ) return '';
+		try {
+			const params = body instanceof URLSearchParams ? body : new URLSearchParams( text( body ) );
+			return params.get( 'action' ) || '';
+		} catch ( error ) {
+			return '';
+		}
+	}
+
+	function waitForDashboardCards() {
+		if ( ! document.querySelector( '[data-afc-ajaxify-fragment="dashboard-rest"]' ) ) return Promise.resolve();
+		if ( dashboardDataGate ) return dashboardDataGate;
+
+		dashboardDataGate = new Promise( function ( resolve ) {
+			let finished = false;
+			const finish = function () {
+				if ( finished ) return;
+				finished = true;
+				document.removeEventListener( 'afc:ajaxify-fragment-loaded', onLoaded );
+				resolve();
+			};
+			const onLoaded = function ( event ) {
+				if ( event.detail && event.detail.fragment === 'dashboard-rest' ) finish();
+			};
+			document.addEventListener( 'afc:ajaxify-fragment-loaded', onLoaded );
+			/* A failed card fragment must never block the working payment search. */
+			window.setTimeout( finish, isMobile() ? 6000 : 4000 );
+		} );
+		return dashboardDataGate;
+	}
+
+	function installDashboardDataGate() {
+		if ( window.fetch && window.fetch.__afcAjaxifyGate ) return;
+		const gatedFetch = function ( input, options ) {
+			if ( requestAction( options ) === 'afc_dashboard_data' ) {
+				return waitForDashboardCards().then( function () { return nativeFetch( input, options ); } );
+			}
+			return nativeFetch( input, options );
+		};
+		gatedFetch.__afcAjaxifyGate = true;
+		window.fetch = gatedFetch;
 	}
 
 	function runInline( source ) {
@@ -194,6 +241,7 @@
 			parent.insertBefore( template.content, slot );
 			slot.remove();
 			loadedFragments.add( 'dashboard-rest' );
+			dashboardDataGate = Promise.resolve();
 			document.dispatchEvent( new CustomEvent( 'afc:ajaxify-fragment-loaded', { detail: { fragment: 'dashboard-rest' } } ) );
 			const refresh = document.querySelector( '[data-afc-dashboard-refresh]' );
 			if ( refresh ) refresh.click();
@@ -307,6 +355,7 @@
 
 	function boot() {
 		if ( ! app() ) return;
+		installDashboardDataGate();
 		intercept();
 		window.addEventListener( 'load', warmDesktop, { once: true } );
 		if ( document.readyState === 'complete' ) warmDesktop();
