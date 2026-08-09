@@ -1,0 +1,325 @@
+/* Reusable live enrichment rows for Basic and Advanced payment search. */
+
+.afc-search-ajaxify-live {
+	display: flex !important;
+	align-items: center;
+	flex-wrap: wrap;
+	gap: 5px;
+	margin-top: 6px;
+	min-height: 21px;
+}
+
+.afc-search-live-chip {
+	display: inline-flex !important;
+	align-items: center;
+	justify-content: center;
+	gap: 4px;
+	height: 21px;
+	padding: 0 7px;
+	border: 1px solid #dbe4ed;
+	border-radius: 999px;
+	background: #f4f7fa;
+	color: #5f6d7d;
+	font-size: 9px !important;
+	font-weight: 900 !important;
+	line-height: 1 !important;
+	letter-spacing: .035em;
+	white-space: nowrap;
+}
+
+.afc-search-live-chip i {
+	display: block;
+	width: 6px;
+	height: 6px;
+	flex: 0 0 6px;
+	border-radius: 50%;
+	background: currentColor;
+}
+
+.afc-search-live-chip b {
+	font: inherit !important;
+}
+
+.afc-search-live-chip.is-online {
+	border-color: #bde4c8;
+	background: #e5f7eb;
+	color: #22773d;
+}
+
+.afc-search-live-chip.is-online i {
+	background: #2fb344;
+	box-shadow: 0 0 0 3px rgba(47, 179, 68, .12);
+}
+
+.afc-search-live-chip.is-offline,
+.afc-search-live-chip.is-danger {
+	border-color: #efbdc2;
+	background: #fde8ea;
+	color: #b42334;
+}
+
+.afc-search-live-chip.is-offline i {
+	background: #d63939;
+	box-shadow: 0 0 0 3px rgba(214, 57, 57, .11);
+}
+
+.afc-search-live-chip.is-warning {
+	border-color: #f0d29e;
+	background: #fff1d2;
+	color: #8b5b00;
+}
+
+.afc-search-live-chip.is-safe {
+	border-color: #c8dfd0;
+	background: #edf8f1;
+	color: #34734b;
+}
+
+.afc-search-live-chip.is-neutral {
+	background: #f2f5f8;
+	color: #68778a;
+}
+
+.afc-search-ajaxify-info {
+	display: inline-grid !important;
+	width: 21px;
+	height: 21px;
+	place-items: center;
+	border: 1px solid #cdd9e6;
+	border-radius: 50%;
+	background: #fff;
+	color: #3978b7;
+	font-family: Georgia, serif;
+	font-size: 12px;
+	font-weight: 700;
+	line-height: 1;
+	cursor: help;
+}
+
+.afc-search-ajaxify-checking .afc-search-ajaxify-live {
+	opacity: .72;
+}
+
+.afc-search-ajaxify-popover {
+	position: fixed;
+	z-index: 100080;
+	max-height: min(72vh, 620px);
+	overflow: auto;
+	padding: 0;
+	border: 1px solid #cfdbe8;
+	border-radius: 16px;
+	background: #fff;
+	color: #1f2937;
+	box-shadow: 0 20px 60px rgba(27, 43, 61, .22), 0 4px 16px rgba(27, 43, 61, .08);
+}
+
+.afc-search-ajaxify-popover[hidden] {
+	display: none !important;
+}
+
+.afc-search-ajaxify-popover > header {
+	display: flex;
+	align-items: flex-start;
+	justify-content: space-between;
+	gap: 12px;
+	padding: 15px 16px 13px;
+	border-bottom: 1px solid #e8edf3;
+	background: linear-gradient(145deg, #f8fbff, #f0f6fd);
+}
+
+.afc-search-ajaxify-popover header small {
+	display: block;
+	margin-bottom: 2px;
+	color: #206bc4;
+	font-size: 9px;
+	font-weight: 900;
+	letter-spacing: .07em;
+}
+
+.afc-search-ajaxify-popover header h4 {
+	margin: 0;
+	font-size: 16px;
+	line-height: 1.2;
+}
+
+.afc-search-ajaxify-popover header p {
+	margin: 2px 0 0;
+	color: #718096;
+	font-size: 12px;
+}
+
+.afc-search-popover-presence {
+	display: inline-flex;
+	align-items: center;
+	gap: 5px;
+	min-height: 24px;
+	padding: 0 8px;
+	border-radius: 999px;
+	font-size: 9px;
+	font-weight: 900;
+	letter-spacing: .04em;
+	white-space: nowrap;
+}
+
+.afc-search-popover-presence i {
+	width: 7px;
+	height: 7px;
+	border-radius: 50%;
+	background: currentColor;
+}
+
+.afc-search-popover-presence.is-online {
+	background: #e5f7eb;
+	color: #21763b;
+}
+
+.afc-search-popover-presence.is-offline {
+	background: #fde8ea;
+	color: #b42334;
+}
+
+.afc-search-live-facts {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: 8px;
+	margin: 0;
+	padding: 13px 16px;
+	border-bottom: 1px solid #edf1f5;
+}
+
+.afc-search-live-facts > div {
+	min-width: 0;
+	padding: 8px 9px;
+	border-radius: 10px;
+	background: #f7f9fc;
+}
+
+.afc-search-live-facts dt {
+	margin: 0 0 2px;
+	color: #7a8798;
+	font-size: 9px;
+	font-weight: 800;
+	letter-spacing: .03em;
+	text-transform: uppercase;
+}
+
+.afc-search-live-facts dd {
+	margin: 0;
+	color: #263246;
+	font-size: 12px;
+	font-weight: 700;
+	word-break: break-word;
+}
+
+.afc-search-comment-section {
+	padding: 13px 16px 16px;
+}
+
+.afc-search-comment-title {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 10px;
+	margin-bottom: 9px;
+}
+
+.afc-search-comment-title span {
+	color: #526174;
+	font-size: 10px;
+	font-weight: 900;
+	letter-spacing: .06em;
+}
+
+.afc-search-comment-title small {
+	color: #94a0ae;
+	font-size: 10px;
+}
+
+.afc-search-comment-grid {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: 7px;
+}
+
+.afc-search-comment-field {
+	min-width: 0;
+	padding: 8px 9px;
+	border: 1px solid #e3e9ef;
+	border-radius: 10px;
+	background: #fff;
+}
+
+.afc-search-comment-field span {
+	display: block;
+	margin-bottom: 2px;
+	color: #7b8795;
+	font-size: 9px;
+	font-weight: 800;
+	letter-spacing: .025em;
+	text-transform: uppercase;
+}
+
+.afc-search-comment-field strong {
+	display: block;
+	color: #2a3546;
+	font-size: 11px;
+	font-weight: 700;
+	line-height: 1.35;
+	word-break: break-word;
+}
+
+.afc-search-comment-field.is-sensitive strong {
+	color: #8a6070;
+	letter-spacing: .08em;
+}
+
+.afc-search-comment-empty {
+	grid-column: 1 / -1;
+	padding: 10px;
+	border-radius: 10px;
+	background: #f7f9fc;
+	color: #7b8795;
+	font-size: 11px;
+}
+
+/* Keep the enrichment row under account/phone in both result layouts. */
+.afc-basic-customer-main,
+.afc-dashboard-payment-result-copy {
+	align-content: center;
+}
+
+.afc-basic-customer-main > .afc-search-ajaxify-live,
+.afc-dashboard-payment-result-copy > .afc-search-ajaxify-live {
+	width: 100%;
+}
+
+@media (max-width: 640px) {
+	.afc-search-ajaxify-popover {
+		left: 8px !important;
+		right: 8px !important;
+		width: auto !important;
+		max-height: 72vh;
+	}
+
+	.afc-search-live-facts,
+	.afc-search-comment-grid {
+		grid-template-columns: 1fr;
+	}
+
+	.afc-search-live-chip {
+		height: 20px;
+		padding: 0 6px;
+		font-size: 8px !important;
+	}
+
+	.afc-search-ajaxify-info {
+		width: 20px;
+		height: 20px;
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.afc-search-ajaxify-checking .afc-search-ajaxify-live {
+		opacity: 1;
+	}
+}
