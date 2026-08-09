@@ -24,14 +24,6 @@ class AFC_Search_Ajaxify {
 		add_action( 'admin_enqueue_scripts', array( __CLASS__, 'enqueue_admin' ), 1039 );
 	}
 
-	/**
-	 * Register a batch provider.
-	 *
-	 * Callback signature:
-	 *   function( array $accounts, array $context ): array|WP_Error
-	 *
-	 * The returned array should be keyed by lowercase PPP/account name.
-	 */
 	public static function register_provider( $name, $callback ) {
 		$name = sanitize_key( $name );
 		if ( $name && is_callable( $callback ) ) {
@@ -54,23 +46,10 @@ class AFC_Search_Ajaxify {
 	}
 
 	private static function enqueue() {
-		if ( wp_script_is( 'afc-search-ajaxify', 'enqueued' ) ) {
-			return;
-		}
+		if ( wp_script_is( 'afc-search-ajaxify', 'enqueued' ) ) return;
 
-		wp_enqueue_style(
-			'afc-search-ajaxify',
-			AFC_URL . 'assets/css/search-ajaxify.css',
-			array(),
-			AFC_VERSION
-		);
-		wp_enqueue_script(
-			'afc-search-ajaxify',
-			AFC_URL . 'assets/js/search-ajaxify.js',
-			array( 'jquery' ),
-			AFC_VERSION,
-			true
-		);
+		wp_enqueue_style( 'afc-search-ajaxify', AFC_URL . 'assets/css/search-ajaxify.css', array(), AFC_VERSION );
+		wp_enqueue_script( 'afc-search-ajaxify', AFC_URL . 'assets/js/search-ajaxify.js', array( 'jquery' ), AFC_VERSION, true );
 		wp_localize_script(
 			'afc-search-ajaxify',
 			'afcSearchAjaxify',
@@ -97,16 +76,12 @@ class AFC_Search_Ajaxify {
 			$decoded = json_decode( $raw, true );
 			$raw = is_array( $decoded ) ? $decoded : array();
 		}
-		if ( ! is_array( $raw ) ) {
-			return array();
-		}
+		if ( ! is_array( $raw ) ) return array();
 
 		$out = array();
 		foreach ( array_slice( $raw, 0, self::MAX_ACCOUNTS ) as $account ) {
 			$account = trim( sanitize_text_field( $account ) );
-			if ( '' !== $account ) {
-				$out[ strtolower( $account ) ] = $account;
-			}
+			if ( '' !== $account ) $out[ strtolower( $account ) ] = $account;
 		}
 		return array_values( $out );
 	}
@@ -117,28 +92,21 @@ class AFC_Search_Ajaxify {
 			$decoded = json_decode( $raw, true );
 			$raw = is_array( $decoded ) ? $decoded : array( $raw );
 		}
-		if ( ! is_array( $raw ) ) {
-			$raw = array( 'ppp-live' );
-		}
+		if ( ! is_array( $raw ) ) $raw = array( 'ppp-live' );
 
 		$providers = array();
 		foreach ( $raw as $name ) {
 			$name = sanitize_key( $name );
-			if ( $name && isset( self::$providers[ $name ] ) ) {
-				$providers[] = $name;
-			}
+			if ( $name && isset( self::$providers[ $name ] ) ) $providers[] = $name;
 		}
 		return array_values( array_unique( $providers ) );
 	}
 
 	public static function ajax_query() {
 		self::authorize();
-
-		$accounts  = self::requested_accounts();
+		$accounts = self::requested_accounts();
 		$providers = self::requested_providers();
-		if ( ! $accounts ) {
-			wp_send_json_success( array( 'records' => array(), 'checked_at' => current_time( 'mysql' ) ) );
-		}
+		if ( ! $accounts ) wp_send_json_success( array( 'records' => array(), 'checked_at' => current_time( 'mysql' ) ) );
 
 		$context = array(
 			'query'      => isset( $_POST['query'] ) ? sanitize_text_field( wp_unslash( $_POST['query'] ) ) : '',
@@ -146,9 +114,7 @@ class AFC_Search_Ajaxify {
 		);
 
 		$records = array();
-		foreach ( $accounts as $account ) {
-			$records[ strtolower( $account ) ] = array( 'account' => $account );
-		}
+		foreach ( $accounts as $account ) $records[ strtolower( $account ) ] = array( 'account' => $account );
 
 		$errors = array();
 		foreach ( $providers as $provider ) {
@@ -159,15 +125,11 @@ class AFC_Search_Ajaxify {
 			}
 			foreach ( (array) $result as $account_key => $data ) {
 				$key = strtolower( trim( (string) $account_key ) );
-				if ( ! isset( $records[ $key ] ) || ! is_array( $data ) ) {
-					continue;
-				}
-				$records[ $key ] = array_merge( $records[ $key ], $data );
+				if ( isset( $records[ $key ] ) && is_array( $data ) ) $records[ $key ] = array_merge( $records[ $key ], $data );
 			}
 		}
 
 		$records = apply_filters( 'afc_search_ajaxify_records', $records, $accounts, $providers, $context );
-
 		wp_send_json_success(
 			array(
 				'records'    => $records,
@@ -180,12 +142,8 @@ class AFC_Search_Ajaxify {
 	}
 
 	private static function normalize_router_rows( $rows, $single_key = 'name' ) {
-		if ( is_wp_error( $rows ) ) {
-			return $rows;
-		}
-		if ( isset( $rows[ $single_key ] ) ) {
-			$rows = array( $rows );
-		}
+		if ( is_wp_error( $rows ) ) return $rows;
+		if ( isset( $rows[ $single_key ] ) ) $rows = array( $rows );
 		return is_array( $rows ) ? $rows : array();
 	}
 
@@ -193,13 +151,11 @@ class AFC_Search_Ajaxify {
 		$comment = str_replace( array( "\r\n", "\r" ), "\n", (string) $comment );
 		$pattern = '/(?:^|\s)([A-Za-z][A-Za-z0-9_-]{0,39})\s*:\s*(.*?)(?=(?:\s+[A-Za-z][A-Za-z0-9_-]{0,39}\s*:)|$)/s';
 		preg_match_all( $pattern, trim( $comment ), $matches, PREG_SET_ORDER );
-
 		$pairs = array();
 		foreach ( $matches as $match ) {
-			$key   = trim( (string) $match[1] );
+			$key = trim( (string) $match[1] );
 			$value = trim( preg_replace( '/\s+/', ' ', (string) $match[2] ) );
-			if ( '' === $key ) continue;
-			$pairs[ $key ] = 'N/A' === strtoupper( $value ) ? '' : $value;
+			if ( '' !== $key ) $pairs[ $key ] = 'N/A' === strtoupper( $value ) ? '' : $value;
 		}
 		return $pairs;
 	}
@@ -208,9 +164,7 @@ class AFC_Search_Ajaxify {
 		$labels = array();
 		if ( class_exists( 'AFC_Comment_Fields' ) ) {
 			foreach ( array_merge( AFC_Comment_Fields::get_fields(), AFC_Comment_Fields::suggested_fields() ) as $field ) {
-				if ( ! empty( $field['key'] ) ) {
-					$labels[ strtolower( $field['key'] ) ] = isset( $field['label'] ) ? (string) $field['label'] : (string) $field['key'];
-				}
+				if ( ! empty( $field['key'] ) ) $labels[ strtolower( $field['key'] ) ] = isset( $field['label'] ) ? (string) $field['label'] : (string) $field['key'];
 			}
 		}
 		$labels += array(
@@ -228,27 +182,20 @@ class AFC_Search_Ajaxify {
 	private static function comment_field( $pairs, $wanted ) {
 		$wanted = strtolower( (string) $wanted );
 		foreach ( $pairs as $key => $value ) {
-			if ( strtolower( (string) $key ) === $wanted ) {
-				return trim( (string) $value );
-			}
+			if ( strtolower( (string) $key ) === $wanted ) return trim( (string) $value );
 		}
 		return '';
 	}
 
 	private static function formatted_comment_fields( $pairs ) {
 		$labels = self::field_labels();
-		$order = array(
-			'name', 'plan', 'cp', 'address', 'addr', 'installed', 'paymentdate',
-			'paymentamount', 'paymentmethod', 'nextdue', 'cutoffdate', 'grace', 'wifi',
-		);
+		$order = array( 'name', 'plan', 'cp', 'address', 'addr', 'installed', 'paymentdate', 'paymentamount', 'paymentmethod', 'nextdue', 'cutoffdate', 'grace', 'wifi' );
 		$weight = array_flip( $order );
 		$rows = array();
-
 		foreach ( $pairs as $key => $value ) {
 			$lower = strtolower( (string) $key );
 			$value = trim( (string) $value );
 			if ( '' === $value ) continue;
-
 			$sensitive = 'password' === $lower || false !== strpos( $lower, 'password' );
 			$rows[] = array(
 				'key'       => (string) $key,
@@ -258,17 +205,10 @@ class AFC_Search_Ajaxify {
 				'weight'    => isset( $weight[ $lower ] ) ? (int) $weight[ $lower ] : 100,
 			);
 		}
-
-		usort(
-			$rows,
-			function ( $first, $second ) {
-				if ( $first['weight'] === $second['weight'] ) {
-					return strcasecmp( $first['label'], $second['label'] );
-				}
-				return $first['weight'] - $second['weight'];
-			}
-		);
-
+		usort( $rows, function ( $a, $b ) {
+			if ( $a['weight'] === $b['weight'] ) return strcasecmp( $a['label'], $b['label'] );
+			return $a['weight'] - $b['weight'];
+		} );
 		foreach ( $rows as &$row ) unset( $row['weight'] );
 		unset( $row );
 		return $rows;
@@ -276,9 +216,7 @@ class AFC_Search_Ajaxify {
 
 	private static function date_value( $value ) {
 		$value = trim( (string) $value );
-		if ( ! preg_match( '/^\d{4}-\d{1,2}-\d{1,2}$/', $value ) ) {
-			return null;
-		}
+		if ( ! preg_match( '/^\d{4}-\d{1,2}-\d{1,2}$/', $value ) ) return null;
 		$timezone = function_exists( 'wp_timezone' ) ? wp_timezone() : new DateTimeZone( 'UTC' );
 		$parts = array_map( 'intval', explode( '-', $value ) );
 		try {
@@ -291,25 +229,21 @@ class AFC_Search_Ajaxify {
 	private static function due_state( $profile, $next_due, $cutoff ) {
 		$timezone = function_exists( 'wp_timezone' ) ? wp_timezone() : new DateTimeZone( 'UTC' );
 		$today = new DateTimeImmutable( current_time( 'Y-m-d' ) . ' 00:00:00', $timezone );
-		$due   = self::date_value( $next_due );
-		$cut   = self::date_value( $cutoff );
-		$days  = $due ? (int) $today->diff( $due )->format( '%r%a' ) : null;
+		$due = self::date_value( $next_due );
+		$cut = self::date_value( $cutoff );
+		$days = $due ? (int) $today->diff( $due )->format( '%r%a' ) : null;
 		$cut_days = $cut ? (int) $today->diff( $cut )->format( '%r%a' ) : null;
-		$expired = 0 === strcasecmp( trim( (string) $profile ), 'expired' ) || ( null !== $cut_days && $cut_days < 0 );
 
-		if ( $expired ) {
-			$state = 'expired';
-		} elseif ( null !== $days && $days <= 0 ) {
-			$state = 'due';
-		} elseif ( null !== $days && $days <= 3 ) {
-			$state = 'soon';
-		} elseif ( null !== $days && $days <= 7 ) {
-			$state = 'upcoming';
-		} elseif ( null !== $days ) {
-			$state = 'safe';
-		} else {
-			$state = 'unknown';
-		}
+		// Expired is a router state, not a date calculation. Only the actual
+		// MikroTik PPP secret profile named "Expired" may produce EXPIRED.
+		$expired = 0 === strcasecmp( trim( (string) $profile ), 'expired' );
+
+		if ( $expired ) $state = 'expired';
+		elseif ( null !== $days && $days <= 0 ) $state = 'due';
+		elseif ( null !== $days && $days <= 3 ) $state = 'soon';
+		elseif ( null !== $days && $days <= 7 ) $state = 'upcoming';
+		elseif ( null !== $days ) $state = 'safe';
+		else $state = 'unknown';
 
 		return array(
 			'state'          => $state,
@@ -321,34 +255,20 @@ class AFC_Search_Ajaxify {
 
 	public static function provide_ppp_live( $accounts, $context = array() ) {
 		$wanted = array();
-		foreach ( $accounts as $account ) {
-			$wanted[ strtolower( trim( (string) $account ) ) ] = true;
-		}
+		foreach ( $accounts as $account ) $wanted[ strtolower( trim( (string) $account ) ) ] = true;
 
-		$secrets = AFC_MikroTik::run_command(
-			array(
-				'/ppp/secret/print',
-				'=.proplist=.id,name,profile,comment,disabled,remote-address,caller-id',
-			)
-		);
+		$secrets = AFC_MikroTik::run_command( array( '/ppp/secret/print', '=.proplist=.id,name,profile,comment,disabled,remote-address,caller-id' ) );
 		$secrets = self::normalize_router_rows( $secrets );
 		if ( is_wp_error( $secrets ) ) return $secrets;
 
-		$active = AFC_MikroTik::run_command(
-			array(
-				'/ppp/active/print',
-				'=.proplist=name,address,caller-id,uptime,service',
-			)
-		);
+		$active = AFC_MikroTik::run_command( array( '/ppp/active/print', '=.proplist=name,address,caller-id,uptime,service' ) );
 		$active = self::normalize_router_rows( $active );
 		if ( is_wp_error( $active ) ) return $active;
 
 		$active_map = array();
 		foreach ( $active as $session ) {
 			$name = isset( $session['name'] ) ? strtolower( trim( (string) $session['name'] ) ) : '';
-			if ( $name && isset( $wanted[ $name ] ) ) {
-				$active_map[ $name ] = $session;
-			}
+			if ( $name && isset( $wanted[ $name ] ) ) $active_map[ $name ] = $session;
 		}
 
 		$result = array();
@@ -357,12 +277,12 @@ class AFC_Search_Ajaxify {
 			$key = strtolower( $account );
 			if ( ! $account || ! isset( $wanted[ $key ] ) ) continue;
 
-			$pairs    = self::parse_comment_pairs( isset( $secret['comment'] ) ? $secret['comment'] : '' );
+			$pairs = self::parse_comment_pairs( isset( $secret['comment'] ) ? $secret['comment'] : '' );
 			$next_due = self::comment_field( $pairs, 'nextDue' );
-			$cutoff   = self::comment_field( $pairs, 'cutoffDate' );
-			$profile  = isset( $secret['profile'] ) ? (string) $secret['profile'] : '';
-			$due      = self::due_state( $profile, $next_due, $cutoff );
-			$session  = isset( $active_map[ $key ] ) ? $active_map[ $key ] : array();
+			$cutoff = self::comment_field( $pairs, 'cutoffDate' );
+			$profile = isset( $secret['profile'] ) ? (string) $secret['profile'] : '';
+			$due = self::due_state( $profile, $next_due, $cutoff );
+			$session = isset( $active_map[ $key ] ) ? $active_map[ $key ] : array();
 
 			$result[ $key ] = array(
 				'found'          => true,
@@ -407,7 +327,6 @@ class AFC_Search_Ajaxify {
 				);
 			}
 		}
-
 		return $result;
 	}
 }
