@@ -49,6 +49,7 @@ class AFC_Search_Ajaxify {
 		if ( wp_script_is( 'afc-search-ajaxify', 'enqueued' ) ) return;
 
 		wp_enqueue_style( 'afc-search-ajaxify', AFC_URL . 'assets/css/search-ajaxify.css', array(), AFC_VERSION );
+		wp_enqueue_style( 'afc-search-ajaxify-tooltip-compact', AFC_URL . 'assets/css/search-ajaxify-tooltip-compact.css', array( 'afc-search-ajaxify' ), AFC_VERSION );
 		wp_enqueue_script( 'afc-search-ajaxify', AFC_URL . 'assets/js/search-ajaxify.js', array( 'jquery' ), AFC_VERSION, true );
 		wp_localize_script(
 			'afc-search-ajaxify',
