@@ -75,11 +75,11 @@ class AFC_Search_Ajaxify {
 			'afc-search-ajaxify',
 			'afcSearchAjaxify',
 			array(
-				'ajaxUrl'   => admin_url( 'admin-ajax.php' ),
-				'nonce'     => wp_create_nonce( self::NONCE ),
-				'minChars'  => 3,
-				'delayMs'   => 1000,
-				'maxItems'  => self::MAX_ACCOUNTS,
+				'ajaxUrl'  => admin_url( 'admin-ajax.php' ),
+				'nonce'    => wp_create_nonce( self::NONCE ),
+				'minChars' => 3,
+				'delayMs'  => 1000,
+				'maxItems' => self::MAX_ACCOUNTS,
 			)
 		);
 	}
@@ -231,6 +231,7 @@ class AFC_Search_Ajaxify {
 			if ( strtolower( (string) $key ) === $wanted ) {
 				return trim( (string) $value );
 			}
+		}
 		return '';
 	}
 
