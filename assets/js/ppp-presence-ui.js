@@ -3,11 +3,10 @@
 
 	const cfg = window.afcPppPresence || {};
 	const presence = new Map();
-	const activeNames = new Set();
-	let snapshotReady = false;
-	let snapshotLoading = null;
 	let decorateTimer = null;
-	let refreshTimer = null;
+	let searchTimer = null;
+	let searchGeneration = 0;
+	let targetedRequest = null;
 
 	function text( value ) {
 		return value == null ? '' : String( value );
@@ -69,10 +68,7 @@
 
 	function stateForAccount( account ) {
 		const accountKey = key( account );
-		if ( ! accountKey ) return null;
-		if ( presence.has( accountKey ) ) return presence.get( accountKey );
-		if ( snapshotReady ) return activeNames.has( accountKey );
-		return null;
+		return accountKey && presence.has( accountKey ) ? presence.get( accountKey ) : null;
 	}
 
 	function decorateAdvanced() {
@@ -114,23 +110,45 @@
 		decorateTimer = window.setTimeout( decorate, 25 );
 	}
 
-	function hasSearchResults() {
-		return Boolean( document.querySelector(
-			'.afc-basic-customer-result[data-account], .afc-dashboard-payment-result[data-afc-dashboard-payment-account]'
-		) );
+	function searchInputs() {
+		return Array.from( document.querySelectorAll( '#afc-basic-payment-search, #afc-dashboard-payment-search' ) );
 	}
 
-	function loadSnapshot( force ) {
-		if ( snapshotLoading ) return snapshotLoading;
-		if ( ! cfg.ajaxUrl || ! cfg.nonce ) return Promise.resolve();
-		if ( snapshotReady && ! force ) return Promise.resolve();
+	function activeSearchInput() {
+		const focused = document.activeElement;
+		if ( focused && ( focused.id === 'afc-basic-payment-search' || focused.id === 'afc-dashboard-payment-search' ) ) {
+			return focused;
+		}
+		return searchInputs().find( function ( input ) { return text( input.value ).trim().length >= Number( cfg.minSearch || 3 ); } ) || null;
+	}
+
+	function visibleSearchAccounts() {
+		const accounts = new Set();
+		document.querySelectorAll( '.afc-basic-customer-result[data-account]' ).forEach( function ( result ) {
+			const account = text( result.getAttribute( 'data-account' ) ).trim();
+			if ( account ) accounts.add( account );
+		} );
+		document.querySelectorAll( '.afc-dashboard-payment-result[data-afc-dashboard-payment-account]' ).forEach( function ( result ) {
+			const account = text( result.getAttribute( 'data-afc-dashboard-payment-account' ) ).trim();
+			if ( account ) accounts.add( account );
+		} );
+		return Array.from( accounts ).slice( 0, 50 );
+	}
+
+	function targetedPresenceCheck( generation ) {
+		const input = activeSearchInput();
+		const minSearch = Number( cfg.minSearch || 3 );
+		if ( ! input || text( input.value ).trim().length < minSearch ) return Promise.resolve();
+
+		const accounts = visibleSearchAccounts();
+		if ( ! accounts.length || ! cfg.ajaxUrl || ! cfg.nonce ) return Promise.resolve();
 
 		const body = new URLSearchParams();
-		body.set( 'action', 'afc_ppp_presence_snapshot' );
+		body.set( 'action', 'afc_ppp_presence_check' );
 		body.set( 'nonce', cfg.nonce );
-		body.set( 'refresh', force ? '1' : '0' );
+		body.set( 'accounts', JSON.stringify( accounts ) );
 
-		snapshotLoading = window.fetch( cfg.ajaxUrl, {
+		targetedRequest = window.fetch( cfg.ajaxUrl, {
 			method: 'POST',
 			credentials: 'same-origin',
 			headers: { 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8' },
@@ -138,22 +156,36 @@
 		} ).then( function ( response ) {
 			return response.json();
 		} ).then( function ( response ) {
-			if ( ! response || ! response.success ) return;
-			activeNames.clear();
-			( response.data && Array.isArray( response.data.active ) ? response.data.active : [] ).forEach( function ( name ) {
-				activeNames.add( key( name ) );
+			/* Ignore an older response if the user has typed again. */
+			if ( generation !== searchGeneration || ! response || ! response.success ) return;
+			const states = response.data && response.data.states ? response.data.states : {};
+			Object.keys( states ).forEach( function ( account ) {
+				presence.set( key( account ), isOnline( states[ account ] ) );
 			} );
-			snapshotReady = true;
-			/* The snapshot is the latest live truth. Remove older per-user states so
-			 * accounts missing from /ppp/active correctly become OFFLINE. */
-			presence.clear();
 			decorate();
 		} ).catch( function () {
-			// Existing AFC_PPP_Users data can still provide presence if available.
+			/* Keep the presence values from the normal full PPP load if the small
+			 * refresh cannot reach MikroTik. */
 		} ).finally( function () {
-			snapshotLoading = null;
+			targetedRequest = null;
 		} );
-		return snapshotLoading;
+		return targetedRequest;
+	}
+
+	function scheduleTargetedSearchCheck( input ) {
+		window.clearTimeout( searchTimer );
+		searchGeneration += 1;
+		const generation = searchGeneration;
+		const minSearch = Number( cfg.minSearch || 3 );
+		const value = text( input && input.value ).trim();
+
+		if ( value.length < minSearch ) return;
+
+		searchTimer = window.setTimeout( function () {
+			/* The one-second pause also gives the payment search renderer enough
+			 * time to finish replacing its result cards before we collect accounts. */
+			targetedPresenceCheck( generation );
+		}, Number( cfg.searchDelayMs || 1000 ) );
 	}
 
 	function requestHasAction( settings, action ) {
@@ -173,20 +205,12 @@
 		scheduleDecorate();
 	} );
 
-	function requestPresenceForSearch() {
-		window.clearTimeout( refreshTimer );
-		refreshTimer = window.setTimeout( function () {
-			loadSnapshot( false ).then( scheduleDecorate );
-		}, 60 );
-	}
-
 	function boot() {
+		/* On reload the normal PPP fetch remains the first source of presence.
+		 * We only make the extra MikroTik AJAX request after an actual search. */
 		decorate();
 
-		new MutationObserver( function () {
-			scheduleDecorate();
-			if ( hasSearchResults() && ! snapshotReady ) requestPresenceForSearch();
-		} ).observe( document.body, {
+		new MutationObserver( scheduleDecorate ).observe( document.body, {
 			childList: true,
 			subtree: true,
 		} );
@@ -194,21 +218,16 @@
 		document.addEventListener( 'input', function ( event ) {
 			if ( ! event.target ) return;
 			if ( event.target.id === 'afc-basic-payment-search' || event.target.id === 'afc-dashboard-payment-search' ) {
-				requestPresenceForSearch();
+				scheduleTargetedSearchCheck( event.target );
 			}
 		}, true );
 
-		/* On an already-filled search (browser restore/back navigation), fetch once
-		 * without waiting for another keypress. */
+		/* Browser restore/back navigation can reopen a page with a search value
+		 * already present. Treat that exactly like a paused search. */
 		window.setTimeout( function () {
-			if ( hasSearchResults() ) requestPresenceForSearch();
-		}, 180 );
-
-		/* Keep ONLINE/OFFLINE reasonably fresh without hammering MikroTik. The
-		 * server also caches the tiny active snapshot for 15 seconds. */
-		window.setInterval( function () {
-			if ( hasSearchResults() ) loadSnapshot( true );
-		}, 30000 );
+			const input = activeSearchInput();
+			if ( input ) scheduleTargetedSearchCheck( input );
+		}, 250 );
 	}
 
 	if ( document.readyState === 'loading' ) document.addEventListener( 'DOMContentLoaded', boot );
