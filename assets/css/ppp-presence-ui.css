@@ -1,0 +1,72 @@
+/* Live PPP session presence in Basic and Advanced payment search results. */
+
+.afc-dashboard-payment-result-copy > strong.afc-has-ppp-presence,
+.afc-basic-customer-main > strong.afc-has-ppp-presence {
+	display: inline-flex !important;
+	min-width: 0;
+	align-items: center;
+	gap: 6px;
+}
+
+.afc-ppp-presence {
+	display: inline-flex !important;
+	min-width: 0;
+	flex: 0 0 auto;
+	align-items: center;
+	justify-content: center;
+	gap: 4px;
+	height: 20px;
+	padding: 0 7px;
+	border: 1px solid transparent;
+	border-radius: 999px;
+	font-size: 9px !important;
+	font-weight: 900 !important;
+	line-height: 1 !important;
+	letter-spacing: .045em;
+	white-space: nowrap;
+	vertical-align: middle;
+}
+
+.afc-ppp-presence i {
+	display: block;
+	width: 6px;
+	height: 6px;
+	flex: 0 0 6px;
+	border-radius: 50%;
+	background: currentColor;
+	box-shadow: 0 0 0 3px rgba(127, 127, 127, .08);
+}
+
+.afc-ppp-presence b {
+	font: inherit !important;
+}
+
+.afc-ppp-presence.is-online {
+	border-color: #bfe5cb;
+	background: #e6f7ec;
+	color: #21783b;
+}
+
+.afc-ppp-presence.is-online i {
+	background: #2fb344;
+	box-shadow: 0 0 0 3px rgba(47, 179, 68, .12);
+}
+
+.afc-ppp-presence.is-offline {
+	border-color: #efc0c4;
+	background: #fde8e9;
+	color: #b42332;
+}
+
+.afc-ppp-presence.is-offline i {
+	background: #d63939;
+	box-shadow: 0 0 0 3px rgba(214, 57, 57, .11);
+}
+
+@media (max-width: 520px) {
+	.afc-ppp-presence {
+		height: 19px;
+		padding: 0 6px;
+		font-size: 8px !important;
+	}
+}
