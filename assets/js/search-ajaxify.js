@@ -115,8 +115,6 @@
 
 	function dueLabel( record ) {
 		if ( ! record || ! record.next_due ) return '';
-		if ( record.due_state === 'due' ) return 'DUE ' + dateLabel( record.next_due );
-		if ( record.due_state === 'soon' || record.due_state === 'upcoming' ) return 'DUE ' + dateLabel( record.next_due );
 		return 'DUE ' + dateLabel( record.next_due );
 	}
 
@@ -155,7 +153,17 @@
 			row.className = 'afc-search-ajaxify-live';
 			mount.appendChild( row );
 		}
-		row.innerHTML = liveRowMarkup( record );
+
+		const signature = [
+			record.online ? '1' : '0',
+			record.expired ? '1' : '0',
+			record.due_state || '',
+			record.next_due || '',
+		].join( '|' );
+		if ( row.dataset.afcLiveSignature !== signature ) {
+			row.dataset.afcLiveSignature = signature;
+			row.innerHTML = liveRowMarkup( record );
+		}
 	}
 
 	function decorateWatcherFromCache( watcher ) {
