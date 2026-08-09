@@ -10,6 +10,23 @@
 	box-shadow: 0 14px 36px rgba(15,23,42,.34), 0 3px 10px rgba(15,23,42,.22);
 	overscroll-behavior: contain;
 	pointer-events: auto;
+	transform: scale(1);
+	transform-origin: right bottom;
+	transition: transform .16s ease, box-shadow .16s ease;
+	will-change: transform;
+}
+
+/* Keep the tooltip compact at first, then make it easier to read once the
+ * pointer moves into it. Scaling preserves the position next to the result
+ * and does not force the surrounding search layout to reflow. */
+.afc-search-ajaxify-popover:hover,
+.afc-search-ajaxify-popover:focus-within {
+	transform: scale(1.18);
+	box-shadow: 0 22px 52px rgba(8,15,26,.46), 0 6px 18px rgba(8,15,26,.3);
+}
+
+.afc-search-ajaxify-popover.is-below {
+	transform-origin: right top;
 }
 
 .afc-search-ajaxify-popover::after {
@@ -164,11 +181,24 @@
 	.afc-search-ajaxify-popover {
 		max-height: 62vh;
 	}
+
+	/* Touch screens do not have a useful hover target. Keep the tooltip at its
+	 * natural size so it does not grow beyond the phone viewport. */
+	.afc-search-ajaxify-popover:hover,
+	.afc-search-ajaxify-popover:focus-within {
+		transform: scale(1);
+	}
 }
 
 @media (max-width: 420px) {
 	.afc-search-live-facts,
 	.afc-search-comment-grid {
 		grid-template-columns: 1fr;
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.afc-search-ajaxify-popover {
+		transition: none;
 	}
 }
