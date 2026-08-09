@@ -128,7 +128,7 @@
 		if ( label ) {
 			html += '<span class="afc-search-live-chip is-' + dueTone( record.due_state ) + '"><b>' + esc( label ) + '</b></span>';
 		}
-		html += '<span class="afc-search-ajaxify-info" aria-label="PPP details" title="Hover for live PPP details">i</span>';
+		html += '<span class="afc-search-ajaxify-info" aria-label="PPP details">i</span>';
 		return html;
 	}
 
@@ -253,7 +253,7 @@
 				account: user.name,
 				online: Boolean( user.active ),
 				profile: user.actual_profile || user.profile || previous.profile || '',
-				expired: String( user.actual_profile || '' ).toLowerCase() === 'expired' || Boolean( previous.expired ),
+				expired: String( user.actual_profile || user.profile || '' ).trim().toLowerCase() === 'expired',
 			} ) );
 		} );
 		decorateAllFromCache();
@@ -266,8 +266,15 @@
 		popover.setAttribute( 'role', 'dialog' );
 		popover.setAttribute( 'aria-label', 'Live PPP details' );
 		popover.hidden = true;
-		popover.addEventListener( 'mouseenter', function () { window.clearTimeout( hideTimer ); } );
-		popover.addEventListener( 'mouseleave', scheduleHidePopover );
+		popover.addEventListener( 'mouseenter', function () {
+			window.clearTimeout( hoverTimer );
+			window.clearTimeout( hideTimer );
+			popover.dataset.hovered = '1';
+		} );
+		popover.addEventListener( 'mouseleave', function () {
+			popover.dataset.hovered = '0';
+			scheduleHidePopover();
+		} );
 		document.body.appendChild( popover );
 		return popover;
 	}
@@ -305,20 +312,27 @@
 	function positionPopover( anchor ) {
 		const box = ensurePopover();
 		const rect = anchor.getBoundingClientRect();
-		const width = Math.min( 420, Math.max( 300, window.innerWidth - 24 ) );
+		const gap = 8;
+		const width = Math.min( 360, Math.max( 270, window.innerWidth - 20 ) );
 		box.style.width = width + 'px';
-		box.style.left = '12px';
-		box.style.top = '12px';
+		box.style.left = '8px';
+		box.style.top = '8px';
+		box.classList.remove( 'is-below' );
 		box.hidden = false;
 
 		const measured = box.getBoundingClientRect();
-		let left = rect.right + 10;
-		if ( left + measured.width > window.innerWidth - 10 ) left = rect.left - measured.width - 10;
-		if ( left < 10 ) left = Math.min( Math.max( 10, rect.left ), window.innerWidth - measured.width - 10 );
+		let left = rect.right - measured.width;
+		left = Math.max( 8, Math.min( left, window.innerWidth - measured.width - 8 ) );
 
-		let top = rect.top;
-		if ( top + measured.height > window.innerHeight - 10 ) top = window.innerHeight - measured.height - 10;
-		if ( top < 10 ) top = 10;
+		let top = rect.top - measured.height - gap;
+		if ( top < 8 ) {
+			top = rect.bottom + gap;
+			box.classList.add( 'is-below' );
+		}
+		if ( top + measured.height > window.innerHeight - 8 ) {
+			top = Math.max( 8, window.innerHeight - measured.height - 8 );
+		}
+
 		box.style.left = Math.round( left ) + 'px';
 		box.style.top = Math.round( top ) + 'px';
 	}
@@ -341,7 +355,7 @@
 
 	function hidePopover() {
 		window.clearTimeout( hoverTimer );
-		if ( popover ) {
+		if ( popover && popover.dataset.hovered !== '1' ) {
 			popover.hidden = true;
 			popover.dataset.account = '';
 		}
@@ -349,7 +363,7 @@
 
 	function scheduleHidePopover() {
 		window.clearTimeout( hideTimer );
-		hideTimer = window.setTimeout( hidePopover, 120 );
+		hideTimer = window.setTimeout( hidePopover, 420 );
 	}
 
 	function resultFromTarget( target ) {
@@ -368,12 +382,13 @@
 			if ( ! result || ( event.relatedTarget && result.contains( event.relatedTarget ) ) ) return;
 			window.clearTimeout( hoverTimer );
 			window.clearTimeout( hideTimer );
-			hoverTimer = window.setTimeout( function () { showPopover( result ); }, 320 );
+			hoverTimer = window.setTimeout( function () { showPopover( result ); }, 260 );
 		}, true );
 
 		document.addEventListener( 'mouseout', function ( event ) {
 			const result = resultFromTarget( event.target );
 			if ( ! result || ( event.relatedTarget && result.contains( event.relatedTarget ) ) ) return;
+			if ( popover && event.relatedTarget && popover.contains( event.relatedTarget ) ) return;
 			scheduleHidePopover();
 		}, true );
 
@@ -388,7 +403,10 @@
 			if ( popover && ! popover.hidden && ! popover.contains( event.target ) ) hidePopover();
 		}, true );
 
-		window.addEventListener( 'scroll', hidePopover, true );
+		window.addEventListener( 'scroll', function ( event ) {
+			if ( popover && ! popover.hidden && popover.contains( event.target ) ) return;
+			hidePopover();
+		}, true );
 		window.addEventListener( 'resize', hidePopover );
 	}
 
