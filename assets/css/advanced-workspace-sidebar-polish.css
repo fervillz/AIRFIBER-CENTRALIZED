@@ -1,0 +1,54 @@
+/* Final interaction polish layered after the smooth sidebar stylesheet. */
+
+body.afc-workspace-sidebar-collapsed .afc-workspace-menu-item::after {
+	position: absolute;
+	top: 50%;
+	left: calc(100% + 11px);
+	z-index: 200200;
+	min-height: 32px;
+	max-width: 220px;
+	padding: 7px 10px;
+	border: 1px solid rgba(255,255,255,.10);
+	border-radius: 9px;
+	background: #17202c;
+	box-shadow: 0 12px 28px rgba(15,23,42,.24);
+	color: #fff;
+	content: attr(data-afc-ws-label);
+	font-size: 12px;
+	font-weight: 750;
+	line-height: 18px;
+	white-space: nowrap;
+	pointer-events: none;
+	opacity: 0;
+	visibility: hidden;
+	transform: translate(-5px,-50%) scale(.98);
+	transition: opacity 100ms ease, transform 130ms ease, visibility 0s linear 120ms;
+}
+
+body.afc-workspace-sidebar-collapsed .afc-workspace-menu-item:hover::after,
+body.afc-workspace-sidebar-collapsed .afc-workspace-menu-item:focus-visible::after {
+	opacity: 1;
+	visibility: visible;
+	transform: translate(0,-50%) scale(1);
+	transition: opacity 100ms ease, transform 130ms ease, visibility 0s linear 0s;
+}
+
+body.afc-workspace-sidebar-collapsed .afc-workspace-sidebar > nav > section + section {
+	padding-top: 7px;
+	border-top: 1px solid #edf1f5;
+}
+
+@media (max-width: 980px) {
+	body.afc-workspace-menu-open::after {
+		display: block !important;
+	}
+
+	body.afc-workspace-sidebar-collapsed .afc-workspace-menu-item::after {
+		display: none !important;
+	}
+
+	body.afc-workspace-sidebar-collapsed .afc-workspace-sidebar > nav > section + section {
+		padding-top: 0;
+		border-top: 0;
+	}
+}
