@@ -8,12 +8,32 @@
 		return document.documentElement.getAttribute( 'data-afc-theme' ) === 'dark' ? 'dark' : 'light';
 	}
 
+	function applyTheme( theme ) {
+		const value = theme === 'dark' ? 'dark' : 'light';
+		document.documentElement.setAttribute( 'data-afc-theme', value );
+		document.body.setAttribute( 'data-afc-theme', value );
+		try { localStorage.setItem( 'afcDashboardTheme', value ); } catch ( error ) {}
+	}
+
 	function syncButton( button ) {
 		if ( ! button ) return;
 		const dark = currentTheme() === 'dark';
-		button.setAttribute( 'aria-label', dark ? 'Switch to light mode' : 'Switch to dark mode' );
-		button.setAttribute( 'title', dark ? 'Switch to light mode' : 'Switch to dark mode' );
+		button.setAttribute( 'aria-label', dark ? 'Dashboard theme: Dark. Choose Light or Dark.' : 'Dashboard theme: Light. Choose Light or Dark.' );
+		button.setAttribute( 'title', dark ? 'Dark mode is active' : 'Light mode is active' );
 		button.setAttribute( 'aria-pressed', dark ? 'true' : 'false' );
+	}
+
+	function bindDirectChoice( button ) {
+		if ( ! button || button.getAttribute( 'data-afc-theme-pill-bound' ) === '1' ) return;
+		button.setAttribute( 'data-afc-theme-pill-bound', '1' );
+		button.addEventListener( 'click', function ( event ) {
+			const choice = event.target.closest && event.target.closest( '.afc-theme-pill-choice' );
+			if ( ! choice ) return;
+			event.preventDefault();
+			event.stopImmediatePropagation();
+			applyTheme( choice.classList.contains( 'is-dark' ) ? 'dark' : 'light' );
+			syncButton( button );
+		}, true );
 	}
 
 	function decorate() {
@@ -31,6 +51,7 @@
 			button.appendChild( options );
 		}
 
+		bindDirectChoice( button );
 		syncButton( button );
 		return true;
 	}
