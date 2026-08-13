@@ -18,22 +18,35 @@
 		return target && target.closest ? target.closest( '[data-afc-frontend-mode="advanced"], [data-afc-admin-mode="advanced"]' ) : null;
 	}
 
-	function rememberRealAdvancedIntent( event ) {
+	function setAdvancedIntent( target ) {
+		if ( ! closestAdvancedButton( target ) ) return;
+		advancedIntentUntil = Date.now() + ADVANCED_INTENT_MS;
+		window.setTimeout( ensureAdvancedDashboard, 20 );
+	}
+
+	function rememberPointerIntent( event ) {
+		setAdvancedIntent( event.target );
+	}
+
+	function rememberKeyboardIntent( event ) {
+		if ( event.key !== 'Enter' && event.key !== ' ' ) return;
+		setAdvancedIntent( event.target );
+	}
+
+	function guardAdvancedSyntheticClick( event ) {
 		const button = closestAdvancedButton( event.target );
 		if ( ! button ) return;
 
 		if ( event.isTrusted ) {
-			advancedIntentUntil = Date.now() + ADVANCED_INTENT_MS;
-			window.setTimeout( ensureAdvancedDashboard, 20 );
+			setAdvancedIntent( button );
 			return;
 		}
 
 		/*
 		 * Desktop used to restore the previously saved Advanced mode by firing a
 		 * synthetic click after Basic had loaded. Ignore that background click.
-		 * Synthetic clicks that directly follow a real Advanced click are allowed,
-		 * because the Ajaxify loader uses one to replay the user's request after
-		 * the dashboard fragment is ready.
+		 * Ajaxify also uses a synthetic click after a REAL user request, so pointer
+		 * and keyboard intent above grant a short replay window for that click.
 		 */
 		if ( Date.now() > advancedIntentUntil && isAdvancedModeButton( button ) ) {
 			event.preventDefault();
@@ -82,10 +95,6 @@
 		return window.afcAjaxify || {};
 	}
 
-	function dashboardPanel() {
-		return document.querySelector( '[data-afc-panel="dashboard"]' );
-	}
-
 	function dashboardRestSlot() {
 		return document.querySelector( '[data-afc-ajaxify-fragment="dashboard-rest"]' );
 	}
@@ -107,6 +116,12 @@
 		if ( refresh ) refresh.click();
 	}
 
+	function escapeHtml( value ) {
+		const node = document.createElement( 'div' );
+		node.textContent = text( value );
+		return node.innerHTML;
+	}
+
 	function showRestError( slot, message ) {
 		if ( ! slot || ! slot.isConnected ) return;
 		slot.classList.add( 'is-afc-dashboard-rest-error' );
@@ -116,12 +131,6 @@
 				'<small>' + escapeHtml( message || 'The dashboard card request failed.' ) + '</small>' +
 				'<button type="button" data-afc-dashboard-rest-retry>Retry cards</button>' +
 			'</div>';
-	}
-
-	function escapeHtml( value ) {
-		const node = document.createElement( 'div' );
-		node.textContent = text( value );
-		return node.innerHTML;
 	}
 
 	function directLoadDashboardRest( attempt ) {
@@ -206,17 +215,15 @@
 	}
 
 	function forceBasicAtStartup() {
-		/*
-		 * The frontend app is intentionally a Basic-first application. The saved
-		 * Advanced preference may still exist for the user's account, but it must
-		 * never auto-open Advanced on a fresh page load.
-		 */
+		/* Fresh page loads are always Basic. Advanced remains available on demand. */
 		const root = document.getElementById( 'afc-frontend-app' );
 		if ( root ) root.setAttribute( 'data-afc-mode', 'basic' );
 	}
 
 	function bind() {
-		document.addEventListener( 'click', rememberRealAdvancedIntent, true );
+		document.addEventListener( 'pointerdown', rememberPointerIntent, true );
+		document.addEventListener( 'keydown', rememberKeyboardIntent, true );
+		document.addEventListener( 'click', guardAdvancedSyntheticClick, true );
 
 		document.addEventListener( 'click', function ( event ) {
 			const retry = event.target.closest && event.target.closest( '[data-afc-dashboard-rest-retry]' );
