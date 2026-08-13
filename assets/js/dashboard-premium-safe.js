@@ -20,6 +20,17 @@
 		document.head.appendChild( link );
 	}
 
+	function loadThemeController() {
+		if ( document.getElementById( 'afc-dashboard-theme-pill-v216-js' ) ) return;
+		const base = baseUrl();
+		if ( ! base ) return;
+		const script = document.createElement( 'script' );
+		script.id = 'afc-dashboard-theme-pill-v216-js';
+		script.src = base + '/assets/js/dashboard-theme-pill.js?v=2.7.16';
+		script.async = false;
+		document.body.appendChild( script );
+	}
+
 	function ensureThemeToggle() {
 		const root = document.getElementById( 'afc-main-dashboard' );
 		const actions = root && root.querySelector( '.afc-dashboard-header-actions' );
@@ -42,6 +53,7 @@
 	function sync() {
 		loadStyle();
 		ensureThemeToggle();
+		loadThemeController();
 	}
 
 	sync();
