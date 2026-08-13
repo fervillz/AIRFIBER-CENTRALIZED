@@ -1,0 +1,94 @@
+/* Dashboard card pin controls. Payment search is permanently pinned first. */
+.afc-dashboard-card-tools {
+	display: inline-flex;
+	align-items: center;
+	gap: 2px;
+	margin-left: auto;
+}
+
+.afc-dashboard-pin {
+	display: grid;
+	width: 31px;
+	height: 31px;
+	place-items: center;
+	padding: 0;
+	border: 0;
+	border-radius: 9px;
+	background: transparent;
+	color: #94a3b8;
+	cursor: pointer;
+	transition: color 150ms ease, background-color 150ms ease, transform 150ms ease;
+}
+
+.afc-dashboard-pin svg {
+	width: 16px;
+	height: 16px;
+}
+
+.afc-dashboard-pin:hover {
+	background: rgba(32, 107, 196, .08);
+	color: var(--afc-dashboard-blue, #206bc4);
+}
+
+.afc-dashboard-pin.is-pinned {
+	background: rgba(32, 107, 196, .12);
+	color: var(--afc-dashboard-blue, #206bc4);
+}
+
+.afc-dashboard-pin.is-pinned svg {
+	transform: rotate(-8deg);
+}
+
+.afc-dashboard-pin[data-afc-pin-locked] {
+	cursor: default;
+}
+
+.afc-dashboard-card.is-pinned {
+	border-color: rgba(32, 107, 196, .22) !important;
+}
+
+.afc-dashboard-card.is-pinned::after {
+	position: absolute;
+	top: -1px;
+	left: 18px;
+	right: 18px;
+	height: 2px;
+	border-radius: 0 0 999px 999px;
+	background: var(--afc-dashboard-blue, #206bc4);
+	content: "";
+	opacity: .7;
+	pointer-events: none;
+}
+
+/* The payment search is the primary daily action and cannot be dragged below another card. */
+.afc-dashboard-payment-card .afc-dashboard-drag {
+	display: none !important;
+}
+
+html[data-afc-theme="dark"] .afc-dashboard-pin {
+	color: #728197;
+}
+
+html[data-afc-theme="dark"] .afc-dashboard-pin:hover,
+html[data-afc-theme="dark"] .afc-dashboard-pin.is-pinned {
+	background: rgba(74, 151, 235, .15);
+	color: #8cc3ff;
+}
+
+html[data-afc-theme="dark"] .afc-dashboard-card.is-pinned {
+	border-color: rgba(95, 167, 245, .28) !important;
+}
+
+@media (max-width: 640px) {
+	.afc-dashboard-pin,
+	.afc-dashboard-drag {
+		width: 34px;
+		height: 34px;
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.afc-dashboard-pin {
+		transition-duration: 1ms !important;
+	}
+}
