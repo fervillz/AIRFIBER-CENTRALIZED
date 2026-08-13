@@ -1,9 +1,6 @@
 ( function () {
 	'use strict';
 
-	let observer = null;
-	let themeObserver = null;
-
 	function currentTheme() {
 		return document.documentElement.getAttribute( 'data-afc-theme' ) === 'dark' ? 'dark' : 'light';
 	}
@@ -13,6 +10,25 @@
 		document.documentElement.setAttribute( 'data-afc-theme', value );
 		document.body.setAttribute( 'data-afc-theme', value );
 		try { localStorage.setItem( 'afcDashboardTheme', value ); } catch ( error ) {}
+	}
+
+	function scriptBase() {
+		const source = document.querySelector( 'script[src*="/assets/js/dashboard-theme-pill.js"]' );
+		if ( ! source || ! source.src ) return '';
+		const marker = '/assets/js/dashboard-theme-pill.js';
+		const index = source.src.indexOf( marker );
+		return index >= 0 ? source.src.slice( 0, index ) : '';
+	}
+
+	function loadPinScript() {
+		if ( ! document.getElementById( 'afc-main-dashboard' ) || document.getElementById( 'afc-dashboard-card-pinning-js' ) ) return;
+		const base = scriptBase();
+		if ( ! base ) return;
+		const script = document.createElement( 'script' );
+		script.id = 'afc-dashboard-card-pinning-js';
+		script.src = base + '/assets/js/dashboard-card-pinning.js?v=2.7.16';
+		script.async = false;
+		document.body.appendChild( script );
 	}
 
 	function syncButton( button ) {
@@ -39,7 +55,6 @@
 	function decorate() {
 		const button = document.querySelector( '[data-afc-dashboard-theme-toggle]' );
 		if ( ! button ) return false;
-
 		if ( button.getAttribute( 'data-afc-theme-pill' ) !== '1' ) {
 			button.setAttribute( 'data-afc-theme-pill', '1' );
 			const options = document.createElement( 'span' );
@@ -50,24 +65,29 @@
 				'<span class="afc-theme-pill-choice is-dark"><span aria-hidden="true">☾</span>Dark</span>';
 			button.appendChild( options );
 		}
-
 		bindDirectChoice( button );
 		syncButton( button );
 		return true;
 	}
 
-	function boot() {
+	function sync() {
 		decorate();
+		loadPinScript();
+	}
 
-		observer = new MutationObserver( function () {
-			decorate();
+	function boot() {
+		sync();
+		document.addEventListener( 'afc:ajaxify-panel-loaded', function ( event ) {
+			if ( event.detail && event.detail.panel === 'dashboard' ) window.setTimeout( sync, 20 );
 		} );
-		observer.observe( document.body, { childList: true, subtree: true } );
-
-		themeObserver = new MutationObserver( function () {
-			syncButton( document.querySelector( '[data-afc-dashboard-theme-toggle]' ) );
+		document.addEventListener( 'afc:admin-mode-change', function ( event ) {
+			if ( event.detail && event.detail.mode === 'advanced' ) window.setTimeout( sync, 30 );
 		} );
-		themeObserver.observe( document.documentElement, { attributes: true, attributeFilter: [ 'data-afc-theme' ] } );
+		document.addEventListener( 'click', function ( event ) {
+			if ( event.target.closest && event.target.closest( '[data-afc-dashboard-theme-toggle]' ) ) window.setTimeout( function () {
+				syncButton( document.querySelector( '[data-afc-dashboard-theme-toggle]' ) );
+			}, 0 );
+		}, true );
 	}
 
 	if ( document.readyState === 'loading' ) document.addEventListener( 'DOMContentLoaded', boot );
