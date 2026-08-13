@@ -78,14 +78,14 @@
 			const link = document.createElement( 'link' );
 			link.id = 'afc-dashboard-theme-pill-css';
 			link.rel = 'stylesheet';
-			link.href = base + '/assets/css/dashboard-theme-pill.css?v=2.7.14';
+			link.href = base + '/assets/css/dashboard-theme-pill.css?v=2.7.15';
 			document.head.appendChild( link );
 		}
 
 		if ( ! document.getElementById( 'afc-dashboard-theme-pill-js' ) ) {
 			const script = document.createElement( 'script' );
 			script.id = 'afc-dashboard-theme-pill-js';
-			script.src = base + '/assets/js/dashboard-theme-pill.js?v=2.7.14';
+			script.src = base + '/assets/js/dashboard-theme-pill.js?v=2.7.15';
 			script.async = false;
 			document.body.appendChild( script );
 		}
