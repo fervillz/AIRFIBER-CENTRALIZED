@@ -13,7 +13,7 @@ $dashboard_layout = isset( $dashboard_layout ) && is_array( $dashboard_layout ) 
 				<p><?php esc_html_e( 'Your daily payment, subscriber, scheduler, SMS, and MikroTik information in one place.', 'airfiber-centralized' ); ?></p>
 			</div>
 			<div class="afc-dashboard-header-actions">
-				<span class="afc-dashboard-save-state" data-afc-dashboard-save-state><?php esc_html_e( 'Loading the daily tools in stages…', 'airfiber-centralized' ); ?></span>
+				<span class="afc-dashboard-save-state" data-afc-dashboard-save-state><?php esc_html_e( 'Loading the daily tools…', 'airfiber-centralized' ); ?></span>
 				<button type="button" class="afc-dashboard-refresh" data-afc-dashboard-refresh><span aria-hidden="true">↻</span><?php esc_html_e( 'Refresh', 'airfiber-centralized' ); ?></button>
 			</div>
 		</header>
@@ -24,12 +24,16 @@ $dashboard_layout = isset( $dashboard_layout ) && is_array( $dashboard_layout ) 
 		</div>
 
 		<div class="afc-dashboard-grid" data-afc-dashboard-grid>
-			<?php AFC_Main_Dashboard::render_widget( 'payment' ); ?>
-			<?php AFC_Main_Dashboard::render_widget( 'new-ppp' ); ?>
-			<div data-afc-ajaxify-fragment="dashboard-rest">
-				<span class="afc-ajaxify-spinner" aria-hidden="true"></span>
-				<?php esc_html_e( 'Loading the remaining dashboard cards…', 'airfiber-centralized' ); ?>
-			</div>
+			<?php
+			/* Payment is deliberately rendered first and is pinned by default in Advanced. */
+			AFC_Main_Dashboard::render_widget( 'payment' );
+			foreach ( $dashboard_layout as $widget ) {
+				if ( 'payment' === $widget ) {
+					continue;
+				}
+				AFC_Main_Dashboard::render_widget( $widget );
+			}
+			?>
 		</div>
 	</div>
 </section>
