@@ -1,0 +1,118 @@
+/* Compact segmented Light / Dark theme switch for the Advanced dashboard. */
+.afc-dashboard-theme-toggle[data-afc-theme-pill="1"] {
+	position: relative;
+	width: 142px;
+	min-width: 142px;
+	height: 38px;
+	min-height: 38px;
+	padding: 3px;
+	border: 1px solid var(--afc-premium-border, #dbe3ec);
+	border-radius: 999px;
+	background: var(--afc-premium-surface-2, #f2f5f8);
+	box-shadow: inset 0 1px 2px rgba(15, 23, 42, .05);
+	overflow: hidden;
+}
+
+/* Keep the original icon/text in the accessibility tree; the pill supplies the visual UI. */
+.afc-dashboard-theme-toggle[data-afc-theme-pill="1"] > span:first-child,
+.afc-dashboard-theme-toggle[data-afc-theme-pill="1"] > b {
+	position: absolute !important;
+	width: 1px !important;
+	height: 1px !important;
+	padding: 0 !important;
+	margin: -1px !important;
+	overflow: hidden !important;
+	clip: rect(0, 0, 0, 0) !important;
+	white-space: nowrap !important;
+	border: 0 !important;
+}
+
+.afc-theme-pill-options {
+	position: relative;
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	align-items: center;
+	width: 100%;
+	height: 100%;
+	border-radius: inherit;
+	isolation: isolate;
+}
+
+.afc-theme-pill-options::before {
+	content: "";
+	position: absolute;
+	z-index: -1;
+	top: 0;
+	bottom: 0;
+	left: 0;
+	width: 50%;
+	border-radius: 999px;
+	background: var(--afc-premium-surface, #fff);
+	box-shadow: 0 1px 5px rgba(15, 23, 42, .12);
+	transform: translateX(0);
+	transition: transform 190ms cubic-bezier(.2,.8,.2,1), background-color 190ms ease, box-shadow 190ms ease;
+}
+
+html[data-afc-theme="dark"] .afc-theme-pill-options::before {
+	transform: translateX(100%);
+	background: #263445;
+	box-shadow: 0 2px 8px rgba(0, 0, 0, .28);
+}
+
+.afc-theme-pill-choice {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: 5px;
+	height: 30px;
+	padding: 0 7px;
+	border-radius: 999px;
+	color: var(--afc-premium-muted, #748095);
+	font-size: 11px;
+	font-weight: 800;
+	line-height: 1;
+	white-space: nowrap;
+	transition: color 160ms ease;
+}
+
+html:not([data-afc-theme="dark"]) .afc-theme-pill-choice.is-light,
+html[data-afc-theme="light"] .afc-theme-pill-choice.is-light {
+	color: var(--afc-premium-text, #172033);
+}
+
+html[data-afc-theme="dark"] .afc-theme-pill-choice.is-dark {
+	color: #fff;
+}
+
+.afc-dashboard-theme-toggle[data-afc-theme-pill="1"]:hover {
+	border-color: #9fc2ee;
+	background: var(--afc-premium-surface-2, #f2f5f8);
+}
+
+.afc-dashboard-theme-toggle[data-afc-theme-pill="1"]:focus-visible {
+	outline: 2px solid #206bc4;
+	outline-offset: 2px;
+}
+
+.afc-dashboard-theme-toggle[data-afc-theme-pill="1"]:active {
+	transform: none;
+}
+
+@media (max-width: 640px) {
+	.afc-dashboard-theme-toggle[data-afc-theme-pill="1"] {
+		width: 130px;
+		min-width: 130px;
+		height: 36px;
+		min-height: 36px;
+	}
+	.afc-theme-pill-choice {
+		font-size: 10px;
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.afc-theme-pill-options::before,
+	.afc-theme-pill-choice {
+		transition-duration: 1ms !important;
+	}
+}
