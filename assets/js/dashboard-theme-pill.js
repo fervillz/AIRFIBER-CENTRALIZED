@@ -20,15 +20,24 @@
 		return index >= 0 ? source.src.slice( 0, index ) : '';
 	}
 
-	function loadPinScript() {
-		if ( ! document.getElementById( 'afc-main-dashboard' ) || document.getElementById( 'afc-dashboard-card-pinning-js' ) ) return;
+	function loadPinAssets() {
+		if ( ! document.getElementById( 'afc-main-dashboard' ) ) return;
 		const base = scriptBase();
 		if ( ! base ) return;
-		const script = document.createElement( 'script' );
-		script.id = 'afc-dashboard-card-pinning-js';
-		script.src = base + '/assets/js/dashboard-card-pinning.js?v=2.7.16';
-		script.async = false;
-		document.body.appendChild( script );
+		if ( ! document.getElementById( 'afc-dashboard-card-pinning-css' ) ) {
+			const link = document.createElement( 'link' );
+			link.id = 'afc-dashboard-card-pinning-css';
+			link.rel = 'stylesheet';
+			link.href = base + '/assets/css/dashboard-card-pinning.css?v=2.7.16';
+			document.head.appendChild( link );
+		}
+		if ( ! document.getElementById( 'afc-dashboard-card-pinning-js' ) ) {
+			const script = document.createElement( 'script' );
+			script.id = 'afc-dashboard-card-pinning-js';
+			script.src = base + '/assets/js/dashboard-card-pinning.js?v=2.7.16';
+			script.async = false;
+			document.body.appendChild( script );
+		}
 	}
 
 	function syncButton( button ) {
@@ -72,7 +81,7 @@
 
 	function sync() {
 		decorate();
-		loadPinScript();
+		loadPinAssets();
 	}
 
 	function boot() {
