@@ -19,7 +19,7 @@
 		}
 		const script = document.createElement( 'script' );
 		script.id = 'afc-dashboard-bootstrap-fix-js';
-		script.src = source.src.slice( 0, index ) + '/assets/js/dashboard-bootstrap-fix.js?v=2.7.14';
+		script.src = source.src.slice( 0, index ) + '/assets/js/dashboard-bootstrap-fix.js?v=2.7.15';
 		script.async = false;
 		document.head.appendChild( script );
 	}
