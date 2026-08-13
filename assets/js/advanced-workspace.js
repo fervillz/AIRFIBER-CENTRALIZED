@@ -13,6 +13,7 @@
 	let observer;
 	let popover;
 	let modal;
+	let menuReturnFocus = null;
 
 	const $ = function ( selector, scope ) { return ( scope || document ).querySelector( selector ); };
 	const $$ = function ( selector, scope ) { return Array.from( ( scope || document ).querySelectorAll( selector ) ); };
@@ -20,6 +21,7 @@
 	const esc = function ( value ) { const node = document.createElement( 'div' ); node.textContent = value == null ? '' : String( value ); return node.innerHTML; };
 	const advanced = function () { return document.body.classList.contains( 'afc-admin-mode-advanced' ); };
 	const panel = function ( key ) { return $( '[data-afc-panel="' + key + '"]', app ); };
+	const desktopSidebar = function () { return window.matchMedia( '(min-width: 981px)' ).matches; };
 
 	function meta( key ) {
 		return panels[ key ] || { group: 'system', title: key, short: 'Advanced tool', description: '', icon: '•', order: 999 };
@@ -57,25 +59,72 @@
 		return output === '—' ? '' : output;
 	}
 
+	function collapsed() {
+		return document.body.classList.contains( 'afc-workspace-sidebar-collapsed' );
+	}
+
+	function syncSidebarState() {
+		if ( ! side ) return;
+		const isCollapsed = collapsed();
+		const collapseButton = $( '[data-afc-ws-collapse]', side );
+		if ( collapseButton ) {
+			collapseButton.setAttribute( 'aria-expanded', isCollapsed ? 'false' : 'true' );
+			collapseButton.setAttribute( 'aria-label', isCollapsed ? 'Expand menu' : 'Collapse menu' );
+			collapseButton.setAttribute( 'title', isCollapsed ? 'Expand menu' : 'Collapse menu' );
+		}
+		const mobileToggle = $( '.afc-workspace-mobile-toggle', app );
+		if ( mobileToggle ) {
+			const open = document.body.classList.contains( 'afc-workspace-menu-open' );
+			mobileToggle.setAttribute( 'aria-expanded', open ? 'true' : 'false' );
+			mobileToggle.setAttribute( 'aria-label', open ? 'Close menu' : 'Open menu' );
+		}
+		side.setAttribute( 'data-afc-sidebar-state', isCollapsed && desktopSidebar() ? 'collapsed' : 'expanded' );
+	}
+
+	function setCollapsed( state ) {
+		document.body.classList.toggle( 'afc-workspace-sidebar-collapsed', Boolean( state ) );
+		try { localStorage.setItem( 'afcWorkspaceCollapsed', state ? '1' : '0' ); } catch ( error ) {}
+		syncSidebarState();
+	}
+
+	function closeMobileMenu( restoreFocus ) {
+		const wasOpen = document.body.classList.contains( 'afc-workspace-menu-open' );
+		document.body.classList.remove( 'afc-workspace-menu-open' );
+		syncSidebarState();
+		if ( wasOpen && restoreFocus && menuReturnFocus && typeof menuReturnFocus.focus === 'function' ) {
+			menuReturnFocus.focus();
+		}
+		menuReturnFocus = null;
+	}
+
 	function makeSide() {
 		if ( side ) return;
 		side = document.createElement( 'aside' );
+		side.id = 'afc-workspace-sidebar';
 		side.className = 'afc-workspace-sidebar';
 		side.innerHTML =
-			'<header><div><small>WORKSPACE</small><strong>' + esc( cfg.labels && cfg.labels.advanced || 'Advanced workspace' ) + '</strong></div><button type="button" data-afc-ws-collapse aria-label="Collapse menu">‹</button></header>' +
-			'<label class="afc-workspace-search"><span>⌕</span><input type="search" placeholder="' + esc( cfg.labels && cfg.labels.findTool || 'Find a tool…' ) + '"></label>' +
+			'<header><div><small>WORKSPACE</small><strong>' + esc( cfg.labels && cfg.labels.advanced || 'Advanced workspace' ) + '</strong></div><button type="button" data-afc-ws-collapse aria-controls="afc-workspace-sidebar" aria-expanded="true" aria-label="Collapse menu" title="Collapse menu"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 18-6-6 6-6"></path></svg></button></header>' +
+			'<label class="afc-workspace-search" title="Find a tool"><span>⌕</span><input type="search" placeholder="' + esc( cfg.labels && cfg.labels.findTool || 'Find a tool…' ) + '"></label>' +
 			'<nav></nav><footer><span>Airfiber</span><small>v' + esc( cfg.version || '' ) + '</small></footer>';
 		const header = $( '.afc-frontend-header', app );
 		header.parentNode.insertBefore( side, header.nextSibling );
 		$( 'input', side ).addEventListener( 'input', renderSide );
+
+		const search = $( '.afc-workspace-search', side );
+		search.addEventListener( 'click', function () {
+			if ( desktopSidebar() && collapsed() ) {
+				setCollapsed( false );
+				window.setTimeout( function () { const input = $( 'input', search ); if ( input ) input.focus(); }, 180 );
+			}
+		} );
+
 		side.addEventListener( 'click', function ( event ) {
 			const open = event.target.closest( '[data-afc-ws-panel]' );
 			if ( open ) return openPanel( open.getAttribute( 'data-afc-ws-panel' ) );
 			const help = event.target.closest( '[data-afc-ws-help]' );
 			if ( help ) return showTip( help, help.getAttribute( 'data-afc-ws-help' ) );
 			if ( event.target.closest( '[data-afc-ws-collapse]' ) ) {
-				document.body.classList.toggle( 'afc-workspace-sidebar-collapsed' );
-				try { localStorage.setItem( 'afcWorkspaceCollapsed', document.body.classList.contains( 'afc-workspace-sidebar-collapsed' ) ? '1' : '0' ); } catch ( error ) {}
+				setCollapsed( ! collapsed() );
 			}
 		} );
 
@@ -84,10 +133,20 @@
 			const toggle = document.createElement( 'button' );
 			toggle.type = 'button';
 			toggle.className = 'afc-workspace-mobile-toggle';
+			toggle.setAttribute( 'aria-controls', 'afc-workspace-sidebar' );
+			toggle.setAttribute( 'aria-expanded', 'false' );
+			toggle.setAttribute( 'aria-label', 'Open menu' );
 			toggle.innerHTML = '<i></i><i></i><i></i>';
-			toggle.addEventListener( 'click', function () { document.body.classList.toggle( 'afc-workspace-menu-open' ); } );
+			toggle.addEventListener( 'click', function () {
+				const opening = ! document.body.classList.contains( 'afc-workspace-menu-open' );
+				if ( opening ) menuReturnFocus = toggle;
+				document.body.classList.toggle( 'afc-workspace-menu-open', opening );
+				syncSidebarState();
+				if ( opening ) window.setTimeout( function () { const input = $( '.afc-workspace-search input', side ); if ( input ) input.focus(); }, 160 );
+			} );
 			actions.insertBefore( toggle, actions.firstChild );
 		}
+		syncSidebarState();
 	}
 
 	function renderSide() {
@@ -104,11 +163,13 @@
 			html += '<section><header><strong>' + esc( group.label ) + '</strong><button type="button" data-afc-ws-help="' + esc( group.description || '' ) + '">?</button></header>';
 			keys.forEach( function ( key ) {
 				const item = meta( key );
-				html += '<button type="button" class="afc-workspace-menu-item' + ( key === active ? ' is-active' : '' ) + '" data-afc-ws-panel="' + esc( key ) + '"><span>' + esc( item.icon || '•' ) + '</span><b><strong>' + esc( item.title ) + '</strong><small>' + esc( item.short || '' ) + '</small></b><em>' + esc( summary( key ) ) + '</em></button>';
+				const label = item.title || key;
+				html += '<button type="button" class="afc-workspace-menu-item' + ( key === active ? ' is-active' : '' ) + '" data-afc-ws-panel="' + esc( key ) + '" data-afc-ws-label="' + esc( label ) + '" aria-label="' + esc( label ) + '"><span>' + esc( item.icon || '•' ) + '</span><b><strong>' + esc( item.title ) + '</strong><small>' + esc( item.short || '' ) + '</small></b><em>' + esc( summary( key ) ) + '</em></button>';
 			} );
 			html += '</section>';
 		} );
 		nav.innerHTML = html || '<p class="afc-workspace-empty">No matching tools.</p>';
+		syncSidebarState();
 	}
 
 	function openPanel( key, view ) {
@@ -118,7 +179,7 @@
 			active = key;
 			refresh();
 			if ( view ) setView( key, view );
-			document.body.classList.remove( 'afc-workspace-menu-open' );
+			closeMobileMenu( false );
 		}, 0 );
 	}
 
@@ -319,7 +380,7 @@
 			document.body.classList.add( 'afc-workspace-active' );
 			if ( side ) side.hidden = false;
 			try { if ( localStorage.getItem( 'afcWorkspaceCollapsed' ) === '1' ) document.body.classList.add( 'afc-workspace-sidebar-collapsed' ); } catch ( error ) {}
-			makeSide(); refresh();
+			makeSide(); refresh(); syncSidebarState();
 		} else {
 			document.body.classList.remove( 'afc-workspace-active', 'afc-workspace-menu-open' );
 			if ( side ) side.hidden = true;
@@ -340,12 +401,24 @@
 		} );
 		sync();
 		document.addEventListener( 'afc:admin-mode-change', sync );
-		document.addEventListener( 'pointerdown', function ( event ) { if ( popover && ! popover.hidden && ! popover.contains( event.target ) && ! event.target.closest( '.afc-workspace-help, [data-afc-ws-help]' ) ) popover.hidden = true; } );
+		document.addEventListener( 'pointerdown', function ( event ) {
+			if ( popover && ! popover.hidden && ! popover.contains( event.target ) && ! event.target.closest( '.afc-workspace-help, [data-afc-ws-help]' ) ) popover.hidden = true;
+			if ( ! desktopSidebar() && document.body.classList.contains( 'afc-workspace-menu-open' ) && side && ! side.contains( event.target ) && ! event.target.closest( '.afc-workspace-mobile-toggle' ) ) closeMobileMenu( true );
+		} );
+		document.addEventListener( 'keydown', function ( event ) {
+			if ( event.key === 'Escape' && document.body.classList.contains( 'afc-workspace-menu-open' ) ) {
+				event.preventDefault();
+				closeMobileMenu( true );
+			}
+		} );
 		observer = new MutationObserver( function ( changes ) {
 			if ( changes.some( function ( change ) { const node = change.target.nodeType === 3 ? change.target.parentElement : change.target; return node && ! node.closest( '.afc-workspace-sidebar, .afc-workspace-pagehead' ); } ) ) schedule();
 		} );
 		observer.observe( app, { childList: true, subtree: true, characterData: true } );
-		window.addEventListener( 'resize', function () { if ( window.innerWidth > 980 ) document.body.classList.remove( 'afc-workspace-menu-open' ); } );
+		window.addEventListener( 'resize', function () {
+			if ( window.innerWidth > 980 ) closeMobileMenu( false );
+			syncSidebarState();
+		} );
 	}
 
 	if ( document.readyState === 'loading' ) document.addEventListener( 'DOMContentLoaded', boot ); else boot();
