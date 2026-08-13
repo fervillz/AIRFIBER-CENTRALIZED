@@ -98,6 +98,48 @@ html[data-afc-theme="dark"] .afc-theme-pill-choice.is-dark {
 	transform: none;
 }
 
+/* If the deferred cards fail, keep Advanced usable and give one clear retry action. */
+.is-afc-dashboard-rest-error {
+	grid-column: 1 / -1;
+	padding: 8px 0;
+}
+
+.afc-dashboard-rest-retry {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	width: 100%;
+	padding: 12px 14px;
+	border: 1px solid var(--afc-premium-border, #dbe3ec);
+	border-radius: 12px;
+	background: var(--afc-premium-surface, #fff);
+	color: var(--afc-premium-text, #172033);
+}
+
+.afc-dashboard-rest-retry strong {
+	font-size: 12px;
+}
+
+.afc-dashboard-rest-retry small {
+	min-width: 0;
+	flex: 1;
+	color: var(--afc-premium-muted, #748095);
+	font-size: 10px;
+}
+
+.afc-dashboard-rest-retry button {
+	min-height: 32px;
+	padding: 6px 10px;
+	border: 0;
+	border-radius: 8px;
+	background: #206bc4;
+	color: #fff;
+	font: inherit;
+	font-size: 11px;
+	font-weight: 800;
+	cursor: pointer;
+}
+
 @media (max-width: 640px) {
 	.afc-dashboard-theme-toggle[data-afc-theme-pill="1"] {
 		width: 130px;
@@ -107,6 +149,10 @@ html[data-afc-theme="dark"] .afc-theme-pill-choice.is-dark {
 	}
 	.afc-theme-pill-choice {
 		font-size: 10px;
+	}
+	.afc-dashboard-rest-retry {
+		align-items: flex-start;
+		flex-direction: column;
 	}
 }
 
