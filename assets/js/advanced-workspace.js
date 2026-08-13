@@ -23,6 +23,27 @@
 	const panel = function ( key ) { return $( '[data-afc-panel="' + key + '"]', app ); };
 	const desktopSidebar = function () { return window.matchMedia( '(min-width: 981px)' ).matches; };
 
+	function ensureSidebarStyles() {
+		if ( document.getElementById( 'afc-workspace-sidebar-smooth-runtime' ) ) return;
+		const script = document.querySelector( 'script[src*="/assets/js/advanced-workspace.js"]' );
+		if ( ! script || ! script.src ) return;
+		const marker = '/assets/js/advanced-workspace.js';
+		const index = script.src.indexOf( marker );
+		if ( index < 0 ) return;
+		const root = script.src.slice( 0, index );
+		[
+			[ 'afc-workspace-sidebar-smooth-runtime', '/assets/css/advanced-workspace-sidebar-smooth.css' ],
+			[ 'afc-workspace-sidebar-polish-runtime', '/assets/css/advanced-workspace-sidebar-polish.css' ],
+		].forEach( function ( asset ) {
+			if ( document.getElementById( asset[ 0 ] ) ) return;
+			const link = document.createElement( 'link' );
+			link.id = asset[ 0 ];
+			link.rel = 'stylesheet';
+			link.href = root + asset[ 1 ] + '?v=' + encodeURIComponent( cfg.version || 'sidebar' );
+			document.head.appendChild( link );
+		} );
+	}
+
 	function meta( key ) {
 		return panels[ key ] || { group: 'system', title: key, short: 'Advanced tool', description: '', icon: '•', order: 999 };
 	}
@@ -389,6 +410,7 @@
 	}
 
 	function boot() {
+		ensureSidebarStyles();
 		app = document.getElementById( 'afc-frontend-app' );
 		if ( ! app ) return;
 		window.AFCUI = Object.assign( {}, window.AFCUI || {}, {
