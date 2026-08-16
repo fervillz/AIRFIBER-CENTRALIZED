@@ -39,8 +39,21 @@
 		const link = document.createElement( 'link' );
 		link.id = 'afc-olt-overview-style';
 		link.rel = 'stylesheet';
-		link.href = base + '/assets/css/olt-overview.css?v=2.10.0';
+		link.href = base + '/assets/css/olt-overview.css?v=2.10.1';
 		document.head.appendChild( link );
+	}
+
+	function makeOpticalNavClickable() {
+		const button = document.querySelector( '.afc-frontend-nav [data-afc-app-panel="optical"]' );
+		if ( ! button || button.tagName === 'A' ) return;
+
+		const link = document.createElement( 'a' );
+		link.href = '#optical';
+		link.className = ( button.className || '' ) + ' afc-optical-direct-link';
+		link.setAttribute( 'data-afc-app-panel', 'optical' );
+		link.setAttribute( 'aria-pressed', button.getAttribute( 'aria-pressed' ) || 'false' );
+		link.textContent = button.textContent;
+		button.replaceWith( link );
 	}
 
 	function frontendOpticalPanel() {
@@ -71,11 +84,11 @@
 				'<div class="afc-olt-overview-metric"><span>Good</span><em data-afc-olt-count="good">—</em></div>' +
 				'<div class="afc-olt-overview-metric"><span>Warning</span><em data-afc-olt-count="warning">—</em></div>' +
 				'<div class="afc-olt-overview-metric"><span>Critical</span><em data-afc-olt-count="critical">—</em></div>' +
-				'<div class="afc-olt-overview-metric"><span>Offline mapped</span><em data-afc-olt-count="offline">—</em></div>' +
+				'<div class="afc-olt-overview-metric"><span>No RX / offline</span><em data-afc-olt-count="offline">—</em></div>' +
 			'</div>' +
 			'<div class="afc-olt-overview-toolbar">' +
 				'<input type="search" data-afc-olt-filter="search" placeholder="Search customer, PPP username, PON or ONU">' +
-				'<select data-afc-olt-filter="status"><option value="">All signal states</option><option value="good">Good</option><option value="warning">Warning</option><option value="critical">Critical</option><option value="offline">Offline</option><option value="unmapped">Unmapped</option></select>' +
+				'<select data-afc-olt-filter="status"><option value="">All signal states</option><option value="good">Good</option><option value="warning">Warning</option><option value="critical">Critical</option><option value="offline">No RX / Offline</option><option value="unmapped">Unmapped</option></select>' +
 				'<select data-afc-olt-filter="pon"><option value="">All PONs</option></select>' +
 			'</div>' +
 			'<div class="afc-olt-pon-grid" data-afc-olt-pons></div>' +
@@ -123,13 +136,13 @@
 			return;
 		}
 		target.innerHTML = pons.map( function ( item ) {
-			const weak = null === item.weakest || undefined === item.weakest ? 'No RX' : Number( item.weakest ).toFixed( 2 ) + ' dBm';
+			const weak = null === item.weakest || undefined === item.weakest ? 'No valid RX' : Number( item.weakest ).toFixed( 2 ) + ' dBm';
 			return '<article class="afc-olt-pon-card">' +
 				'<div class="afc-olt-pon-card-head"><h4>PON ' + escapeHtml( item.pon ) + '</h4><span>' + escapeHtml( item.total ) + ' ONU</span></div>' +
 				'<div class="afc-olt-pon-card-meta">' +
 					'<span>' + escapeHtml( item.mapped ) + ' mapped</span>' +
 					'<span>' + escapeHtml( item.warning + item.critical ) + ' weak</span>' +
-					'<span>' + escapeHtml( item.offline ) + ' offline</span>' +
+					'<span>' + escapeHtml( item.offline ) + ' no RX</span>' +
 					'<span>Weakest ' + escapeHtml( weak ) + '</span>' +
 				'</div></article>';
 		} ).join( '' );
@@ -165,7 +178,7 @@
 
 		target.innerHTML = onus.map( function ( item ) {
 			const customer = item.customer || {};
-			const rx = null === item.rx_power || undefined === item.rx_power ? '—' : Number( item.rx_power ).toFixed( 2 ) + ' dBm';
+			const rx = null === item.rx_power || undefined === item.rx_power ? 'No RX' : Number( item.rx_power ).toFixed( 2 ) + ' dBm';
 			const customerHtml = item.mapped
 				? '<div class="afc-olt-customer"><span>' + escapeHtml( customer.name || 'Customer' ) + '</span><small>' + escapeHtml( customer.username || 'No PPP username' ) + '</small></div>'
 				: '<span class="afc-olt-unmapped">Not mapped</span>';
@@ -182,7 +195,9 @@
 	function renderOverview( data ) {
 		overviewData = data || {};
 		const summary = overviewData.summary || {};
-		renderCounts( overviewData.counts || {} );
+		const diagnostics = overviewData.diagnostics || {};
+		const counts = overviewData.counts || {};
+		renderCounts( counts );
 		renderPonOptions( overviewData.pons || [] );
 		renderPons( overviewData.pons || [] );
 		renderOnus();
@@ -200,6 +215,21 @@
 			setOverviewStatus( 'Showing the last successful OLT snapshot' + when + '. A live refresh failed, so treat these readings as stale.', 'stale' );
 			return;
 		}
+
+		const zeroCount = Number( diagnostics.zero_rx || 0 );
+		const readingCount = Number( counts.readings || 0 );
+		if ( zeroCount > 0 ) {
+			const majority = readingCount > 0 && zeroCount >= Math.ceil( readingCount / 2 );
+			setOverviewStatus(
+				( overviewData.olt && overviewData.olt.name ? overviewData.olt.name : 'OLT' ) + ' responded' + when +
+				'. ' + zeroCount + ' ONU row' + ( zeroCount === 1 ? '' : 's' ) + ' reported 0.00 dBm. ' +
+				'0.00 dBm is not treated as a valid subscriber RX level; it is shown as No RX / Offline.' +
+				( majority ? ' Because most rows are zero, the configured RX-power OID or this OLT firmware needs to be verified.' : '' ),
+				'stale'
+			);
+			return;
+		}
+
 		setOverviewStatus( ( overviewData.olt && overviewData.olt.name ? overviewData.olt.name : 'OLT' ) + ' is available' + when + '.', 'good' );
 	}
 
@@ -250,6 +280,7 @@
 	}
 
 	function maybeLoadOverview() {
+		makeOpticalNavClickable();
 		ensureOverview();
 		if ( opticalIsActive() || '#optical' === window.location.hash ) loadOverview( false );
 	}
@@ -258,6 +289,8 @@
 		const $button = $( '#afc-test-olt' );
 		const $result = $( '#afc-olt-test-result' );
 
+		loadOverviewStyle();
+		makeOpticalNavClickable();
 		toggleVersionFields();
 		$( '#afc-olt-version' ).on( 'change', toggleVersionFields );
 		maybeLoadOverview();
