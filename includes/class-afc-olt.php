@@ -38,23 +38,23 @@ class AFC_OLT {
 
 	public static function defaults() {
 		return array(
-			'enabled'          => 0,
-			'name'             => 'Primary EPON OLT',
-			'host'             => '10.13.88.5',
-			'port'             => 161,
-			'version'          => '3',
-			'community'        => '',
-			'security_name'    => 'airfiber-monitor',
-			'auth_protocol'    => 'SHA',
-			'auth_passphrase'  => '',
-			'privacy_protocol' => 'DES',
+			'enabled'            => 0,
+			'name'               => 'Primary EPON OLT',
+			'host'               => '10.13.88.5',
+			'port'               => 161,
+			'version'            => '3',
+			'community'          => '',
+			'security_name'      => 'airfiber-monitor',
+			'auth_protocol'      => 'SHA',
+			'auth_passphrase'    => '',
+			'privacy_protocol'   => 'DES',
 			'privacy_passphrase' => '',
-			'rx_oid'           => self::RX_POWER_OID,
-			'warning_dbm'      => -24,
-			'critical_dbm'     => -27,
-			'cache_ttl'        => 300,
-			'timeout_ms'       => 2500,
-			'retries'          => 1,
+			'rx_oid'             => self::RX_POWER_OID,
+			'warning_dbm'        => -24,
+			'critical_dbm'       => -27,
+			'cache_ttl'          => 300,
+			'timeout_ms'         => 2500,
+			'retries'            => 1,
 		);
 	}
 
@@ -80,7 +80,7 @@ class AFC_OLT {
 			$rx_oid = self::RX_POWER_OID;
 		}
 
-		$warning = isset( $input['warning_dbm'] ) ? (float) $input['warning_dbm'] : -24;
+		$warning  = isset( $input['warning_dbm'] ) ? (float) $input['warning_dbm'] : -24;
 		$critical = isset( $input['critical_dbm'] ) ? (float) $input['critical_dbm'] : -27;
 		if ( $warning > 0 || $warning < -50 || $critical > 0 || $critical < -50 || $critical >= $warning ) {
 			$warning  = -24;
@@ -256,39 +256,55 @@ class AFC_OLT {
 			return new WP_Error( 'afc_olt_walk_failed', __( 'The OLT did not return an SNMP RX-power table. Check routing, UDP/161, credentials, and the configured OID.', 'airfiber-centralized' ) );
 		}
 
-		$entries = array();
+		$entries       = array();
+		$valid_count   = 0;
+		$invalid_count = 0;
 		foreach ( $walk as $instance_oid => $raw_value ) {
 			$indexes = self::extract_indexes( $instance_oid, $oid );
-			$power   = self::parse_rx_power( $raw_value );
-			/* V1600D firmware commonly returns 0 as an empty/offline placeholder. */
-			if ( ! $indexes || null === $power || abs( $power ) < 0.005 ) {
+			$reading = self::parse_rx_power_reading( $raw_value );
+			if ( ! $indexes || null === $reading ) {
 				continue;
 			}
 
-			$key             = $indexes['pon'] . ':' . $indexes['onu'];
+			$is_valid = ! empty( $reading['valid'] );
+			$status   = $is_valid ? self::classify_power( $reading['power'], $settings ) : 'invalid';
+			$key      = $indexes['pon'] . ':' . $indexes['onu'];
 			$entries[ $key ] = array(
-				'pon'      => $indexes['pon'],
-				'onu'      => $indexes['onu'],
-				'rx_power' => round( $power, 2 ),
-				'status'   => self::classify_power( $power, $settings ),
+				'pon'          => $indexes['pon'],
+				'onu'          => $indexes['onu'],
+				'rx_power'     => $is_valid ? round( (float) $reading['power'], 2 ) : null,
+				'raw_rx'       => $reading['raw'],
+				'raw_rx_text'  => $reading['raw_text'],
+				'rx_scale'     => $reading['scale'],
+				'signal_valid' => $is_valid,
+				'status'       => $status,
 			);
+
+			if ( $is_valid ) {
+				$valid_count++;
+			} else {
+				$invalid_count++;
+			}
 		}
 
 		if ( empty( $entries ) ) {
-			return new WP_Error( 'afc_olt_empty_walk', __( 'SNMP responded, but no usable non-zero RX-power readings were found under the configured OID.', 'airfiber-centralized' ) );
+			return new WP_Error( 'afc_olt_empty_walk', __( 'SNMP responded, but no ONU rows were found under the configured RX-power OID.', 'airfiber-centralized' ) );
 		}
 
 		$learned_macs = self::get_learned_macs( $settings );
 
 		return array(
-			'entries'      => $entries,
-			'learned_macs' => $learned_macs,
-			'count'        => count( $entries ),
-			'collected_at' => current_time( 'mysql' ),
-			'collected_ts' => time(),
-			'source'       => 'live',
-			'stale'        => false,
-			'error'        => '',
+			'entries'       => $entries,
+			'learned_macs'  => $learned_macs,
+			'count'         => count( $entries ),
+			'valid_count'   => $valid_count,
+			'invalid_count' => $invalid_count,
+			'rx_oid'        => $oid,
+			'collected_at'  => current_time( 'mysql' ),
+			'collected_ts'  => time(),
+			'source'        => 'live',
+			'stale'         => false,
+			'error'         => '',
 		);
 	}
 
@@ -445,7 +461,12 @@ class AFC_OLT {
 		return $snapshot['learned_macs'][ $mac ][0];
 	}
 
-	private static function parse_rx_power( $raw_value ) {
+	/**
+	 * VSOL firmware variants expose optical values with different integer scales.
+	 * Normalise common whole-dBm, tenths-dBm and hundredths-dBm forms, but never
+	 * present zero/positive values as subscriber receive power.
+	 */
+	private static function parse_rx_power_reading( $raw_value ) {
 		$value = trim( (string) $raw_value );
 		if ( '' === $value || false !== stripos( $value, 'no such' ) ) {
 			return null;
@@ -454,12 +475,29 @@ class AFC_OLT {
 			return null;
 		}
 
-		$power = (float) $matches[0];
-		if ( abs( $power ) > 100 && abs( $power ) <= 10000 ) {
-			$power /= 100;
+		$raw   = (float) $matches[0];
+		$power = $raw;
+		$scale = 1;
+
+		/* -230 commonly means -23.0 dBm; -2300 commonly means -23.00 dBm. */
+		if ( $raw <= -100 && $raw >= -600 ) {
+			$power = $raw / 10;
+			$scale = 10;
+		} elseif ( $raw < -600 && $raw >= -6000 ) {
+			$power = $raw / 100;
+			$scale = 100;
 		}
 
-		return $power <= 5 && $power >= -60 ? $power : null;
+		/* A subscriber RX reading must be negative. Keep a wide diagnostic floor. */
+		$valid = $power < -1 && $power >= -60;
+
+		return array(
+			'raw'      => $raw,
+			'raw_text' => $value,
+			'power'    => $valid ? $power : null,
+			'scale'    => $scale,
+			'valid'    => $valid,
+		);
 	}
 
 	private static function classify_power( $power, $settings ) {
@@ -508,7 +546,11 @@ class AFC_OLT {
 			return $result;
 		}
 
-		$entry              = $snapshot['entries'][ $key ];
+		$entry = $snapshot['entries'][ $key ];
+		if ( empty( $entry['signal_valid'] ) || ! isset( $entry['rx_power'] ) || null === $entry['rx_power'] ) {
+			$result['status'] = $result['stale'] ? 'stale' : 'invalid';
+			return $result;
+		}
 		$result['rx_power'] = $entry['rx_power'];
 		$result['status']   = $result['stale'] ? 'stale' : $entry['status'];
 		return $result;
@@ -517,22 +559,26 @@ class AFC_OLT {
 	public static function snapshot_summary( $snapshot ) {
 		if ( is_wp_error( $snapshot ) ) {
 			return array(
-				'enabled'      => self::is_enabled(),
-				'available'    => false,
-				'stale'        => false,
-				'count'        => 0,
-				'collected_at' => '',
-				'message'      => $snapshot->get_error_message(),
+				'enabled'       => self::is_enabled(),
+				'available'     => false,
+				'stale'         => false,
+				'count'         => 0,
+				'valid_count'   => 0,
+				'invalid_count' => 0,
+				'collected_at'  => '',
+				'message'       => $snapshot->get_error_message(),
 			);
 		}
 
 		return array(
-			'enabled'      => true,
-			'available'    => true,
-			'stale'        => ! empty( $snapshot['stale'] ),
-			'count'        => isset( $snapshot['count'] ) ? (int) $snapshot['count'] : count( $snapshot['entries'] ),
-			'collected_at' => isset( $snapshot['collected_at'] ) ? $snapshot['collected_at'] : '',
-			'message'      => isset( $snapshot['error'] ) ? $snapshot['error'] : '',
+			'enabled'       => true,
+			'available'     => true,
+			'stale'         => ! empty( $snapshot['stale'] ),
+			'count'         => isset( $snapshot['count'] ) ? (int) $snapshot['count'] : count( $snapshot['entries'] ),
+			'valid_count'   => isset( $snapshot['valid_count'] ) ? (int) $snapshot['valid_count'] : 0,
+			'invalid_count' => isset( $snapshot['invalid_count'] ) ? (int) $snapshot['invalid_count'] : 0,
+			'collected_at'  => isset( $snapshot['collected_at'] ) ? $snapshot['collected_at'] : '',
+			'message'       => isset( $snapshot['error'] ) ? $snapshot['error'] : '',
 		);
 	}
 
@@ -568,10 +614,17 @@ class AFC_OLT {
 		}
 
 		$status = array(
-			'status'  => 'success',
-			'message' => sprintf( __( 'Connected successfully and received %d ONU RX-power reading(s).', 'airfiber-centralized' ), (int) $result['count'] ),
-			'count'   => (int) $result['count'],
-			'time'    => current_time( 'mysql' ),
+			'status'        => 'success',
+			'message'       => sprintf(
+				__( 'Connected successfully and received %1$d ONU row(s): %2$d valid RX reading(s), %3$d invalid RX value(s).', 'airfiber-centralized' ),
+				(int) $result['count'],
+				(int) $result['valid_count'],
+				(int) $result['invalid_count']
+			),
+			'count'         => (int) $result['count'],
+			'valid_count'   => (int) $result['valid_count'],
+			'invalid_count' => (int) $result['invalid_count'],
+			'time'          => current_time( 'mysql' ),
 		);
 		update_option( self::LAST_STATUS_KEY, $status, false );
 		wp_send_json_success( $status );
