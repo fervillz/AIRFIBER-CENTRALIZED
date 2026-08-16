@@ -26,6 +26,49 @@
 		return 'operations';
 	}
 
+	function installPanelLinkStyles() {
+		if ( document.getElementById( 'afc-native-panel-link-style' ) ) {
+			return;
+		}
+
+		const style = document.createElement( 'style' );
+		style.id = 'afc-native-panel-link-style';
+		style.textContent =
+			'.afc-frontend-nav a.afc-native-panel-link{' +
+			'display:inline-flex;align-items:center;justify-content:center;min-height:40px;padding:.55rem .9rem;' +
+			'border-radius:.7rem;background:transparent;color:#667382;font:inherit;font-size:.78rem;' +
+			'text-decoration:none!important;cursor:pointer;pointer-events:auto;position:relative;z-index:4;' +
+			'touch-action:manipulation;transition:color .16s ease,background-color .16s ease,transform .16s ease}' +
+			'.afc-frontend-nav a.afc-native-panel-link:hover,.afc-frontend-nav a.afc-native-panel-link:focus-visible{' +
+			'background:#eef4fb;color:#206bc4;outline:none}' +
+			'.afc-frontend-nav a.afc-native-panel-link.is-active{' +
+			'background:#e8f1fc;color:#206bc4}' +
+			'.afc-frontend-nav a.afc-native-panel-link:active{transform:scale(.97)}';
+		document.head.appendChild( style );
+	}
+
+	function installNativePanelLinks( root ) {
+		if ( ! root ) {
+			return;
+		}
+
+		installPanelLinkStyles();
+		root.querySelectorAll( '.afc-frontend-nav [data-afc-app-panel]' ).forEach( function ( item ) {
+			const panel = item.getAttribute( 'data-afc-app-panel' ) || '';
+			if ( ! panel || item.tagName === 'A' ) {
+				return;
+			}
+
+			const link = document.createElement( 'a' );
+			link.href = '#' + panel;
+			link.className = ( item.className ? item.className + ' ' : '' ) + 'afc-native-panel-link';
+			link.setAttribute( 'data-afc-app-panel', panel );
+			link.setAttribute( 'aria-pressed', item.getAttribute( 'aria-pressed' ) || 'false' );
+			link.textContent = item.textContent;
+			item.replaceWith( link );
+		} );
+	}
+
 	function syncModeButtons( mode ) {
 		document.querySelectorAll( '[data-afc-frontend-mode]' ).forEach( function ( button ) {
 			const active = button.getAttribute( 'data-afc-frontend-mode' ) === mode;
@@ -71,14 +114,18 @@
 			// Storage may be blocked by the browser. Navigation still works.
 		}
 
-		if ( updateUrl && window.history && window.history.replaceState ) {
-			const url = new URL( window.location.href );
-			if ( panel === defaultPanel() ) {
-				url.hash = '';
+		if ( updateUrl ) {
+			if ( window.history && window.history.replaceState ) {
+				const url = new URL( window.location.href );
+				if ( panel === defaultPanel() ) {
+					url.hash = '';
+				} else {
+					url.hash = panel;
+				}
+				window.history.replaceState( {}, '', url.toString() );
 			} else {
-				url.hash = panel;
+				window.location.hash = panel === defaultPanel() ? '' : panel;
 			}
-			window.history.replaceState( {}, '', url.toString() );
 		}
 
 		window.scrollTo( { top: 0, behavior: 'smooth' } );
@@ -132,7 +179,8 @@
 			const panelButton = event.target.closest( '[data-afc-app-panel]' );
 			if ( panelButton ) {
 				event.preventDefault();
-				setPanel( panelButton.getAttribute( 'data-afc-app-panel' ) || defaultPanel(), true );
+				const panel = panelButton.getAttribute( 'data-afc-app-panel' ) || defaultPanel();
+				setPanel( panel, true );
 				return;
 			}
 
@@ -159,6 +207,7 @@
 			return;
 		}
 
+		installNativePanelLinks( root );
 		bindNavigation( root );
 		syncModeButtons( currentMode() );
 		setPanel( initialPanel(), false );
