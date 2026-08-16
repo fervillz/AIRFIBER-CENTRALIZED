@@ -4,6 +4,7 @@
 	let overviewLoaded = false;
 	let overviewLoading = false;
 	let overviewData = null;
+	let selectedPon = '';
 
 	function toggleVersionFields() {
 		const version = $( '#afc-olt-version' ).val();
@@ -39,14 +40,13 @@
 		const link = document.createElement( 'link' );
 		link.id = 'afc-olt-overview-style';
 		link.rel = 'stylesheet';
-		link.href = base + '/assets/css/olt-overview.css?v=2.10.1';
+		link.href = base + '/assets/css/olt-overview.css?v=2.10.4';
 		document.head.appendChild( link );
 	}
 
 	function makeOpticalNavClickable() {
 		const button = document.querySelector( '.afc-frontend-nav [data-afc-app-panel="optical"]' );
 		if ( ! button || button.tagName === 'A' ) return;
-
 		const link = document.createElement( 'a' );
 		link.href = '#optical';
 		link.className = ( button.className || '' ) + ' afc-optical-direct-link';
@@ -74,25 +74,27 @@
 		overview.innerHTML =
 			'<div class="afc-olt-overview-head">' +
 				'<div><span class="afc-olt-overview-kicker">Optical network</span><h3>ONU signal overview</h3>' +
-				'<p>One cached OLT snapshot, grouped by PON and matched to saved customer ONU mappings.</p></div>' +
+				'<p>Select a PON to see only the ONUs connected to that optical port.</p></div>' +
 				'<button type="button" class="afc-olt-overview-refresh" data-afc-olt-overview-refresh>Refresh optical data</button>' +
 			'</div>' +
 			'<div class="afc-olt-overview-status" data-afc-olt-overview-status>Open Optical to load the latest cached snapshot.</div>' +
 			'<div class="afc-olt-overview-metrics">' +
-				'<div class="afc-olt-overview-metric"><span>ONU readings</span><em data-afc-olt-count="readings">—</em></div>' +
+				'<div class="afc-olt-overview-metric"><span>ONU rows</span><em data-afc-olt-count="readings">—</em></div>' +
 				'<div class="afc-olt-overview-metric"><span>Mapped</span><em data-afc-olt-count="mapped">—</em></div>' +
 				'<div class="afc-olt-overview-metric"><span>Good</span><em data-afc-olt-count="good">—</em></div>' +
 				'<div class="afc-olt-overview-metric"><span>Warning</span><em data-afc-olt-count="warning">—</em></div>' +
 				'<div class="afc-olt-overview-metric"><span>Critical</span><em data-afc-olt-count="critical">—</em></div>' +
-				'<div class="afc-olt-overview-metric"><span>No RX / offline</span><em data-afc-olt-count="offline">—</em></div>' +
+				'<div class="afc-olt-overview-metric"><span>Invalid RX</span><em data-afc-olt-count="invalid">—</em></div>' +
 			'</div>' +
 			'<div class="afc-olt-overview-toolbar">' +
-				'<input type="search" data-afc-olt-filter="search" placeholder="Search customer, PPP username, PON or ONU">' +
-				'<select data-afc-olt-filter="status"><option value="">All signal states</option><option value="good">Good</option><option value="warning">Warning</option><option value="critical">Critical</option><option value="offline">No RX / Offline</option><option value="unmapped">Unmapped</option></select>' +
-				'<select data-afc-olt-filter="pon"><option value="">All PONs</option></select>' +
+				'<input type="search" data-afc-olt-filter="search" placeholder="Search description, MAC, PPP username or ONU">' +
+				'<select data-afc-olt-filter="status"><option value="">All signal states</option><option value="good">Good</option><option value="warning">Warning</option><option value="critical">Critical</option><option value="invalid">Invalid RX</option><option value="offline">Offline</option><option value="unmapped">Unmapped</option></select>' +
 			'</div>' +
-			'<div class="afc-olt-pon-grid" data-afc-olt-pons></div>' +
-			'<div class="afc-olt-table-wrap"><table class="afc-olt-overview-table"><thead><tr><th>PON</th><th>ONU</th><th>RX power</th><th>Signal</th><th>Customer</th></tr></thead><tbody data-afc-olt-onus><tr><td colspan="5" class="afc-olt-overview-empty">Optical data has not loaded yet.</td></tr></tbody></table></div>';
+			'<div class="afc-olt-pon-tabs" role="tablist" aria-label="PON ports" data-afc-olt-pons></div>' +
+			'<div class="afc-olt-tab-panel" role="tabpanel" data-afc-olt-tab-panel>' +
+				'<div class="afc-olt-tab-summary" data-afc-olt-tab-summary></div>' +
+				'<div class="afc-olt-table-wrap"><table class="afc-olt-overview-table"><thead><tr><th>ONU</th><th>Description</th><th>MAC Address</th><th>Signal / RX power</th></tr></thead><tbody data-afc-olt-onus><tr><td colspan="4" class="afc-olt-overview-empty">Optical data has not loaded yet.</td></tr></tbody></table></div>' +
+			'</div>';
 
 		const row = container.querySelector( '.row.row-cards' );
 		if ( row ) container.insertBefore( overview, row );
@@ -108,7 +110,7 @@
 	}
 
 	function statusClass( status ) {
-		return [ 'good', 'warning', 'critical', 'offline' ].includes( status ) ? status : 'offline';
+		return [ 'good', 'warning', 'critical', 'invalid', 'offline' ].includes( status ) ? status : 'offline';
 	}
 
 	function renderCounts( counts ) {
@@ -118,53 +120,87 @@
 		} );
 	}
 
-	function renderPonOptions( pons ) {
-		const select = document.querySelector( '[data-afc-olt-filter="pon"]' );
-		if ( ! select ) return;
-		const current = select.value;
-		select.innerHTML = '<option value="">All PONs</option>' + ( pons || [] ).map( function ( item ) {
-			return '<option value="' + escapeAttr( item.pon ) + '">PON ' + escapeHtml( item.pon ) + '</option>';
-		} ).join( '' );
-		select.value = current;
+	function activePonSummary() {
+		if ( ! overviewData || ! Array.isArray( overviewData.pons ) ) return null;
+		return overviewData.pons.find( function ( item ) { return String( item.pon ) === String( selectedPon ); } ) || null;
 	}
 
-	function renderPons( pons ) {
+	function renderPonTabs( pons ) {
 		const target = document.querySelector( '[data-afc-olt-pons]' );
 		if ( ! target ) return;
 		if ( ! pons || ! pons.length ) {
 			target.innerHTML = '';
+			selectedPon = '';
 			return;
 		}
+
+		if ( ! selectedPon || ! pons.some( function ( item ) { return String( item.pon ) === String( selectedPon ); } ) ) {
+			selectedPon = String( pons[0].pon );
+		}
+
 		target.innerHTML = pons.map( function ( item ) {
-			const weak = null === item.weakest || undefined === item.weakest ? 'No valid RX' : Number( item.weakest ).toFixed( 2 ) + ' dBm';
-			return '<article class="afc-olt-pon-card">' +
-				'<div class="afc-olt-pon-card-head"><h4>PON ' + escapeHtml( item.pon ) + '</h4><span>' + escapeHtml( item.total ) + ' ONU</span></div>' +
-				'<div class="afc-olt-pon-card-meta">' +
-					'<span>' + escapeHtml( item.mapped ) + ' mapped</span>' +
-					'<span>' + escapeHtml( item.warning + item.critical ) + ' weak</span>' +
-					'<span>' + escapeHtml( item.offline ) + ' no RX</span>' +
-					'<span>Weakest ' + escapeHtml( weak ) + '</span>' +
-				'</div></article>';
+			const active = String( item.pon ) === String( selectedPon );
+			const weak = Number( item.warning || 0 ) + Number( item.critical || 0 );
+			return '<button type="button" role="tab" class="afc-olt-pon-tab' + ( active ? ' is-active' : '' ) + '" data-afc-olt-pon-tab="' + escapeAttr( item.pon ) + '" aria-selected="' + ( active ? 'true' : 'false' ) + '">' +
+				'<span>PON ' + escapeHtml( item.pon ) + '</span>' +
+				'<small>' + escapeHtml( item.total ) + ' ONU · ' + escapeHtml( item.valid ) + ' valid · ' + escapeHtml( item.invalid ) + ' invalid' + ( weak ? ' · ' + escapeHtml( weak ) + ' weak' : '' ) + '</small>' +
+			'</button>';
 		} ).join( '' );
+	}
+
+	function renderTabSummary() {
+		const target = document.querySelector( '[data-afc-olt-tab-summary]' );
+		if ( ! target ) return;
+		const item = activePonSummary();
+		if ( ! item ) {
+			target.innerHTML = '';
+			return;
+		}
+		const weakest = null === item.weakest || undefined === item.weakest ? 'No valid RX yet' : 'Weakest valid RX ' + Number( item.weakest ).toFixed( 2 ) + ' dBm';
+		target.innerHTML = '<h4>PON ' + escapeHtml( item.pon ) + '</h4><p>' + escapeHtml( item.total ) + ' ONU · ' + escapeHtml( item.mapped ) + ' mapped · ' + escapeHtml( item.valid ) + ' valid signal · ' + escapeHtml( item.invalid ) + ' invalid RX · ' + escapeHtml( item.offline ) + ' offline · ' + escapeHtml( weakest ) + '</p>';
 	}
 
 	function filteredOnus() {
 		if ( ! overviewData || ! Array.isArray( overviewData.onus ) ) return [];
 		const searchNode = document.querySelector( '[data-afc-olt-filter="search"]' );
 		const statusNode = document.querySelector( '[data-afc-olt-filter="status"]' );
-		const ponNode = document.querySelector( '[data-afc-olt-filter="pon"]' );
 		const search = String( searchNode ? searchNode.value : '' ).trim().toLowerCase();
 		const status = statusNode ? statusNode.value : '';
-		const pon = ponNode ? ponNode.value : '';
 
 		return overviewData.onus.filter( function ( item ) {
-			if ( pon && String( item.pon ) !== pon ) return false;
+			if ( selectedPon && String( item.pon ) !== String( selectedPon ) ) return false;
 			if ( status === 'unmapped' && item.mapped ) return false;
 			if ( status && status !== 'unmapped' && item.status !== status ) return false;
 			if ( ! search ) return true;
 			const customer = item.customer || {};
-			return [ item.pon, item.onu, customer.name, customer.username, customer.onu_mac ].join( ' ' ).toLowerCase().includes( search );
+			const macs = Array.isArray( item.mac_addresses ) ? item.mac_addresses.join( ' ' ) : '';
+			return [ item.pon, item.onu, item.description, macs, customer.name, customer.username, customer.onu_mac ].join( ' ' ).toLowerCase().includes( search );
 		} );
+	}
+
+	function macHtml( item ) {
+		const macs = Array.isArray( item.mac_addresses ) ? item.mac_addresses.filter( Boolean ) : [];
+		if ( ! macs.length ) return '<span class="afc-olt-unmapped">—</span>';
+		return '<div class="afc-olt-macs">' + macs.map( function ( mac ) { return '<code>' + escapeHtml( mac ) + '</code>'; } ).join( '' ) + '</div>';
+	}
+
+	function descriptionHtml( item ) {
+		const customer = item.customer || {};
+		const description = item.description || customer.name || '';
+		if ( ! description ) return '<span class="afc-olt-unmapped">—</span>';
+		const detail = customer.username ? '<small>' + escapeHtml( customer.username ) + '</small>' : '';
+		return '<div class="afc-olt-description"><span>' + escapeHtml( description ) + '</span>' + detail + '</div>';
+	}
+
+	function signalHtml( item ) {
+		if ( item.status === 'offline' ) {
+			return '<div class="afc-olt-signal"><span class="afc-olt-status-pill is-offline">Offline</span><small>No current RX row</small></div>';
+		}
+		if ( ! item.signal_valid || null === item.rx_power || undefined === item.rx_power ) {
+			const raw = item.raw_rx_text || ( null !== item.raw_rx && undefined !== item.raw_rx ? String( item.raw_rx ) : '' );
+			return '<div class="afc-olt-signal"><span class="afc-olt-status-pill is-invalid">Invalid RX</span>' + ( raw ? '<small>OLT raw: ' + escapeHtml( raw ) + '</small>' : '<small>No credible dBm value</small>' ) + '</div>';
+		}
+		return '<div class="afc-olt-signal"><span class="afc-olt-rx">' + escapeHtml( Number( item.rx_power ).toFixed( 2 ) ) + ' dBm</span><span class="afc-olt-status-pill is-' + statusClass( item.status ) + '">' + escapeHtml( item.status_label || item.status ) + '</span></div>';
 	}
 
 	function renderOnus() {
@@ -172,22 +208,15 @@
 		if ( ! target ) return;
 		const onus = filteredOnus();
 		if ( ! onus.length ) {
-			target.innerHTML = '<tr><td colspan="5" class="afc-olt-overview-empty">No ONU matches the current filters.</td></tr>';
+			target.innerHTML = '<tr><td colspan="4" class="afc-olt-overview-empty">No ONU matches this PON and the current filters.</td></tr>';
 			return;
 		}
-
 		target.innerHTML = onus.map( function ( item ) {
-			const customer = item.customer || {};
-			const rx = null === item.rx_power || undefined === item.rx_power ? 'No RX' : Number( item.rx_power ).toFixed( 2 ) + ' dBm';
-			const customerHtml = item.mapped
-				? '<div class="afc-olt-customer"><span>' + escapeHtml( customer.name || 'Customer' ) + '</span><small>' + escapeHtml( customer.username || 'No PPP username' ) + '</small></div>'
-				: '<span class="afc-olt-unmapped">Not mapped</span>';
 			return '<tr>' +
-				'<td>' + escapeHtml( item.pon ) + '</td>' +
-				'<td>' + escapeHtml( item.onu ) + '</td>' +
-				'<td class="afc-olt-rx">' + escapeHtml( rx ) + '</td>' +
-				'<td><span class="afc-olt-status-pill is-' + statusClass( item.status ) + '">' + escapeHtml( item.status_label || item.status ) + '</span></td>' +
-				'<td>' + customerHtml + '</td>' +
+				'<td class="afc-olt-onu-number"><span>' + escapeHtml( item.onu ) + '</span><small>PON ' + escapeHtml( item.pon ) + '</small></td>' +
+				'<td>' + descriptionHtml( item ) + '</td>' +
+				'<td>' + macHtml( item ) + '</td>' +
+				'<td>' + signalHtml( item ) + '</td>' +
 			'</tr>';
 		} ).join( '' );
 	}
@@ -198,8 +227,8 @@
 		const diagnostics = overviewData.diagnostics || {};
 		const counts = overviewData.counts || {};
 		renderCounts( counts );
-		renderPonOptions( overviewData.pons || [] );
-		renderPons( overviewData.pons || [] );
+		renderPonTabs( overviewData.pons || [] );
+		renderTabSummary();
 		renderOnus();
 
 		if ( ! summary.enabled ) {
@@ -216,21 +245,21 @@
 			return;
 		}
 
-		const zeroCount = Number( diagnostics.zero_rx || 0 );
+		const invalidCount = Number( diagnostics.invalid_rx || 0 );
 		const readingCount = Number( counts.readings || 0 );
-		if ( zeroCount > 0 ) {
-			const majority = readingCount > 0 && zeroCount >= Math.ceil( readingCount / 2 );
+		if ( invalidCount > 0 ) {
+			const majority = readingCount > 0 && invalidCount >= Math.ceil( readingCount / 2 );
+			const oid = diagnostics.rx_oid ? ' OID ' + diagnostics.rx_oid + '.' : '';
 			setOverviewStatus(
-				( overviewData.olt && overviewData.olt.name ? overviewData.olt.name : 'OLT' ) + ' responded' + when +
-				'. ' + zeroCount + ' ONU row' + ( zeroCount === 1 ? '' : 's' ) + ' reported 0.00 dBm. ' +
-				'0.00 dBm is not treated as a valid subscriber RX level; it is shown as No RX / Offline.' +
-				( majority ? ' Because most rows are zero, the configured RX-power OID or this OLT firmware needs to be verified.' : '' ),
+				( overviewData.olt && overviewData.olt.name ? overviewData.olt.name : 'OLT' ) + ' responded' + when + '. ' +
+				invalidCount + ' of ' + readingCount + ' ONU row' + ( readingCount === 1 ? '' : 's' ) + ' did not contain a credible negative dBm receive level.' + oid +
+				( majority ? ' Most rows are invalid, so the configured RX-power OID or its value scale still needs verification.' : '' ),
 				'stale'
 			);
 			return;
 		}
 
-		setOverviewStatus( ( overviewData.olt && overviewData.olt.name ? overviewData.olt.name : 'OLT' ) + ' is available' + when + '.', 'good' );
+		setOverviewStatus( ( overviewData.olt && overviewData.olt.name ? overviewData.olt.name : 'OLT' ) + ' is available' + when + '. All returned RX values are credible negative dBm readings.', 'good' );
 	}
 
 	function loadOverview( force ) {
@@ -261,9 +290,7 @@
 			overviewLoaded = true;
 			renderOverview( response.data || {} );
 		} ).fail( function ( xhr ) {
-			const message = xhr.responseJSON && xhr.responseJSON.data && xhr.responseJSON.data.message
-				? xhr.responseJSON.data.message
-				: 'The OLT overview request failed.';
+			const message = xhr.responseJSON && xhr.responseJSON.data && xhr.responseJSON.data.message ? xhr.responseJSON.data.message : 'The OLT overview request failed.';
 			setOverviewStatus( message, 'error' );
 		} ).always( function () {
 			overviewLoading = false;
@@ -300,42 +327,33 @@
 		} );
 		$( window ).on( 'hashchange', maybeLoadOverview );
 
-		$( document ).on( 'click', '[data-afc-olt-overview-refresh]', function () {
-			loadOverview( true );
-		} );
+		$( document ).on( 'click', '[data-afc-olt-overview-refresh]', function () { loadOverview( true ); } );
 		$( document ).on( 'input change', '[data-afc-olt-filter]', renderOnus );
+		$( document ).on( 'click', '[data-afc-olt-pon-tab]', function () {
+			selectedPon = String( $( this ).attr( 'data-afc-olt-pon-tab' ) || '' );
+			renderPonTabs( overviewData && overviewData.pons ? overviewData.pons : [] );
+			renderTabSummary();
+			renderOnus();
+		} );
 
 		$button.on( 'click', function () {
 			$button.prop( 'disabled', true ).text( afcOLT.testing );
 			$result.html( '<div class="alert alert-info">Reading the OLT optical table&hellip;</div>' );
-
-			$.post( afcOLT.ajaxUrl, {
-				action: 'afc_test_olt',
-				nonce: afcOLT.nonce
-			} )
+			$.post( afcOLT.ajaxUrl, { action: 'afc_test_olt', nonce: afcOLT.nonce } )
 				.done( function ( response ) {
 					const successful = response && response.success;
-					const message = response && response.data && response.data.message
-						? response.data.message
-						: 'The OLT returned an unexpected response.';
-					$result.html( $( '<div>', {
-						class: 'alert ' + ( successful ? 'alert-success' : 'alert-danger' ),
-						text: message
-					} ) );
+					const message = response && response.data && response.data.message ? response.data.message : 'The OLT returned an unexpected response.';
+					$result.html( $( '<div>', { class: 'alert ' + ( successful ? 'alert-success' : 'alert-danger' ), text: message } ) );
 					if ( successful ) {
 						overviewLoaded = false;
 						window.setTimeout( function () { loadOverview( false ); }, 60 );
 					}
 				} )
 				.fail( function ( xhr ) {
-					const message = xhr.responseJSON && xhr.responseJSON.data && xhr.responseJSON.data.message
-						? xhr.responseJSON.data.message
-						: 'The OLT connection test request failed.';
+					const message = xhr.responseJSON && xhr.responseJSON.data && xhr.responseJSON.data.message ? xhr.responseJSON.data.message : 'The OLT connection test request failed.';
 					$result.html( $( '<div>', { class: 'alert alert-danger', text: message } ) );
 				} )
-				.always( function () {
-					$button.prop( 'disabled', false ).text( afcOLT.button );
-				} );
+				.always( function () { $button.prop( 'disabled', false ).text( afcOLT.button ); } );
 		} );
 	} );
 }( jQuery ) );
