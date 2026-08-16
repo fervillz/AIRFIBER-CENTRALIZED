@@ -26,6 +26,13 @@ class AFC_App_Typography {
 		);
 
 		self::enqueue( array( 'afc-source-serif-4' ) );
+
+		wp_enqueue_style(
+			'afc-frontend-serif-typography',
+			AFC_URL . 'assets/css/frontend-serif-typography.css',
+			array( 'afc-app-typography', 'afc-source-serif-4' ),
+			AFC_VERSION
+		);
 	}
 
 	public static function enqueue_admin( $hook_suffix ) {
