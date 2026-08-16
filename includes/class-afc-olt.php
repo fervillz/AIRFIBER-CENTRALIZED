@@ -13,6 +13,7 @@ class AFC_OLT {
 	const SNAPSHOT_TRANSIENT   = 'afc_olt_rx_snapshot';
 	const MAC_TRANSIENT        = 'afc_olt_learned_macs';
 	const POLL_LOCK_TRANSIENT  = 'afc_olt_poll_lock';
+	const SNAPSHOT_FORMAT      = 2;
 	const MAC_CACHE_TTL        = 900;
 	const RX_POWER_OID         = '1.3.6.1.4.1.37950.1.1.5.12.2.1.8.1.7';
 	const LEARNED_MAC_OID      = '1.3.6.1.4.1.37950.1.1.5.10.3.2.1.3';
@@ -232,15 +233,19 @@ class AFC_OLT {
 		return 'afc_get_ppp_users' === sanitize_key( wp_unslash( $_REQUEST['action'] ) );
 	}
 
+	private static function snapshot_is_current_format( $snapshot ) {
+		return is_array( $snapshot ) && isset( $snapshot['format'] ) && self::SNAPSHOT_FORMAT === (int) $snapshot['format'];
+	}
+
 	private static function saved_snapshot( $message = '' ) {
 		$cached = get_transient( self::SNAPSHOT_TRANSIENT );
-		if ( is_array( $cached ) && ! empty( $cached['entries'] ) ) {
+		if ( self::snapshot_is_current_format( $cached ) && ! empty( $cached['entries'] ) ) {
 			$cached['source'] = 'cache';
 			return $cached;
 		}
 
 		$last = get_option( self::LAST_SNAPSHOT_KEY, array() );
-		if ( is_array( $last ) && ! empty( $last['entries'] ) ) {
+		if ( self::snapshot_is_current_format( $last ) && ! empty( $last['entries'] ) ) {
 			$last['source'] = 'stale';
 			$last['stale']  = true;
 			if ( $message ) {
@@ -259,7 +264,7 @@ class AFC_OLT {
 
 		if ( ! $force ) {
 			$cached = get_transient( self::SNAPSHOT_TRANSIENT );
-			if ( is_array( $cached ) && ! empty( $cached['entries'] ) ) {
+			if ( self::snapshot_is_current_format( $cached ) && ! empty( $cached['entries'] ) ) {
 				$cached['source'] = 'cache';
 				return $cached;
 			}
@@ -355,6 +360,7 @@ class AFC_OLT {
 		$learned_macs = self::get_learned_macs( $settings );
 
 		return array(
+			'format'        => self::SNAPSHOT_FORMAT,
 			'entries'       => $entries,
 			'learned_macs'  => $learned_macs,
 			'count'         => count( $entries ),
@@ -523,15 +529,32 @@ class AFC_OLT {
 	}
 
 	/**
-	 * VSOL firmware variants expose optical values with different integer scales.
-	 * Normalise common whole-dBm, tenths-dBm and hundredths-dBm forms, but never
-	 * present zero/positive values as subscriber receive power.
+	 * VSOL commonly returns a human-readable SNMP string such as:
+	 * STRING: "0.01 mW (-20.56 dBm)"
+	 * The dBm value is the receive power we need; the leading mW value must not
+	 * be mistaken for dBm. Firmware that returns a plain scaled integer is kept
+	 * as a fallback for compatibility.
 	 */
 	private static function parse_rx_power_reading( $raw_value ) {
 		$value = trim( (string) $raw_value );
 		if ( '' === $value || false !== stripos( $value, 'no such' ) ) {
 			return null;
 		}
+
+		/* Prefer the explicitly labelled dBm number anywhere in the SNMP string. */
+		if ( preg_match( '/(-?\d+(?:\.\d+)?)\s*dBm\b/i', $value, $matches ) ) {
+			$power = (float) $matches[1];
+			$valid = $power < -1 && $power >= -60;
+			return array(
+				'raw'      => $power,
+				'raw_text' => $value,
+				'power'    => $valid ? $power : null,
+				'scale'    => 1,
+				'valid'    => $valid,
+			);
+		}
+
+		/* Fallback for firmware that returns only a numeric/scaled numeric value. */
 		if ( ! preg_match( '/-?\d+(?:\.\d+)?/', $value, $matches ) ) {
 			return null;
 		}
@@ -539,8 +562,6 @@ class AFC_OLT {
 		$raw   = (float) $matches[0];
 		$power = $raw;
 		$scale = 1;
-
-		/* -230 commonly means -23.0 dBm; -2300 commonly means -23.00 dBm. */
 		if ( $raw <= -100 && $raw >= -600 ) {
 			$power = $raw / 10;
 			$scale = 10;
@@ -549,9 +570,7 @@ class AFC_OLT {
 			$scale = 100;
 		}
 
-		/* A subscriber RX reading must be negative. Keep a wide diagnostic floor. */
 		$valid = $power < -1 && $power >= -60;
-
 		return array(
 			'raw'      => $raw,
 			'raw_text' => $value,
