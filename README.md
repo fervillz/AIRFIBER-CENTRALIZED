@@ -30,8 +30,10 @@ Version 2.8.0 adds read-only EPON ONU RX-power monitoring for the primary OLT.
 1. Install and enable the PHP SNMP extension on the WordPress server.
 2. On the OLT, create a dedicated read-only SNMPv3 `authPriv` identity using SHA authentication and DES privacy.
 3. Restrict UDP/161 so only the WordPress server or its private VPN address can reach the OLT.
-4. Open **Airfiber → OLT Optical**, save the OLT connection, and run the connection test.
-5. Open **Airfiber → Billing & PPP**, import the customer if necessary, then use **Map ONU** to assign its PON and ONU ID.
+4. Open the protected `/airfiber/#optical` frontend page, save the OLT connection, and run the connection test.
+5. Open `/airfiber/#operations`, import the customer if necessary, then use **Map ONU** to assign its PON and ONU ID.
+
+The WordPress administration pages remain available as a recovery path, but normal OLT monitoring and configuration can be performed from the private Airfiber frontend app.
 
 The default V1600D RX-power column OID is:
 
@@ -55,4 +57,4 @@ When the OLT exposes its learned-MAC table, the plugin compares each online PPP 
 
 ## Status
 
-Current plugin version: `2.8.3`.
+Current plugin version: `2.9.0`.

@@ -180,6 +180,7 @@ class AFC_Frontend_Page {
 		if ( class_exists( 'AFC_Admin' ) ) {
 			AFC_Admin::enqueue_assets( 'toplevel_page_airfiber-centralized' );
 			AFC_Admin::enqueue_assets( 'airfiber_page_airfiber-mikrotik' );
+			AFC_Admin::enqueue_assets( 'airfiber_page_airfiber-olt' );
 		}
 		if ( class_exists( 'AFC_Collection_Print' ) ) {
 			AFC_Collection_Print::enqueue_assets( 'toplevel_page_airfiber-centralized' );
@@ -269,6 +270,18 @@ class AFC_Frontend_Page {
 		echo $settings_markup; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
 	}
 
+	public static function render_olt_panel() {
+		if ( ! function_exists( 'settings_fields' ) ) {
+			require_once ABSPATH . 'wp-admin/includes/plugin.php';
+			require_once ABSPATH . 'wp-admin/includes/template.php';
+		}
+
+		$settings             = AFC_OLT::get_settings();
+		$last_status          = get_option( AFC_OLT::LAST_STATUS_KEY, array() );
+		$afc_olt_frontend_url = self::get_url() . '#optical';
+		include AFC_PATH . 'templates/admin/olt-settings.php';
+	}
+
 	public static function render_app() {
 		if ( ! is_user_logged_in() || ! current_user_can( 'manage_options' ) ) {
 			return '';
@@ -293,6 +306,9 @@ class AFC_Frontend_Page {
 					<button type="button" class="is-active" data-afc-app-panel="operations" aria-pressed="true">
 						<?php esc_html_e( 'Operations', 'airfiber-centralized' ); ?>
 					</button>
+					<button type="button" data-afc-app-panel="optical" aria-pressed="false">
+						<?php esc_html_e( 'Optical', 'airfiber-centralized' ); ?>
+					</button>
 					<button type="button" class="afc-advanced-only" data-afc-app-panel="mikrotik" aria-pressed="false">
 						<?php esc_html_e( 'MikroTik', 'airfiber-centralized' ); ?>
 					</button>
@@ -313,6 +329,10 @@ class AFC_Frontend_Page {
 			<main class="afc-frontend-content">
 				<section class="afc-frontend-panel is-active" data-afc-panel="operations" aria-hidden="false">
 					<?php self::render_operations_panel(); ?>
+				</section>
+
+				<section class="afc-frontend-panel" data-afc-panel="optical" aria-hidden="true" hidden>
+					<?php self::render_olt_panel(); ?>
 				</section>
 
 				<?php if ( class_exists( 'AFC_Ajaxify' ) ) : ?>

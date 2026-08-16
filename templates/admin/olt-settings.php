@@ -14,10 +14,20 @@ defined( 'ABSPATH' ) || exit;
 
 		<?php settings_errors( AFC_OLT::OPTION_KEY ); ?>
 
+		<?php if ( ! empty( $afc_olt_frontend_url ) ) : ?>
+			<div class="alert alert-info d-flex flex-wrap align-items-center justify-content-between gap-2">
+				<span><?php esc_html_e( 'Connection settings are here. Subscriber RX readings and ONU mapping are available in Operations.', 'airfiber-centralized' ); ?></span>
+				<a class="btn btn-sm btn-outline-primary" href="#operations"><?php esc_html_e( 'Open Subscriber Readings', 'airfiber-centralized' ); ?></a>
+			</div>
+		<?php endif; ?>
+
 		<div class="row row-cards">
 			<div class="col-lg-8">
 				<form method="post" action="<?php echo esc_url( admin_url( 'options.php' ) ); ?>" class="card">
 					<?php settings_fields( 'afc_olt' ); ?>
+					<?php if ( ! empty( $afc_olt_frontend_url ) ) : ?>
+						<input type="hidden" name="_wp_http_referer" value="<?php echo esc_url( $afc_olt_frontend_url ); ?>">
+					<?php endif; ?>
 					<div class="card-header">
 						<div>
 							<h3 class="card-title"><?php esc_html_e( 'Primary OLT Connection', 'airfiber-centralized' ); ?></h3>

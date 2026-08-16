@@ -86,6 +86,14 @@ class AFC_Advanced_Workspace {
 				'icon'        => '⌁',
 				'order'       => 50,
 			),
+			'optical' => array(
+				'group'       => 'system',
+				'title'       => __( 'Optical Network', 'airfiber-centralized' ),
+				'short'       => __( 'OLT RX power', 'airfiber-centralized' ),
+				'description' => __( 'Test the read-only OLT connection, tune signal thresholds and open subscriber ONU readings.', 'airfiber-centralized' ),
+				'icon'        => 'RX',
+				'order'       => 55,
+			),
 			'integrations' => array(
 				'group'       => 'system',
 				'title'       => __( 'Integrations', 'airfiber-centralized' ),
