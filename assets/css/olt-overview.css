@@ -29,10 +29,6 @@
 	color: #206bc4;
 }
 
-.afc-frontend-nav .afc-optical-direct-link:active {
-	transform: scale(0.97);
-}
-
 .afc-olt-overview {
 	margin: 0 0 20px;
 	padding: 18px;
@@ -148,7 +144,7 @@
 	display: grid;
 	grid-template-columns: repeat(6, minmax(0, 1fr));
 	gap: 9px;
-	margin-bottom: 16px;
+	margin-bottom: 14px;
 }
 
 .afc-olt-overview-metric {
@@ -176,7 +172,7 @@
 
 .afc-olt-overview-toolbar {
 	display: grid;
-	grid-template-columns: minmax(220px, 1fr) 160px 140px;
+	grid-template-columns: minmax(260px, 1fr) 180px;
 	gap: 9px;
 	margin-bottom: 14px;
 }
@@ -200,57 +196,101 @@
 	box-shadow: 0 0 0 3px rgba(45, 109, 165, .08);
 }
 
-.afc-olt-pon-grid {
-	display: grid;
-	grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
-	gap: 9px;
-	margin-bottom: 16px;
+.afc-olt-pon-tabs {
+	display: flex;
+	gap: 7px;
+	overflow-x: auto;
+	padding: 2px 2px 0;
+	margin-bottom: -1px;
+	scrollbar-width: thin;
 }
 
-.afc-olt-pon-card {
-	padding: 11px 12px;
-	border: 1px solid #e4e9ef;
-	border-radius: 13px;
+.afc-olt-pon-tab {
+	flex: 0 0 auto;
+	min-width: 150px;
+	padding: 10px 13px 11px;
+	border: 1px solid #dfe5ec;
+	border-bottom-color: #dfe5ec;
+	border-radius: 12px 12px 0 0;
+	background: #f8fafc;
+	color: #667485;
+	text-align: left;
+	cursor: pointer;
+	transition: background-color .14s ease, border-color .14s ease, color .14s ease;
+}
+
+.afc-olt-pon-tab span,
+.afc-olt-pon-tab small {
+	display: block;
+}
+
+.afc-olt-pon-tab span {
+	font-family: "Source Serif 4", Georgia, "Times New Roman", serif;
+	font-size: 16px;
+	color: #273142;
+}
+
+.afc-olt-pon-tab small {
+	margin-top: 3px;
+	font-size: 10px;
+	line-height: 1.25;
+	color: #8190a2;
+	white-space: nowrap;
+}
+
+.afc-olt-pon-tab:hover,
+.afc-olt-pon-tab:focus-visible {
+	outline: 0;
+	background: #f1f6fb;
+	border-color: #cedceb;
+}
+
+.afc-olt-pon-tab.is-active,
+.afc-olt-pon-tab[aria-selected="true"] {
+	position: relative;
+	z-index: 2;
 	background: #fff;
+	border-color: #cfdceb;
+	border-bottom-color: #fff;
+	color: #206bc4;
 }
 
-.afc-olt-pon-card-head {
+.afc-olt-tab-panel {
+	border: 1px solid #cfdceb;
+	border-radius: 0 14px 14px 14px;
+	background: #fff;
+	padding: 14px;
+}
+
+.afc-olt-tab-summary {
 	display: flex;
-	align-items: center;
-	justify-content: space-between;
-	gap: 10px;
-	margin-bottom: 7px;
+	align-items: baseline;
+	gap: 12px;
+	margin-bottom: 12px;
 }
 
-.afc-olt-pon-card-head span {
-	color: #6f7b8c;
+.afc-olt-tab-summary p {
+	margin: 0;
+	color: #798697;
 	font-size: 12px;
-}
-
-.afc-olt-pon-card-meta {
-	display: flex;
-	flex-wrap: wrap;
-	gap: 5px 10px;
-	color: #778494;
-	font-size: 11px;
 }
 
 .afc-olt-table-wrap {
 	overflow-x: auto;
 	border: 1px solid #e4e9ef;
-	border-radius: 14px;
+	border-radius: 12px;
 }
 
 .afc-olt-overview-table {
 	width: 100%;
-	min-width: 720px;
+	min-width: 760px;
 	border-collapse: collapse;
 	background: #fff;
 }
 
 .afc-olt-overview-table th,
 .afc-olt-overview-table td {
-	padding: 10px 12px;
+	padding: 11px 12px;
 	border-bottom: 1px solid #edf0f4;
 	text-align: left;
 	vertical-align: middle;
@@ -266,35 +306,92 @@
 	letter-spacing: .035em;
 }
 
+.afc-olt-overview-table th:first-child {
+	width: 92px;
+}
+
+.afc-olt-overview-table th:nth-child(2) {
+	width: 32%;
+}
+
+.afc-olt-overview-table th:nth-child(3) {
+	width: 31%;
+}
+
 .afc-olt-overview-table tr:last-child td {
 	border-bottom: 0;
+}
+
+.afc-olt-onu-number span,
+.afc-olt-onu-number small,
+.afc-olt-description span,
+.afc-olt-description small,
+.afc-olt-signal small {
+	display: block;
+}
+
+.afc-olt-onu-number span {
+	font-family: "Source Serif 4", Georgia, "Times New Roman", serif;
+	font-size: 17px;
+	color: #273142;
+}
+
+.afc-olt-onu-number small,
+.afc-olt-description small,
+.afc-olt-signal small {
+	margin-top: 2px;
+	color: #8a95a3;
+	font-size: 10px;
+}
+
+.afc-olt-description span {
+	color: #334155;
+}
+
+.afc-olt-macs {
+	display: flex;
+	flex-direction: column;
+	align-items: flex-start;
+	gap: 3px;
+}
+
+.afc-olt-macs code {
+	padding: 2px 5px;
+	border: 1px solid #e8edf2;
+	border-radius: 6px;
+	background: #f8fafc;
+	color: #475569;
+	font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+	font-size: 11px;
+	font-weight: 400 !important;
+}
+
+.afc-olt-signal {
+	display: flex;
+	align-items: center;
+	flex-wrap: wrap;
+	gap: 6px;
+}
+
+.afc-olt-signal small {
+	flex-basis: 100%;
 }
 
 .afc-olt-rx {
 	font-variant-numeric: tabular-nums;
 	white-space: nowrap;
-}
-
-.afc-olt-customer span,
-.afc-olt-customer small {
-	display: block;
-}
-
-.afc-olt-customer small {
-	margin-top: 1px;
-	color: #8993a0;
-	font-size: 11px;
+	color: #334155;
 }
 
 .afc-olt-status-pill {
 	display: inline-flex;
 	align-items: center;
-	min-height: 24px;
+	min-height: 23px;
 	padding: 3px 8px;
 	border-radius: 999px;
 	background: #eef2f6;
 	color: #667485;
-	font-size: 11px;
+	font-size: 10px;
 	white-space: nowrap;
 }
 
@@ -311,6 +408,11 @@
 .afc-olt-status-pill.is-critical {
 	background: #fff0f0;
 	color: #914b4b;
+}
+
+.afc-olt-status-pill.is-invalid {
+	background: #fff7e8;
+	color: #8a652f;
 }
 
 .afc-olt-status-pill.is-offline {
@@ -355,5 +457,16 @@
 
 	.afc-olt-overview-toolbar {
 		grid-template-columns: 1fr;
+	}
+
+	.afc-olt-tab-summary {
+		align-items: flex-start;
+		flex-direction: column;
+		gap: 3px;
+	}
+
+	.afc-olt-tab-panel {
+		border-radius: 0 12px 12px 12px;
+		padding: 10px;
 	}
 }
