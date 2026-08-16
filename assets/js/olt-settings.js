@@ -40,7 +40,7 @@
 		const link = document.createElement( 'link' );
 		link.id = 'afc-olt-overview-style';
 		link.rel = 'stylesheet';
-		link.href = base + '/assets/css/olt-overview.css?v=2.10.4';
+		link.href = base + '/assets/css/olt-overview.css?v=2.10.5';
 		document.head.appendChild( link );
 	}
 
@@ -196,9 +196,10 @@
 		if ( item.status === 'offline' ) {
 			return '<div class="afc-olt-signal"><span class="afc-olt-status-pill is-offline">Offline</span><small>No current RX row</small></div>';
 		}
-		if ( ! item.signal_valid || null === item.rx_power || undefined === item.rx_power ) {
+		if ( ! item.signal_valid || null === item.rx_power || undefined === item.rx_power || Number( item.rx_power ) >= -1 ) {
 			const raw = item.raw_rx_text || ( null !== item.raw_rx && undefined !== item.raw_rx ? String( item.raw_rx ) : '' );
-			return '<div class="afc-olt-signal"><span class="afc-olt-status-pill is-invalid">Invalid RX</span>' + ( raw ? '<small>OLT raw: ' + escapeHtml( raw ) + '</small>' : '<small>No credible dBm value</small>' ) + '</div>';
+			const title = raw ? 'OLT returned ' + raw + '. This is not a credible subscriber receive-power value.' : 'No credible subscriber receive-power value was returned.';
+			return '<div class="afc-olt-signal" title="' + escapeAttr( title ) + '"><span class="afc-olt-status-pill is-invalid">Signal unavailable</span><small>Invalid RX value</small></div>';
 		}
 		return '<div class="afc-olt-signal"><span class="afc-olt-rx">' + escapeHtml( Number( item.rx_power ).toFixed( 2 ) ) + ' dBm</span><span class="afc-olt-status-pill is-' + statusClass( item.status ) + '">' + escapeHtml( item.status_label || item.status ) + '</span></div>';
 	}
