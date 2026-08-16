@@ -12,6 +12,7 @@ class AFC_OLT {
 	const LAST_SNAPSHOT_KEY    = 'afc_olt_last_snapshot';
 	const SNAPSHOT_TRANSIENT   = 'afc_olt_rx_snapshot';
 	const MAC_TRANSIENT        = 'afc_olt_learned_macs';
+	const POLL_LOCK_TRANSIENT  = 'afc_olt_poll_lock';
 	const MAC_CACHE_TTL        = 900;
 	const RX_POWER_OID         = '1.3.6.1.4.1.37950.1.1.5.12.2.1.8.1.7';
 	const LEARNED_MAC_OID      = '1.3.6.1.4.1.37950.1.1.5.10.3.2.1.3';
@@ -22,6 +23,26 @@ class AFC_OLT {
 		add_action( 'admin_init', array( __CLASS__, 'register_settings' ) );
 		add_action( 'wp_ajax_afc_test_olt', array( __CLASS__, 'ajax_test_connection' ) );
 		add_action( 'wp_ajax_afc_save_olt_binding', array( __CLASS__, 'ajax_save_binding' ) );
+		add_action( 'wp_ajax_afc_get_olt_customer_signals', array( __CLASS__, 'ajax_customer_signals' ) );
+		add_action( 'admin_enqueue_scripts', array( __CLASS__, 'enqueue_async_optical_assets' ), 30 );
+		add_action( 'wp_enqueue_scripts', array( __CLASS__, 'enqueue_async_optical_assets' ), 30 );
+	}
+
+	public static function enqueue_async_optical_assets( $hook_suffix = '' ) {
+		$is_admin_ppp = is_admin() && 'toplevel_page_airfiber-centralized' === $hook_suffix;
+		$is_frontend  = ! is_admin() && class_exists( 'AFC_Frontend_Page' ) && AFC_Frontend_Page::is_app_request();
+
+		if ( ! current_user_can( 'manage_options' ) || ( ! $is_admin_ppp && ! $is_frontend ) ) {
+			return;
+		}
+
+		wp_enqueue_script(
+			'afc-ppp-optical-async',
+			AFC_URL . 'assets/js/ppp-optical-async.js',
+			array( 'jquery', 'afc-ppp-users' ),
+			AFC_VERSION,
+			true
+		);
 	}
 
 	public static function register_settings() {
@@ -99,6 +120,7 @@ class AFC_OLT {
 
 		delete_transient( self::SNAPSHOT_TRANSIENT );
 		delete_transient( self::MAC_TRANSIENT );
+		delete_transient( self::POLL_LOCK_TRANSIENT );
 
 		return array(
 			'enabled'            => empty( $input['enabled'] ) ? 0 : 1,
@@ -202,6 +224,34 @@ class AFC_OLT {
 		return '2c' === $version ? function_exists( 'snmp2_real_walk' ) : function_exists( 'snmp3_real_walk' );
 	}
 
+	private static function is_ppp_list_request() {
+		if ( ! wp_doing_ajax() || empty( $_REQUEST['action'] ) ) {
+			return false;
+		}
+
+		return 'afc_get_ppp_users' === sanitize_key( wp_unslash( $_REQUEST['action'] ) );
+	}
+
+	private static function saved_snapshot( $message = '' ) {
+		$cached = get_transient( self::SNAPSHOT_TRANSIENT );
+		if ( is_array( $cached ) && ! empty( $cached['entries'] ) ) {
+			$cached['source'] = 'cache';
+			return $cached;
+		}
+
+		$last = get_option( self::LAST_SNAPSHOT_KEY, array() );
+		if ( is_array( $last ) && ! empty( $last['entries'] ) ) {
+			$last['source'] = 'stale';
+			$last['stale']  = true;
+			if ( $message ) {
+				$last['error'] = $message;
+			}
+			return $last;
+		}
+
+		return null;
+	}
+
 	public static function get_snapshot( $force = false ) {
 		if ( ! self::is_enabled() ) {
 			return new WP_Error( 'afc_olt_disabled', __( 'OLT monitoring is not enabled.', 'airfiber-centralized' ) );
@@ -215,7 +265,25 @@ class AFC_OLT {
 			}
 		}
 
-		$snapshot = self::poll_rx_power();
+		/* Never make the PPP account request wait for SNMP. Optical has its own AJAX request. */
+		if ( ! $force && self::is_ppp_list_request() ) {
+			$saved = self::saved_snapshot( __( 'Optical readings are loading separately in the background.', 'airfiber-centralized' ) );
+			return $saved ? $saved : new WP_Error( 'afc_olt_async_pending', __( 'Optical readings are loading separately in the background.', 'airfiber-centralized' ) );
+		}
+
+		/* Prevent several browser requests from walking the OLT at the same time. */
+		if ( get_transient( self::POLL_LOCK_TRANSIENT ) ) {
+			$saved = self::saved_snapshot( __( 'Another optical refresh is already running; showing the last saved snapshot.', 'airfiber-centralized' ) );
+			return $saved ? $saved : new WP_Error( 'afc_olt_refresh_busy', __( 'Another optical refresh is already running. Try again in a few seconds.', 'airfiber-centralized' ) );
+		}
+
+		set_transient( self::POLL_LOCK_TRANSIENT, time(), 30 );
+		try {
+			$snapshot = self::poll_rx_power();
+		} finally {
+			delete_transient( self::POLL_LOCK_TRANSIENT );
+		}
+
 		if ( ! is_wp_error( $snapshot ) ) {
 			$settings = self::get_settings();
 			set_transient( self::SNAPSHOT_TRANSIENT, $snapshot, (int) $settings['cache_ttl'] );
@@ -223,15 +291,8 @@ class AFC_OLT {
 			return $snapshot;
 		}
 
-		$last = get_option( self::LAST_SNAPSHOT_KEY, array() );
-		if ( is_array( $last ) && ! empty( $last['entries'] ) ) {
-			$last['source'] = 'stale';
-			$last['stale']  = true;
-			$last['error']  = $snapshot->get_error_message();
-			return $last;
-		}
-
-		return $snapshot;
+		$last = self::saved_snapshot( $snapshot->get_error_message() );
+		return $last ? $last : $snapshot;
 	}
 
 	private static function poll_rx_power() {
@@ -599,6 +660,46 @@ class AFC_OLT {
 		check_ajax_referer( $nonce_action, $nonce_field );
 	}
 
+	public static function ajax_customer_signals() {
+		self::authorize_admin_ajax( 'afc_ppp_users' );
+
+		$customers = array();
+		if ( isset( $_POST['customers'] ) ) {
+			$decoded = json_decode( wp_unslash( $_POST['customers'] ), true );
+			if ( is_array( $decoded ) ) {
+				$customers = array_slice( $decoded, 0, 1000 );
+			}
+		}
+
+		$force    = ! empty( $_POST['refresh'] );
+		$snapshot = self::get_snapshot( $force );
+		$signals  = array();
+
+		foreach ( $customers as $item ) {
+			$customer_id = isset( $item['id'] ) ? absint( $item['id'] ) : 0;
+			if ( ! $customer_id || 'afc_customer' !== get_post_type( $customer_id ) ) {
+				continue;
+			}
+
+			$signal = self::get_customer_signal( $customer_id, $snapshot );
+			if ( empty( $signal['mapped'] ) ) {
+				$caller_id  = isset( $item['caller_id'] ) ? sanitize_text_field( $item['caller_id'] ) : '';
+				$suggestion = self::suggest_binding( $caller_id, $snapshot );
+				if ( $suggestion ) {
+					$signal['suggested'] = $suggestion;
+				}
+			}
+			$signals[ (string) $customer_id ] = $signal;
+		}
+
+		wp_send_json_success(
+			array(
+				'signals' => $signals,
+				'summary' => self::snapshot_summary( $snapshot ),
+			)
+		);
+	}
+
 	public static function ajax_test_connection() {
 		self::authorize_admin_ajax( 'afc_test_olt_ajax' );
 		$result = self::test_connection();
@@ -650,7 +751,7 @@ class AFC_OLT {
 		$pon = isset( $_POST['pon'] ) ? absint( $_POST['pon'] ) : 0;
 		$onu = isset( $_POST['onu'] ) ? absint( $_POST['onu'] ) : 0;
 		if ( $pon < 1 || $pon > 16 || $onu < 1 || $onu > 256 ) {
-			wp_send_json_error( array( 'message' => __( 'Enter a valid PON number (1-16) and ONU ID (1-256).', 'airfiber-centralized' ) ) );
+			wp_send_json_error( array( 'message' => __( 'Enter a valid PON number (1-16) and ONU ID (1-256).', 'airfiber-centralized' ) );
 		}
 
 		$conflicts = get_posts(
