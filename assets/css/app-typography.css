@@ -194,6 +194,36 @@ body.afc-frontend-page .afc-frontend-shell .afc-basic-customer-side span {
 	font-size: var(--afc-type-secondary) !important;
 }
 
+/*
+ * Frontend typography direction: no visual bold/semibold anywhere in the app.
+ * Semantic <strong>/<b> markup can remain for meaning, but it renders at the
+ * same normal 400 weight. Headings use Source Serif 4 at its regular weight.
+ */
+body.afc-frontend-page .afc-frontend-shell {
+	font-synthesis: none;
+}
+
+body.afc-frontend-page .afc-frontend-shell * {
+	font-weight: 400 !important;
+}
+
+body.afc-frontend-page .afc-frontend-shell h1,
+body.afc-frontend-page .afc-frontend-shell h2,
+body.afc-frontend-page .afc-frontend-shell h3,
+body.afc-frontend-page .afc-frontend-shell h4,
+body.afc-frontend-page .afc-frontend-shell h5,
+body.afc-frontend-page .afc-frontend-shell h6,
+body.afc-frontend-page .afc-frontend-shell .page-title,
+body.afc-frontend-page .afc-frontend-shell .card-title,
+body.afc-frontend-page .afc-frontend-shell .modal-title,
+body.afc-frontend-page .afc-frontend-shell legend,
+body.afc-frontend-page .afc-frontend-shell [role="heading"],
+body.afc-frontend-page .afc-frontend-shell .afc-workspace-sidebar > header strong {
+	font-family: "Source Serif 4", Georgia, "Times New Roman", serif !important;
+	font-weight: 400 !important;
+	font-style: normal !important;
+}
+
 /* Mobile remains readable and slightly more compact without dropping below 13px. */
 @media (max-width: 782px) {
 	:root {
