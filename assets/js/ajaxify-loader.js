@@ -19,6 +19,11 @@
 		return document.getElementById( 'afc-frontend-app' );
 	}
 
+	function residentPanel( panel ) {
+		const node = document.querySelector( '[data-afc-panel="' + panel + '"]' );
+		return node && ! node.hasAttribute( 'data-afc-ajaxify-panel' ) ? node : null;
+	}
+
 	function connectionIsSlow() {
 		const connection = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
 		if ( ! connection ) return false;
@@ -256,7 +261,11 @@
 	}
 
 	function ensurePanel( panel ) {
-		if ( panel === 'operations' ) return Promise.resolve( document.querySelector( '[data-afc-panel="operations"]' ) );
+		const resident = residentPanel( panel );
+		if ( resident ) {
+			loadedPanels.add( panel );
+			return Promise.resolve( resident );
+		}
 		if ( loadedPanels.has( panel ) ) return Promise.resolve( document.querySelector( '[data-afc-panel="' + panel + '"]' ) );
 		if ( loadingPanels.has( panel ) ) return loadingPanels.get( panel );
 
@@ -325,7 +334,13 @@
 
 			const panelButton = event.target.closest && event.target.closest( '[data-afc-app-panel], [data-afc-ws-panel]' );
 			const panel = panelFromButton( panelButton );
-			if ( ! panel || panel === 'operations' || panelButton.getAttribute( 'data-afc-ajaxify-pass' ) === '1' || loadedPanels.has( panel ) ) return;
+			if ( ! panel || panelButton.getAttribute( 'data-afc-ajaxify-pass' ) === '1' || loadedPanels.has( panel ) ) return;
+
+			/* Optical and any other already-rendered panel must never be AJAX-loaded. */
+			if ( residentPanel( panel ) ) {
+				loadedPanels.add( panel );
+				return;
+			}
 
 			const settings = panelSettings( panel );
 			if ( ! settings ) return;
