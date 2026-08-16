@@ -11,6 +11,8 @@ class AFC_OLT {
 	const LAST_STATUS_KEY      = 'afc_olt_last_status';
 	const LAST_SNAPSHOT_KEY    = 'afc_olt_last_snapshot';
 	const SNAPSHOT_TRANSIENT   = 'afc_olt_rx_snapshot';
+	const MAC_TRANSIENT        = 'afc_olt_learned_macs';
+	const MAC_CACHE_TTL        = 900;
 	const RX_POWER_OID         = '1.3.6.1.4.1.37950.1.1.5.12.2.1.8.1.7';
 	const LEARNED_MAC_OID      = '1.3.6.1.4.1.37950.1.1.5.10.3.2.1.3';
 	const LEARNED_MAC_PORT_OID = '1.3.6.1.4.1.37950.1.1.5.10.3.2.1.5';
@@ -96,6 +98,7 @@ class AFC_OLT {
 		$privacy   = self::preserve_or_encrypt_secret( $input, 'privacy_passphrase', $current );
 
 		delete_transient( self::SNAPSHOT_TRANSIENT );
+		delete_transient( self::MAC_TRANSIENT );
 
 		return array(
 			'enabled'            => empty( $input['enabled'] ) ? 0 : 1,
@@ -274,6 +277,37 @@ class AFC_OLT {
 			return new WP_Error( 'afc_olt_empty_walk', __( 'SNMP responded, but no usable RX-power readings were found under the configured OID.', 'airfiber-centralized' ) );
 		}
 
+		$learned_macs = self::get_learned_macs( $settings );
+
+		return array(
+			'entries'      => $entries,
+			'learned_macs' => $learned_macs,
+			'count'        => count( $entries ),
+			'collected_at' => current_time( 'mysql' ),
+			'collected_ts' => time(),
+			'source'       => 'live',
+			'stale'        => false,
+			'error'        => '',
+		);
+	}
+
+	private static function get_learned_macs( $settings ) {
+		$cached = get_transient( self::MAC_TRANSIENT );
+		if ( is_array( $cached ) ) {
+			return $cached;
+		}
+
+		$last = get_option( self::LAST_SNAPSHOT_KEY, array() );
+		if (
+			is_array( $last ) &&
+			! empty( $last['learned_macs'] ) &&
+			! empty( $last['collected_ts'] ) &&
+			time() - (int) $last['collected_ts'] < 3600
+		) {
+			set_transient( self::MAC_TRANSIENT, $last['learned_macs'], self::MAC_CACHE_TTL );
+			return $last['learned_macs'];
+		}
+
 		$learned_macs = array();
 		$mac_walk     = self::walk_oid( $settings, self::LEARNED_MAC_OID );
 		$port_walk    = self::walk_oid( $settings, self::LEARNED_MAC_PORT_OID );
@@ -303,16 +337,8 @@ class AFC_OLT {
 			}
 		}
 
-		return array(
-			'entries'      => $entries,
-			'learned_macs' => $learned_macs,
-			'count'        => count( $entries ),
-			'collected_at' => current_time( 'mysql' ),
-			'collected_ts' => time(),
-			'source'       => 'live',
-			'stale'        => false,
-			'error'        => '',
-		);
+		set_transient( self::MAC_TRANSIENT, $learned_macs, self::MAC_CACHE_TTL );
+		return $learned_macs;
 	}
 
 	private static function walk_oid( $settings, $oid ) {

@@ -55,4 +55,4 @@ When the OLT exposes its learned-MAC table, the plugin compares each online PPP 
 
 ## Status
 
-Current plugin version: `2.8.2`.
+Current plugin version: `2.8.3`.
