@@ -1,0 +1,58 @@
+/* Advanced workspace cleanup: light-only UI with descriptions behind info controls. */
+html[data-afc-theme="dark"],
+body[data-afc-theme="dark"] {
+	color-scheme: light !important;
+}
+
+body.afc-admin-mode-advanced,
+body.afc-admin-mode-advanced.afc-workspace-active {
+	background: #f5f6f8 !important;
+	color: #202733 !important;
+}
+
+body.afc-admin-mode-advanced .afc-dashboard-theme-toggle,
+body.afc-admin-mode-advanced [data-afc-dashboard-theme-toggle],
+body.afc-admin-mode-advanced .afc-theme-pill-options {
+	display: none !important;
+}
+
+/* Keep the Advanced rail compact: titles + live status only. */
+body.afc-admin-mode-advanced .afc-workspace-menu-item b small {
+	display: none !important;
+}
+
+body.afc-admin-mode-advanced .afc-workspace-menu-item {
+	min-height: 50px;
+}
+
+/* Info buttons are the home for static explanatory copy. */
+body.afc-admin-mode-advanced .afc-workspace-sidebar > nav > section > header button,
+body.afc-admin-mode-advanced .afc-workspace-title [data-afc-ws-about],
+body.afc-admin-mode-advanced .afc-workspace-help {
+	transition: border-color .15s ease, background-color .15s ease, color .15s ease, box-shadow .15s ease;
+}
+
+body.afc-admin-mode-advanced .afc-workspace-sidebar > nav > section > header button:hover,
+body.afc-admin-mode-advanced .afc-workspace-sidebar > nav > section > header button:focus-visible,
+body.afc-admin-mode-advanced .afc-workspace-title [data-afc-ws-about]:hover,
+body.afc-admin-mode-advanced .afc-workspace-title [data-afc-ws-about]:focus-visible,
+body.afc-admin-mode-advanced .afc-workspace-help:hover,
+body.afc-admin-mode-advanced .afc-workspace-help:focus-visible {
+	outline: 0;
+	border-color: #9fc2ee;
+	background: #edf5ff;
+	color: #1f67aa;
+	box-shadow: 0 0 0 3px rgba(32, 107, 196, .08);
+}
+
+/* Preserve operational feedback. Never hide status, warning, error, result, or alert UI. */
+body.afc-admin-mode-advanced [role="status"],
+body.afc-admin-mode-advanced [role="alert"],
+body.afc-admin-mode-advanced .notice,
+body.afc-admin-mode-advanced .alert,
+body.afc-admin-mode-advanced [class*="status"],
+body.afc-admin-mode-advanced [class*="warning"],
+body.afc-admin-mode-advanced [class*="error"],
+body.afc-admin-mode-advanced [class*="result"] {
+	visibility: visible;
+}
