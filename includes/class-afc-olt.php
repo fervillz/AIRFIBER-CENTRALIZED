@@ -751,7 +751,7 @@ class AFC_OLT {
 		$pon = isset( $_POST['pon'] ) ? absint( $_POST['pon'] ) : 0;
 		$onu = isset( $_POST['onu'] ) ? absint( $_POST['onu'] ) : 0;
 		if ( $pon < 1 || $pon > 16 || $onu < 1 || $onu > 256 ) {
-			wp_send_json_error( array( 'message' => __( 'Enter a valid PON number (1-16) and ONU ID (1-256).', 'airfiber-centralized' ) );
+			wp_send_json_error( array( 'message' => __( 'Enter a valid PON number (1-16) and ONU ID (1-256).', 'airfiber-centralized' ) ) );
 		}
 
 		$conflicts = get_posts(
