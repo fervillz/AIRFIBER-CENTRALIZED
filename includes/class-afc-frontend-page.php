@@ -247,7 +247,7 @@ class AFC_Frontend_Page {
 	}
 
 	public static function render_mikrotik_panel() {
-		if ( ! function_exists( 'settings_fields' ) ) {
+		if ( ! function_exists( 'settings_fields' ) || ! function_exists( 'settings_errors' ) ) {
 			require_once ABSPATH . 'wp-admin/includes/plugin.php';
 			require_once ABSPATH . 'wp-admin/includes/template.php';
 		}
@@ -271,7 +271,7 @@ class AFC_Frontend_Page {
 	}
 
 	public static function render_olt_panel() {
-		if ( ! function_exists( 'settings_fields' ) ) {
+		if ( ! function_exists( 'settings_fields' ) || ! function_exists( 'settings_errors' ) ) {
 			require_once ABSPATH . 'wp-admin/includes/plugin.php';
 			require_once ABSPATH . 'wp-admin/includes/template.php';
 		}
