@@ -54,13 +54,10 @@
 		} );
 	}
 
-	function applyStoredTheme() {
-		let theme = 'light';
-		try {
-			theme = localStorage.getItem( 'afcDashboardTheme' ) || ( window.matchMedia && window.matchMedia( '(prefers-color-scheme: dark)' ).matches ? 'dark' : 'light' );
-		} catch ( error ) {}
-		document.documentElement.setAttribute( 'data-afc-theme', theme === 'dark' ? 'dark' : 'light' );
-		document.body.setAttribute( 'data-afc-theme', theme === 'dark' ? 'dark' : 'light' );
+	function forceLightTheme() {
+		document.documentElement.setAttribute( 'data-afc-theme', 'light' );
+		document.body.setAttribute( 'data-afc-theme', 'light' );
+		try { localStorage.removeItem( 'afcDashboardTheme' ); } catch ( error ) {}
 	}
 
 	function loadPremiumSafe() {
@@ -72,7 +69,7 @@
 		if ( index < 0 ) return;
 		const script = document.createElement( 'script' );
 		script.id = 'afc-dashboard-premium-safe-js';
-		script.src = source.src.slice( 0, index ) + '/assets/js/dashboard-premium-safe.js?v=2.8.0';
+		script.src = source.src.slice( 0, index ) + '/assets/js/dashboard-premium-safe.js?v=2.8.1';
 		script.async = false;
 		document.body.appendChild( script );
 	}
@@ -85,6 +82,7 @@
 			const dashboard = document.querySelector( '[data-afc-panel="dashboard"].is-active' );
 			if ( dashboard ) setActivePanel( 'operations' );
 		} else {
+			forceLightTheme();
 			loadPremiumSafe();
 		}
 	}
@@ -106,7 +104,7 @@
 		} );
 	}
 
-	applyStoredTheme();
+	forceLightTheme();
 	revealShell();
 	if ( document.readyState === 'loading' ) document.addEventListener( 'DOMContentLoaded', boot );
 	else boot();
