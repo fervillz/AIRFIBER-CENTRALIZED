@@ -260,7 +260,8 @@ class AFC_OLT {
 		foreach ( $walk as $instance_oid => $raw_value ) {
 			$indexes = self::extract_indexes( $instance_oid, $oid );
 			$power   = self::parse_rx_power( $raw_value );
-			if ( ! $indexes || null === $power ) {
+			/* V1600D firmware commonly returns 0 as an empty/offline placeholder. */
+			if ( ! $indexes || null === $power || abs( $power ) < 0.005 ) {
 				continue;
 			}
 
@@ -274,7 +275,7 @@ class AFC_OLT {
 		}
 
 		if ( empty( $entries ) ) {
-			return new WP_Error( 'afc_olt_empty_walk', __( 'SNMP responded, but no usable RX-power readings were found under the configured OID.', 'airfiber-centralized' ) );
+			return new WP_Error( 'afc_olt_empty_walk', __( 'SNMP responded, but no usable non-zero RX-power readings were found under the configured OID.', 'airfiber-centralized' ) );
 		}
 
 		$learned_macs = self::get_learned_macs( $settings );
