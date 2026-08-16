@@ -12,7 +12,8 @@ class AFC_OLT {
 	const LAST_SNAPSHOT_KEY    = 'afc_olt_last_snapshot';
 	const SNAPSHOT_TRANSIENT   = 'afc_olt_rx_snapshot';
 	const RX_POWER_OID         = '1.3.6.1.4.1.37950.1.1.5.12.2.1.8.1.7';
-	const LEARNED_MAC_OID      = '1.3.6.1.4.1.37950.1.1.5.12.1.26.1.5';
+	const LEARNED_MAC_OID      = '1.3.6.1.4.1.37950.1.1.5.10.3.2.1.3';
+	const LEARNED_MAC_PORT_OID = '1.3.6.1.4.1.37950.1.1.5.10.3.2.1.5';
 	const SAVED_SECRET_MASK    = 'airfiber-saved-secret';
 
 	public static function init() {
@@ -275,9 +276,19 @@ class AFC_OLT {
 
 		$learned_macs = array();
 		$mac_walk     = self::walk_oid( $settings, self::LEARNED_MAC_OID );
-		if ( ! is_wp_error( $mac_walk ) ) {
+		$port_walk    = self::walk_oid( $settings, self::LEARNED_MAC_PORT_OID );
+		if ( ! is_wp_error( $mac_walk ) && ! is_wp_error( $port_walk ) ) {
+			$ports_by_row = array();
+			foreach ( $port_walk as $instance_oid => $raw_value ) {
+				$row = self::extract_row_index( $instance_oid );
+				if ( '' !== $row ) {
+					$ports_by_row[ $row ] = $raw_value;
+				}
+			}
+
 			foreach ( $mac_walk as $instance_oid => $raw_value ) {
-				$indexes = self::extract_mac_indexes( $instance_oid );
+				$row     = self::extract_row_index( $instance_oid );
+				$indexes = isset( $ports_by_row[ $row ] ) ? self::parse_onu_port( $ports_by_row[ $row ] ) : null;
 				$mac     = self::normalize_mac( $raw_value );
 				if ( ! $indexes || ! $mac ) {
 					continue;
@@ -358,13 +369,30 @@ class AFC_OLT {
 		return array( 'pon' => absint( $suffix[1] ), 'onu' => absint( $suffix[2] ) );
 	}
 
-	private static function extract_mac_indexes( $instance_oid ) {
+	private static function extract_row_index( $instance_oid ) {
 		$numeric = preg_replace( '/[^0-9.]/', '', (string) $instance_oid );
-		if ( ! preg_match( '/\.(\d+)\.(\d+)\.(\d+)$/', $numeric, $matches ) ) {
-			return null;
+		if ( ! preg_match( '/\.(\d+)$/', $numeric, $matches ) ) {
+			return '';
 		}
 
-		return array( 'pon' => absint( $matches[1] ), 'onu' => absint( $matches[2] ) );
+		return (string) absint( $matches[1] );
+	}
+
+	private static function parse_onu_port( $value ) {
+		$value = trim( (string) $value );
+		if ( preg_match( '/^(?:HEX-STRING|STRING|OCTET STRING):\s*(.+)$/i', $value, $matches ) ) {
+			$value = $matches[1];
+		}
+		$value = trim( $value, "\"' " );
+
+		if ( preg_match( '/E?PON\s*\d*\/(\d+)\s*:\s*(\d+)/i', $value, $matches ) ) {
+			return array( 'pon' => absint( $matches[1] ), 'onu' => absint( $matches[2] ) );
+		}
+		if ( preg_match( '/PON\s*(\d+)\D+ONU\s*(\d+)/i', $value, $matches ) ) {
+			return array( 'pon' => absint( $matches[1] ), 'onu' => absint( $matches[2] ) );
+		}
+
+		return null;
 	}
 
 	private static function normalize_mac( $value ) {
