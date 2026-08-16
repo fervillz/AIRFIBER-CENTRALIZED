@@ -1,4 +1,38 @@
 /* Frontend-only OLT overview. Keep the Advanced workspace light and regular-weight. */
+.afc-frontend-nav .afc-optical-direct-link {
+	display: inline-flex;
+	align-items: center;
+	min-height: 40px;
+	padding: 0.55rem 0.9rem;
+	border-radius: 0.7rem;
+	background: transparent;
+	color: #667382;
+	font: inherit;
+	font-size: 0.78rem;
+	font-weight: 400 !important;
+	text-decoration: none;
+	cursor: pointer;
+	transition: color 0.16s ease, background-color 0.16s ease, transform 0.16s ease;
+}
+
+.afc-frontend-nav .afc-optical-direct-link:hover,
+.afc-frontend-nav .afc-optical-direct-link:focus-visible {
+	background: #eef4fb;
+	color: #206bc4;
+	outline: none;
+	text-decoration: none;
+}
+
+.afc-frontend-nav .afc-optical-direct-link.is-active,
+.afc-frontend-nav .afc-optical-direct-link[aria-pressed="true"] {
+	background: #e8f1fc;
+	color: #206bc4;
+}
+
+.afc-frontend-nav .afc-optical-direct-link:active {
+	transform: scale(0.97);
+}
+
 .afc-olt-overview {
 	margin: 0 0 20px;
 	padding: 18px;
