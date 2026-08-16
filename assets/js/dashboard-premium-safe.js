@@ -16,7 +16,7 @@
 		const link = document.createElement( 'link' );
 		link.id = 'afc-dashboard-premium-v2-style';
 		link.rel = 'stylesheet';
-		link.href = base + '/assets/css/dashboard-premium-v2.css?v=2.7.16';
+		link.href = base + '/assets/css/dashboard-premium-v2.css?v=2.8.0';
 		document.head.appendChild( link );
 	}
 
@@ -26,7 +26,7 @@
 		if ( ! base ) return;
 		const script = document.createElement( 'script' );
 		script.id = 'afc-dashboard-theme-pill-v216-js';
-		script.src = base + '/assets/js/dashboard-theme-pill.js?v=2.7.16';
+		script.src = base + '/assets/js/dashboard-theme-pill.js?v=2.8.0';
 		script.async = false;
 		document.body.appendChild( script );
 	}

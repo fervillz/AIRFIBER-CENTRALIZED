@@ -28,6 +28,7 @@ class AFC_PPP_Users {
 
 	public static function ajax_get_users() {
 		self::authorize_ajax();
+		$force_optical = ! empty( $_POST['refresh_optical'] );
 
 		$secrets = AFC_MikroTik::run_command(
 			array(
@@ -62,8 +63,10 @@ class AFC_PPP_Users {
 			}
 		}
 
-		$imported = self::get_imported_usernames();
-		$users    = array();
+		$imported         = self::get_imported_usernames();
+		$optical_snapshot = AFC_OLT::get_snapshot( $force_optical );
+		$optical_summary  = AFC_OLT::snapshot_summary( $optical_snapshot );
+		$users            = array();
 		foreach ( $secrets as $secret ) {
 			$name = isset( $secret['name'] ) ? $secret['name'] : '';
 			if ( '' === $name ) {
@@ -72,6 +75,27 @@ class AFC_PPP_Users {
 			$session = isset( $active_by_name[ $name ] ) ? $active_by_name[ $name ] : array();
 			$comment = isset( $secret['comment'] ) ? $secret['comment'] : '';
 			$details = self::parse_comment( $comment );
+			$customer_id = isset( $imported[ $name ] ) ? (int) $imported[ $name ] : 0;
+			$caller_id   = isset( $session['caller-id'] ) ? $session['caller-id'] : ( isset( $secret['caller-id'] ) ? $secret['caller-id'] : '' );
+			$optical     = $customer_id > 0
+				? AFC_OLT::get_customer_signal( $customer_id, $optical_snapshot )
+				: array(
+					'mapped'       => false,
+					'pon'          => 0,
+					'onu'          => 0,
+					'onu_mac'      => '',
+					'rx_power'     => null,
+					'status'       => 'not-imported',
+					'collected_at' => '',
+					'stale'        => false,
+					'message'      => '',
+				);
+			if ( $customer_id > 0 && empty( $optical['mapped'] ) ) {
+				$suggestion = AFC_OLT::suggest_binding( $caller_id, $optical_snapshot );
+				if ( $suggestion ) {
+					$optical['suggested'] = $suggestion;
+				}
+			}
 			$users[] = array(
 				'id'             => isset( $secret['.id'] ) ? $secret['.id'] : '',
 				'name'           => $name,
@@ -89,16 +113,24 @@ class AFC_PPP_Users {
 				'address_text'   => $details['address'],
 				'disabled'       => isset( $secret['disabled'] ) && 'true' === $secret['disabled'],
 				'remote_address' => isset( $secret['remote-address'] ) ? $secret['remote-address'] : '',
-				'caller_id'      => isset( $session['caller-id'] ) ? $session['caller-id'] : ( isset( $secret['caller-id'] ) ? $secret['caller-id'] : '' ),
+				'caller_id'      => $caller_id,
 				'active'         => ! empty( $session ),
 				'active_id'      => isset( $session['.id'] ) ? $session['.id'] : '',
 				'address'        => isset( $session['address'] ) ? $session['address'] : '',
 				'uptime'         => isset( $session['uptime'] ) ? $session['uptime'] : '',
-				'imported'       => isset( $imported[ $name ] ),
+				'imported'       => $customer_id > 0,
+				'customer_id'    => $customer_id,
+				'optical'        => $optical,
 			);
 		}
 
-		wp_send_json_success( array( 'users' => $users, 'count' => count( $users ) ) );
+		wp_send_json_success(
+			array(
+				'users'   => $users,
+				'count'   => count( $users ),
+				'optical' => $optical_summary,
+			)
+		);
 	}
 
 	private static function parse_comment( $comment ) {

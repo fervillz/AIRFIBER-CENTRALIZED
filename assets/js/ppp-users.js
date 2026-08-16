@@ -3,6 +3,8 @@
 
 	let users = [];
 	let paymentUser = null;
+	let opticalUser = null;
+	let opticalSummary = {};
 	const selectedNames = new Set();
 	const sortState = { key: 'name', direction: 'asc' };
 
@@ -32,6 +34,82 @@
 
 	function isExpired( user ) {
 		return String( user.actual_profile || '' ).toLowerCase() === 'expired';
+	}
+
+	function renderOpticalStatus() {
+		const $status = $( '#afc-optical-status' );
+		if ( ! opticalSummary.enabled ) {
+			$status.html(
+				'<div class="alert alert-info py-2 mb-0">Optical monitoring is not enabled. ' +
+				'<a href="' + escapeAttr( afcPPP.oltSettingsUrl ) + '">Configure the OLT connection</a>.</div>'
+			);
+			return;
+		}
+
+		if ( ! opticalSummary.available ) {
+			$status.html( '<div class="alert alert-warning py-2 mb-0">' +
+				escapeHtml( opticalSummary.message || 'Optical readings are currently unavailable.' ) + '</div>' );
+			return;
+		}
+
+		const stale = opticalSummary.stale
+			? ' <span class="badge bg-yellow-lt">Stale snapshot</span>'
+			: ' <span class="badge bg-success-lt">Current</span>';
+		$status.html(
+			'<div class="alert alert-secondary py-2 mb-0"><strong>' +
+			escapeHtml( opticalSummary.count ) + ' ONU reading(s)</strong> · ' +
+			escapeHtml( opticalSummary.collected_at || 'time unavailable' ) + stale + '</div>'
+		);
+	}
+
+	function opticalHtml( user ) {
+		const optical = user.optical || {};
+		if ( ! user.imported ) {
+			return '<span class="badge bg-secondary-lt">Import first</span>';
+		}
+
+		if ( ! optical.mapped ) {
+			if ( optical.suggested ) {
+				return '<span class="badge bg-azure-lt">Detected</span>' +
+					'<div class="small text-secondary">PON ' + escapeHtml( optical.suggested.pon ) +
+					' · ONU ' + escapeHtml( optical.suggested.onu ) + '</div>' +
+					'<button class="btn btn-link btn-sm p-0 afc-map-onu" type="button">Review mapping</button>';
+			}
+			return '<span class="badge bg-secondary-lt">Not mapped</span>' +
+				'<div><button class="btn btn-link btn-sm p-0 afc-map-onu" type="button">Map ONU</button></div>';
+		}
+
+		const classes = {
+			good: 'bg-success-lt',
+			warning: 'bg-yellow-lt',
+			critical: 'bg-danger-lt',
+			offline: 'bg-secondary-lt',
+			stale: 'bg-yellow-lt',
+			unavailable: 'bg-secondary-lt'
+		};
+		const labels = {
+			good: 'Good',
+			warning: 'Warning',
+			critical: 'Critical',
+			offline: 'Offline',
+			stale: 'Stale',
+			unavailable: 'Unavailable'
+		};
+		const status = optical.status || 'unavailable';
+		const reading = null !== optical.rx_power && '' !== optical.rx_power && undefined !== optical.rx_power
+			? '<strong>' + escapeHtml( Number( optical.rx_power ).toFixed( 2 ) ) + ' dBm</strong>'
+			: '<span class="text-secondary">No live reading</span>';
+		const title = [
+			'PON ' + optical.pon + ' / ONU ' + optical.onu,
+			optical.collected_at ? 'Collected: ' + optical.collected_at : '',
+			optical.message || ''
+		].filter( Boolean ).join( '\n' );
+
+		return '<div title="' + escapeAttr( title ) + '">' + reading +
+			' <span class="badge ' + ( classes[ status ] || classes.unavailable ) + '">' +
+			escapeHtml( labels[ status ] || labels.unavailable ) + '</span>' +
+			'<div class="small text-secondary">PON ' + escapeHtml( optical.pon ) + ' · ONU ' + escapeHtml( optical.onu ) + '</div>' +
+			'<button class="btn btn-link btn-sm p-0 afc-map-onu" type="button">Edit mapping</button></div>';
 	}
 
 	function updateSummary() {
@@ -356,6 +434,7 @@
 			'<td title="' + escapeAttr( serviceTitle ) + '">' + service +
 				( expired && user.profile ? '<div class="small text-secondary mt-1">Restore: ' + escapeHtml( user.profile ) + '</div>' : '' ) + '</td>' +
 			'<td>' + connection + '</td>' +
+			'<td>' + opticalHtml( user ) + '</td>' +
 			'<td title="' + escapeAttr( details ) + '"><div>' + escapeHtml( user.phone || 'No phone' ) + '</div>' +
 				'<div class="small text-secondary text-truncate afc-location">' + escapeHtml( user.address_text || user.wifi || 'No address' ) + '</div>' +
 				'<span class="small text-primary">Hover for details</span></td>' +
@@ -385,25 +464,34 @@
 		$( '#afc-ppp-table tbody' ).html(
 			visible.length
 				? visible.map( rowHtml ).join( '' )
-				: '<tr><td colspan="7" class="text-center py-5">No matching PPP accounts.</td></tr>'
+				: '<tr><td colspan="8" class="text-center py-5">No matching PPP accounts.</td></tr>'
 		);
 		$( '.afc-sort-indicator' ).text( '' );
 		$( '.afc-sort[data-sort="' + sortState.key + '"] .afc-sort-indicator' )
 			.text( 'asc' === sortState.direction ? '▲' : '▼' );
 	}
 
-	function loadUsers() {
-		$( '#afc-refresh-ppp' ).prop( 'disabled', true );
-		$( '#afc-ppp-table tbody' ).html( '<tr><td colspan="7" class="text-center py-5">' + afcPPP.loading + '</td></tr>' );
-		$.post( afcPPP.ajaxUrl, { action: 'afc_get_ppp_users', nonce: afcPPP.nonce } )
+	function loadUsers( forceOptical ) {
+		forceOptical = true === forceOptical;
+		$( '#afc-refresh-ppp, #afc-refresh-optical' ).prop( 'disabled', true );
+		$( '#afc-refresh-optical' ).text( forceOptical ? afcPPP.opticalLoading : afcPPP.opticalButton );
+		$( '#afc-ppp-table tbody' ).html( '<tr><td colspan="8" class="text-center py-5">' +
+			( forceOptical ? afcPPP.opticalLoading : afcPPP.loading ) + '</td></tr>' );
+		$.post( afcPPP.ajaxUrl, {
+			action: 'afc_get_ppp_users',
+			nonce: afcPPP.nonce,
+			refresh_optical: forceOptical ? 1 : 0
+		} )
 			.done( function ( response ) {
 				if ( ! response.success ) {
 					notice( getError( response, 'Could not load PPP accounts.' ), 'danger' );
 					return;
 				}
 				users = response.data.users;
+				opticalSummary = response.data.optical || {};
 				selectedNames.clear();
 				updateSummary();
+				renderOpticalStatus();
 				renderCollectionAreas();
 				render();
 			} )
@@ -411,8 +499,40 @@
 				notice( getError( xhr.responseJSON, 'Could not load PPP accounts from MikroTik.' ), 'danger' );
 			} )
 			.always( function () {
-				$( '#afc-refresh-ppp' ).prop( 'disabled', false );
+				$( '#afc-refresh-ppp, #afc-refresh-optical' ).prop( 'disabled', false );
+				$( '#afc-refresh-optical' ).text( afcPPP.opticalButton );
 			} );
+	}
+
+	function saveOpticalBinding( clear ) {
+		if ( ! opticalUser || ! opticalUser.customer_id ) {
+			return;
+		}
+		if ( clear && ! window.confirm( 'Remove this customer\'s ONU mapping?' ) ) {
+			return;
+		}
+
+		const $buttons = $( '#afc-save-olt-binding, #afc-clear-olt-binding' );
+		$buttons.prop( 'disabled', true );
+		$.post( afcPPP.ajaxUrl, {
+			action: 'afc_save_olt_binding',
+			nonce: afcPPP.nonce,
+			customer_id: opticalUser.customer_id,
+			pon: $( '#afc-olt-pon' ).val(),
+			onu: $( '#afc-olt-onu' ).val(),
+			onu_mac: $( '#afc-olt-onu-mac' ).val(),
+			clear: clear ? 1 : 0
+		} ).done( function ( response ) {
+			notice( getError( response, 'ONU mapping updated.' ), response.success ? 'success' : 'danger' );
+			if ( response.success ) {
+				document.getElementById( 'afc-olt-binding-dialog' ).close();
+				loadUsers( false );
+			}
+		} ).fail( function ( xhr ) {
+			notice( getError( xhr.responseJSON, 'The ONU mapping could not be saved.' ), 'danger' );
+		} ).always( function () {
+			$buttons.prop( 'disabled', false );
+		} );
 	}
 
 	function userFromButton( button ) {
@@ -447,9 +567,11 @@
 
 	$( function () {
 		const dialog = document.getElementById( 'afc-payment-dialog' );
+		const opticalDialog = document.getElementById( 'afc-olt-binding-dialog' );
 		loadUsers();
 
-		$( '#afc-refresh-ppp' ).on( 'click', loadUsers );
+		$( '#afc-refresh-ppp' ).on( 'click', function () { loadUsers( false ); } );
+		$( '#afc-refresh-optical' ).on( 'click', function () { loadUsers( true ); } );
 		$( '#afc-due-cutoff' ).on( 'change', renderCollectionAreas );
 		$( '#afc-print-all-due' ).on( 'click', function () {
 			printCollectionList( '' );
@@ -489,7 +611,28 @@
 			} )
 			.on( 'click', '.afc-reconnect', function () {
 				changeService( userFromButton( this ), 'reconnect', this );
+			} )
+			.on( 'click', '.afc-map-onu', function () {
+				opticalUser = userFromButton( this );
+				const optical = opticalUser.optical || {};
+				const suggested = optical.suggested || {};
+				$( '#afc-olt-binding-customer' ).text( opticalUser.customer_name || opticalUser.name );
+				$( '#afc-olt-customer-id' ).val( opticalUser.customer_id );
+				$( '#afc-olt-pon' ).val( optical.pon || suggested.pon || '' );
+				$( '#afc-olt-onu' ).val( optical.onu || suggested.onu || '' );
+				$( '#afc-olt-onu-mac' ).val( optical.onu_mac || '' );
+				$( '#afc-clear-olt-binding' ).toggle( Boolean( optical.mapped ) );
+				opticalDialog.showModal();
 			} );
+
+		$( '#afc-save-olt-binding' ).on( 'click', function () {
+			const form = document.getElementById( 'afc-olt-binding-form' );
+			if ( ! form.reportValidity() ) {
+				return;
+			}
+			saveOpticalBinding( false );
+		} );
+		$( '#afc-clear-olt-binding' ).on( 'click', function () { saveOpticalBinding( true ); } );
 
 		$( '#afc-select-all' ).on( 'change', function () {
 			const checked = this.checked;

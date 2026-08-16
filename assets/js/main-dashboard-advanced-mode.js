@@ -72,7 +72,7 @@
 		if ( index < 0 ) return;
 		const script = document.createElement( 'script' );
 		script.id = 'afc-dashboard-premium-safe-js';
-		script.src = source.src.slice( 0, index ) + '/assets/js/dashboard-premium-safe.js?v=2.7.16';
+		script.src = source.src.slice( 0, index ) + '/assets/js/dashboard-premium-safe.js?v=2.8.0';
 		script.async = false;
 		document.body.appendChild( script );
 	}

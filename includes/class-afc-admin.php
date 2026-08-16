@@ -38,12 +38,22 @@ class AFC_Admin {
 			'airfiber-mikrotik',
 			array( 'AFC_MikroTik', 'render_settings_page' )
 		);
+
+		add_submenu_page(
+			'airfiber-centralized',
+			__( 'OLT Optical Monitoring', 'airfiber-centralized' ),
+			__( 'OLT Optical', 'airfiber-centralized' ),
+			'manage_options',
+			'airfiber-olt',
+			array( 'AFC_OLT', 'render_settings_page' )
+		);
 	}
 
 	public static function enqueue_assets( $hook_suffix ) {
 		$airfiber_pages = array(
 			'toplevel_page_airfiber-centralized',
 			'airfiber_page_airfiber-mikrotik',
+			'airfiber_page_airfiber-olt',
 		);
 
 		if ( ! in_array( $hook_suffix, $airfiber_pages, true ) ) {
@@ -124,6 +134,27 @@ class AFC_Admin {
 			);
 		}
 
+		if ( 'airfiber_page_airfiber-olt' === $hook_suffix ) {
+			wp_enqueue_script(
+				'afc-olt-settings',
+				AFC_URL . 'assets/js/olt-settings.js',
+				array( 'jquery', 'afc-tooltip' ),
+				AFC_VERSION,
+				true
+			);
+
+			wp_localize_script(
+				'afc-olt-settings',
+				'afcOLT',
+				array(
+					'ajaxUrl' => admin_url( 'admin-ajax.php' ),
+					'nonce'   => wp_create_nonce( 'afc_test_olt_ajax' ),
+					'testing' => __( 'Testing optical connection...', 'airfiber-centralized' ),
+					'button'  => __( 'Test Saved Connection', 'airfiber-centralized' ),
+				)
+			);
+		}
+
 		if ( 'toplevel_page_airfiber-centralized' === $hook_suffix ) {
 			wp_enqueue_script(
 				'afc-ppp-users',
@@ -183,6 +214,9 @@ class AFC_Admin {
 					'importing'   => __( 'Importing selected users...', 'airfiber-centralized' ),
 					'noSelection' => __( 'Select at least one PPP user to import.', 'airfiber-centralized' ),
 					'currentDate' => current_time( 'Y-m-d' ),
+					'opticalLoading' => __( 'Refreshing optical readings...', 'airfiber-centralized' ),
+					'opticalButton'  => __( 'Refresh Optical', 'airfiber-centralized' ),
+					'oltSettingsUrl' => admin_url( 'admin.php?page=airfiber-olt' ),
 				)
 			);
 		}

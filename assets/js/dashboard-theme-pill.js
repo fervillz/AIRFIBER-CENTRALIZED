@@ -28,13 +28,13 @@
 			const link = document.createElement( 'link' );
 			link.id = 'afc-dashboard-card-pinning-css';
 			link.rel = 'stylesheet';
-			link.href = base + '/assets/css/dashboard-card-pinning.css?v=2.7.16';
+			link.href = base + '/assets/css/dashboard-card-pinning.css?v=2.8.0';
 			document.head.appendChild( link );
 		}
 		if ( ! document.getElementById( 'afc-dashboard-card-pinning-js' ) ) {
 			const script = document.createElement( 'script' );
 			script.id = 'afc-dashboard-card-pinning-js';
-			script.src = base + '/assets/js/dashboard-card-pinning.js?v=2.7.16';
+			script.src = base + '/assets/js/dashboard-card-pinning.js?v=2.8.0';
 			script.async = false;
 			document.body.appendChild( script );
 		}

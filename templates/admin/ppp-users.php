@@ -18,12 +18,14 @@ defined( 'ABSPATH' ) || exit;
 					</button>
 					<button class="btn btn-outline-primary" id="afc-find-edit-ppp" type="button"><?php esc_html_e( 'Find / Edit PPP', 'airfiber-centralized' ); ?></button>
 					<button class="btn btn-outline-primary afc-advanced-only" id="afc-manage-service-areas" type="button"><?php esc_html_e( 'Service Areas', 'airfiber-centralized' ); ?></button>
+					<button class="btn btn-outline-success" id="afc-refresh-optical" type="button"><?php esc_html_e( 'Refresh Optical', 'airfiber-centralized' ); ?></button>
 					<button class="btn btn-outline-secondary" id="afc-refresh-ppp" type="button"><?php esc_html_e( 'Refresh MikroTik', 'airfiber-centralized' ); ?></button>
 				</div>
 			</div>
 		</div>
 
 		<div id="afc-ppp-notice" aria-live="polite"></div>
+		<div id="afc-optical-status" class="mb-3" aria-live="polite"></div>
 
 		<div class="row row-cards mb-3" id="afc-ppp-summary">
 			<div class="col-6 col-md-3"><div class="card card-sm"><div class="card-body"><div class="text-secondary"><?php esc_html_e( 'Total Accounts', 'airfiber-centralized' ); ?></div><div class="h2 mb-0" data-summary="total">—</div></div></div></div>
@@ -86,11 +88,12 @@ defined( 'ABSPATH' ) || exit;
 							<th><button class="afc-sort" type="button" data-sort="payment_date"><?php esc_html_e( 'Last Payment', 'airfiber-centralized' ); ?> <span class="afc-sort-indicator"></span></button></th>
 							<th><button class="afc-sort" type="button" data-sort="actual_profile"><?php esc_html_e( 'Service', 'airfiber-centralized' ); ?> <span class="afc-sort-indicator"></span></button></th>
 							<th><button class="afc-sort" type="button" data-sort="active"><?php esc_html_e( 'Connection', 'airfiber-centralized' ); ?> <span class="afc-sort-indicator"></span></button></th>
+							<th><?php esc_html_e( 'Optical Signal', 'airfiber-centralized' ); ?></th>
 							<th><?php esc_html_e( 'Contact & Location', 'airfiber-centralized' ); ?></th>
 							<th class="text-end"><?php esc_html_e( 'Actions', 'airfiber-centralized' ); ?></th>
 						</tr>
 					</thead>
-					<tbody><tr><td colspan="7" class="text-center text-secondary py-5"><?php esc_html_e( 'Loading PPP accounts...', 'airfiber-centralized' ); ?></td></tr></tbody>
+					<tbody><tr><td colspan="8" class="text-center text-secondary py-5"><?php esc_html_e( 'Loading PPP accounts...', 'airfiber-centralized' ); ?></td></tr></tbody>
 				</table>
 			</div>
 		</div>
@@ -123,6 +126,42 @@ defined( 'ABSPATH' ) || exit;
 			<div class="afc-dialog-footer">
 				<button class="btn btn-link" value="cancel"><?php esc_html_e( 'Cancel', 'airfiber-centralized' ); ?></button>
 				<button class="btn btn-success" id="afc-confirm-payment" type="button"><?php esc_html_e( 'Confirm Paid Today', 'airfiber-centralized' ); ?></button>
+			</div>
+		</form>
+	</dialog>
+
+	<dialog id="afc-olt-binding-dialog" class="afc-dialog">
+		<form method="dialog" id="afc-olt-binding-form">
+			<div class="afc-dialog-header">
+				<div>
+					<div class="text-secondary small"><?php esc_html_e( 'Optical mapping', 'airfiber-centralized' ); ?></div>
+					<h3 class="mb-0" id="afc-olt-binding-customer"></h3>
+				</div>
+				<button class="btn-close" value="cancel" aria-label="<?php esc_attr_e( 'Close', 'airfiber-centralized' ); ?>"></button>
+			</div>
+			<div class="afc-dialog-body">
+				<input id="afc-olt-customer-id" type="hidden" value="">
+				<div class="alert alert-info"><?php esc_html_e( 'Enter the ONU location shown by the OLT. Each PON/ONU can be assigned to only one customer.', 'airfiber-centralized' ); ?></div>
+				<div class="row">
+					<div class="col-6 mb-3">
+						<label class="form-label" for="afc-olt-pon"><?php esc_html_e( 'PON number', 'airfiber-centralized' ); ?></label>
+						<input class="form-control" id="afc-olt-pon" type="number" min="1" max="16" required>
+					</div>
+					<div class="col-6 mb-3">
+						<label class="form-label" for="afc-olt-onu"><?php esc_html_e( 'ONU ID', 'airfiber-centralized' ); ?></label>
+						<input class="form-control" id="afc-olt-onu" type="number" min="1" max="256" required>
+					</div>
+				</div>
+				<div class="mb-3">
+					<label class="form-label" for="afc-olt-onu-mac"><?php esc_html_e( 'ONU MAC address (optional)', 'airfiber-centralized' ); ?></label>
+					<input class="form-control font-monospace" id="afc-olt-onu-mac" maxlength="17" placeholder="AA:BB:CC:DD:EE:FF">
+					<small class="form-hint"><?php esc_html_e( 'This is the ONU PON MAC, not necessarily the PPP router caller-ID.', 'airfiber-centralized' ); ?></small>
+				</div>
+			</div>
+			<div class="afc-dialog-footer">
+				<button class="btn btn-outline-danger me-auto" id="afc-clear-olt-binding" type="button"><?php esc_html_e( 'Remove Mapping', 'airfiber-centralized' ); ?></button>
+				<button class="btn btn-link" value="cancel"><?php esc_html_e( 'Cancel', 'airfiber-centralized' ); ?></button>
+				<button class="btn btn-primary" id="afc-save-olt-binding" type="button"><?php esc_html_e( 'Save Mapping', 'airfiber-centralized' ); ?></button>
 			</div>
 		</form>
 	</dialog>
