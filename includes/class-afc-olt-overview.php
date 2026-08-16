@@ -13,12 +13,8 @@ class AFC_OLT_Overview {
 
 	private static function authorize() {
 		if ( ! current_user_can( 'manage_options' ) ) {
-			wp_send_json_error(
-				array( 'message' => __( 'You do not have permission to view OLT monitoring.', 'airfiber-centralized' ) ),
-				403
-			);
+			wp_send_json_error( array( 'message' => __( 'You do not have permission to view OLT monitoring.', 'airfiber-centralized' ) ), 403 );
 		}
-
 		check_ajax_referer( 'afc_test_olt_ajax', 'nonce' );
 	}
 
@@ -32,14 +28,8 @@ class AFC_OLT_Overview {
 				'no_found_rows'  => true,
 				'meta_query'     => array(
 					'relation' => 'AND',
-					array(
-						'key'     => '_afc_olt_pon',
-						'compare' => 'EXISTS',
-					),
-					array(
-						'key'     => '_afc_olt_onu',
-						'compare' => 'EXISTS',
-					),
+					array( 'key' => '_afc_olt_pon', 'compare' => 'EXISTS' ),
+					array( 'key' => '_afc_olt_onu', 'compare' => 'EXISTS' ),
 				),
 			)
 		);
@@ -51,17 +41,42 @@ class AFC_OLT_Overview {
 			if ( $pon < 1 || $onu < 1 ) {
 				continue;
 			}
-
-			$key = $pon . ':' . $onu;
-			$bindings[ $key ] = array(
-				'id'       => (int) $customer_id,
-				'name'     => get_the_title( $customer_id ),
-				'username' => (string) get_post_meta( $customer_id, '_afc_ppp_username', true ),
-				'onu_mac'  => (string) get_post_meta( $customer_id, '_afc_olt_onu_mac', true ),
+			$bindings[ $pon . ':' . $onu ] = array(
+				'id'          => (int) $customer_id,
+				'name'        => get_the_title( $customer_id ),
+				'username'    => (string) get_post_meta( $customer_id, '_afc_ppp_username', true ),
+				'onu_mac'     => (string) get_post_meta( $customer_id, '_afc_olt_onu_mac', true ),
+				'description' => get_the_title( $customer_id ),
 			);
 		}
-
 		return $bindings;
+	}
+
+	private static function learned_macs_by_location( $snapshot ) {
+		$locations = array();
+		if ( is_wp_error( $snapshot ) || empty( $snapshot['learned_macs'] ) || ! is_array( $snapshot['learned_macs'] ) ) {
+			return $locations;
+		}
+		foreach ( $snapshot['learned_macs'] as $mac => $items ) {
+			if ( ! is_array( $items ) ) {
+				continue;
+			}
+			foreach ( $items as $item ) {
+				$pon = isset( $item['pon'] ) ? absint( $item['pon'] ) : 0;
+				$onu = isset( $item['onu'] ) ? absint( $item['onu'] ) : 0;
+				if ( $pon < 1 || $onu < 1 ) {
+					continue;
+				}
+				$key = $pon . ':' . $onu;
+				if ( ! isset( $locations[ $key ] ) ) {
+					$locations[ $key ] = array();
+				}
+				if ( ! in_array( $mac, $locations[ $key ], true ) ) {
+					$locations[ $key ][] = $mac;
+				}
+			}
+		}
+		return $locations;
 	}
 
 	private static function empty_counts() {
@@ -73,6 +88,7 @@ class AFC_OLT_Overview {
 			'good'     => 0,
 			'warning'  => 0,
 			'critical' => 0,
+			'invalid'  => 0,
 			'offline'  => 0,
 		);
 	}
@@ -82,9 +98,9 @@ class AFC_OLT_Overview {
 			'good'     => __( 'Good', 'airfiber-centralized' ),
 			'warning'  => __( 'Warning', 'airfiber-centralized' ),
 			'critical' => __( 'Critical', 'airfiber-centralized' ),
-			'offline'  => __( 'No RX / Offline', 'airfiber-centralized' ),
+			'invalid'  => __( 'Invalid RX', 'airfiber-centralized' ),
+			'offline'  => __( 'Offline', 'airfiber-centralized' ),
 		);
-
 		return isset( $labels[ $status ] ) ? $labels[ $status ] : __( 'Unknown', 'airfiber-centralized' );
 	}
 
@@ -94,21 +110,23 @@ class AFC_OLT_Overview {
 		$counts   = self::empty_counts();
 		$rows     = array();
 		$pons     = array();
-		$zero_rx  = 0;
+		$invalid_samples = array();
 
 		$payload = array(
-			'summary'     => $summary,
-			'counts'      => $counts,
-			'pons'        => array(),
-			'onus'        => array(),
+			'summary' => $summary,
+			'counts'  => $counts,
+			'pons'    => array(),
+			'onus'    => array(),
 			'diagnostics' => array(
-				'zero_rx' => 0,
+				'invalid_rx'      => 0,
+				'invalid_samples' => array(),
+				'rx_oid'          => isset( $snapshot['rx_oid'] ) ? (string) $snapshot['rx_oid'] : (string) $settings['rx_oid'],
 			),
-			'limits'      => array(
+			'limits' => array(
 				'warning'  => (float) $settings['warning_dbm'],
 				'critical' => (float) $settings['critical_dbm'],
 			),
-			'olt'         => array(
+			'olt' => array(
 				'name' => isset( $settings['name'] ) ? (string) $settings['name'] : __( 'Primary OLT', 'airfiber-centralized' ),
 			),
 		);
@@ -117,41 +135,51 @@ class AFC_OLT_Overview {
 			return $payload;
 		}
 
-		$bindings = self::customer_bindings();
-		$seen     = array();
+		$bindings      = self::customer_bindings();
+		$location_macs = self::learned_macs_by_location( $snapshot );
+		$seen          = array();
 
-		foreach ( $snapshot['entries'] as $key => $entry ) {
+		foreach ( $snapshot['entries'] as $entry ) {
 			$pon = isset( $entry['pon'] ) ? absint( $entry['pon'] ) : 0;
 			$onu = isset( $entry['onu'] ) ? absint( $entry['onu'] ) : 0;
 			if ( $pon < 1 || $onu < 1 ) {
 				continue;
 			}
 
-			$key       = $pon . ':' . $onu;
-			$customer  = isset( $bindings[ $key ] ) ? $bindings[ $key ] : null;
-			$raw_power = isset( $entry['rx_power'] ) && is_numeric( $entry['rx_power'] ) ? (float) $entry['rx_power'] : null;
-			$is_zero   = null !== $raw_power && abs( $raw_power ) < 0.005;
-			$power     = $is_zero ? null : ( null !== $raw_power ? round( $raw_power, 2 ) : null );
-			$status    = $is_zero ? 'offline' : ( isset( $entry['status'] ) && in_array( $entry['status'], array( 'good', 'warning', 'critical', 'offline' ), true ) ? $entry['status'] : 'good' );
+			$key      = $pon . ':' . $onu;
+			$customer = isset( $bindings[ $key ] ) ? $bindings[ $key ] : null;
+			$macs     = isset( $location_macs[ $key ] ) ? $location_macs[ $key ] : array();
+			if ( $customer && ! empty( $customer['onu_mac'] ) && ! in_array( $customer['onu_mac'], $macs, true ) ) {
+				array_unshift( $macs, $customer['onu_mac'] );
+			}
+
+			$signal_valid = ! empty( $entry['signal_valid'] ) && isset( $entry['rx_power'] ) && null !== $entry['rx_power'];
+			$power        = $signal_valid ? round( (float) $entry['rx_power'], 2 ) : null;
+			$status       = isset( $entry['status'] ) && in_array( $entry['status'], array( 'good', 'warning', 'critical', 'invalid' ), true ) ? $entry['status'] : ( $signal_valid ? 'good' : 'invalid' );
+			$raw_rx       = isset( $entry['raw_rx'] ) ? $entry['raw_rx'] : null;
+			$raw_text     = isset( $entry['raw_rx_text'] ) ? (string) $entry['raw_rx_text'] : '';
 			$seen[ $key ] = true;
 
-			if ( $is_zero ) {
-				$zero_rx++;
+			if ( 'invalid' === $status && count( $invalid_samples ) < 8 ) {
+				$invalid_samples[] = array( 'pon' => $pon, 'onu' => $onu, 'raw' => $raw_rx, 'raw_text' => $raw_text );
 			}
 
 			$rows[] = array(
 				'pon'          => $pon,
 				'onu'          => $onu,
+				'description'  => $customer ? (string) $customer['description'] : '',
+				'mac_addresses'=> array_values( $macs ),
 				'rx_power'     => $power,
+				'raw_rx'       => $raw_rx,
+				'raw_rx_text'  => $raw_text,
+				'signal_valid' => $signal_valid,
 				'status'       => $status,
 				'status_label' => self::status_label( $status ),
 				'mapped'       => null !== $customer,
 				'customer'     => $customer,
-				'zero_rx'      => $is_zero,
 			);
 		}
 
-		/* A saved binding without a current RX entry is useful operationally: show it as offline. */
 		foreach ( $bindings as $key => $customer ) {
 			if ( isset( $seen[ $key ] ) ) {
 				continue;
@@ -162,28 +190,29 @@ class AFC_OLT_Overview {
 			if ( $pon < 1 || $onu < 1 ) {
 				continue;
 			}
-
+			$macs = isset( $location_macs[ $key ] ) ? $location_macs[ $key ] : array();
+			if ( ! empty( $customer['onu_mac'] ) && ! in_array( $customer['onu_mac'], $macs, true ) ) {
+				array_unshift( $macs, $customer['onu_mac'] );
+			}
 			$rows[] = array(
-				'pon'          => $pon,
-				'onu'          => $onu,
-				'rx_power'     => null,
-				'status'       => 'offline',
-				'status_label' => self::status_label( 'offline' ),
-				'mapped'       => true,
-				'customer'     => $customer,
-				'zero_rx'      => false,
+				'pon'           => $pon,
+				'onu'           => $onu,
+				'description'   => (string) $customer['description'],
+				'mac_addresses' => array_values( $macs ),
+				'rx_power'      => null,
+				'raw_rx'        => null,
+				'raw_rx_text'   => '',
+				'signal_valid'  => false,
+				'status'        => 'offline',
+				'status_label'  => self::status_label( 'offline' ),
+				'mapped'        => true,
+				'customer'      => $customer,
 			);
 		}
 
-		usort(
-			$rows,
-			function ( $first, $second ) {
-				if ( $first['pon'] === $second['pon'] ) {
-					return $first['onu'] <=> $second['onu'];
-				}
-				return $first['pon'] <=> $second['pon'];
-			}
-		);
+		usort( $rows, function ( $a, $b ) {
+			return $a['pon'] === $b['pon'] ? $a['onu'] <=> $b['onu'] : $a['pon'] <=> $b['pon'];
+		} );
 
 		$counts['readings'] = isset( $snapshot['count'] ) ? absint( $snapshot['count'] ) : count( $snapshot['entries'] );
 		$counts['total']    = count( $rows );
@@ -193,44 +222,44 @@ class AFC_OLT_Overview {
 			if ( isset( $counts[ $status ] ) ) {
 				$counts[ $status ]++;
 			}
-			if ( $row['mapped'] ) {
-				$counts['mapped']++;
-			} else {
-				$counts['unmapped']++;
-			}
+			$row['mapped'] ? $counts['mapped']++ : $counts['unmapped']++;
 
-			$pon = (string) $row['pon'];
-			if ( ! isset( $pons[ $pon ] ) ) {
-				$pons[ $pon ] = array(
+			$pon_key = (string) $row['pon'];
+			if ( ! isset( $pons[ $pon_key ] ) ) {
+				$pons[ $pon_key ] = array(
 					'pon'      => (int) $row['pon'],
 					'total'    => 0,
 					'mapped'   => 0,
 					'good'     => 0,
 					'warning'  => 0,
 					'critical' => 0,
+					'invalid'  => 0,
 					'offline'  => 0,
+					'valid'    => 0,
 					'weakest'  => null,
 				);
 			}
-
-			$pons[ $pon ]['total']++;
+			$pons[ $pon_key ]['total']++;
 			if ( $row['mapped'] ) {
-				$pons[ $pon ]['mapped']++;
+				$pons[ $pon_key ]['mapped']++;
 			}
-			if ( isset( $pons[ $pon ][ $status ] ) ) {
-				$pons[ $pon ][ $status ]++;
+			if ( isset( $pons[ $pon_key ][ $status ] ) ) {
+				$pons[ $pon_key ][ $status ]++;
 			}
-			if ( null !== $row['rx_power'] && ( null === $pons[ $pon ]['weakest'] || $row['rx_power'] < $pons[ $pon ]['weakest'] ) ) {
-				$pons[ $pon ]['weakest'] = $row['rx_power'];
+			if ( $row['signal_valid'] && null !== $row['rx_power'] ) {
+				$pons[ $pon_key ]['valid']++;
+				if ( null === $pons[ $pon_key ]['weakest'] || $row['rx_power'] < $pons[ $pon_key ]['weakest'] ) {
+					$pons[ $pon_key ]['weakest'] = $row['rx_power'];
+				}
 			}
 		}
 
 		ksort( $pons, SORT_NUMERIC );
-		$payload['counts']                 = $counts;
-		$payload['pons']                   = array_values( $pons );
-		$payload['onus']                   = $rows;
-		$payload['diagnostics']['zero_rx'] = $zero_rx;
-
+		$payload['counts']                          = $counts;
+		$payload['pons']                            = array_values( $pons );
+		$payload['onus']                            = $rows;
+		$payload['diagnostics']['invalid_rx']       = $counts['invalid'];
+		$payload['diagnostics']['invalid_samples']  = $invalid_samples;
 		return $payload;
 	}
 
