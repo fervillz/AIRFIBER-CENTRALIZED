@@ -1,0 +1,60 @@
+/* Frontend typography refinement: serif headings, no bold/strong visual weight. */
+body.afc-frontend-page .afc-frontend-shell {
+	--afc-heading-font: "Source Serif 4", Georgia, "Times New Roman", serif;
+}
+
+/* Headings use Source Serif 4 at its regular 400 weight. */
+body.afc-frontend-page .afc-frontend-shell h1,
+body.afc-frontend-page .afc-frontend-shell h2,
+body.afc-frontend-page .afc-frontend-shell h3,
+body.afc-frontend-page .afc-frontend-shell h4,
+body.afc-frontend-page .afc-frontend-shell h5,
+body.afc-frontend-page .afc-frontend-shell h6,
+body.afc-frontend-page .afc-frontend-shell .page-title,
+body.afc-frontend-page .afc-frontend-shell .card-title,
+body.afc-frontend-page .afc-frontend-shell .afc-workspace-title h1,
+body.afc-frontend-page .afc-frontend-shell .afc-dashboard-card-title h2 {
+	font-family: var(--afc-heading-font) !important;
+	font-weight: 400 !important;
+	font-synthesis: none;
+	letter-spacing: 0 !important;
+}
+
+/* The frontend should not visually rely on bold or semibold text. */
+body.afc-frontend-page .afc-frontend-shell strong,
+body.afc-frontend-page .afc-frontend-shell b,
+body.afc-frontend-page .afc-frontend-shell .fw-bold,
+body.afc-frontend-page .afc-frontend-shell .fw-bolder,
+body.afc-frontend-page .afc-frontend-shell .fw-semibold,
+body.afc-frontend-page .afc-frontend-shell [style*="font-weight: bold"],
+body.afc-frontend-page .afc-frontend-shell [style*="font-weight:bold"] {
+	font-weight: 400 !important;
+	font-synthesis: none;
+}
+
+/* Normalize common custom UI elements that previously used numeric heavy weights. */
+body.afc-frontend-page .afc-frontend-shell .afc-workspace-menu-item b strong,
+body.afc-frontend-page .afc-frontend-shell .afc-workspace-sidebar > header strong,
+body.afc-frontend-page .afc-frontend-shell .afc-workspace-stats strong,
+body.afc-frontend-page .afc-frontend-shell .afc-dashboard-kicker,
+body.afc-frontend-page .afc-frontend-shell .afc-dashboard-card-title small,
+body.afc-frontend-page .afc-frontend-shell .afc-dashboard-list-copy strong,
+body.afc-frontend-page .afc-frontend-shell .afc-dashboard-metric > strong,
+body.afc-frontend-page .afc-frontend-shell .afc-dashboard-port strong,
+body.afc-frontend-page .afc-frontend-shell .afc-basic-customer-main strong,
+body.afc-frontend-page .afc-frontend-shell .afc-basic-customer-side strong,
+body.afc-frontend-page .afc-frontend-shell .afc-basic-selected-account,
+body.afc-frontend-page .afc-frontend-shell .afc-basic-selected-details strong,
+body.afc-frontend-page .afc-frontend-shell .afc-sms-list-identity strong,
+body.afc-frontend-page .afc-frontend-shell th,
+body.afc-frontend-page .afc-frontend-shell label,
+body.afc-frontend-page .afc-frontend-shell button {
+	font-weight: 400 !important;
+	font-synthesis: none;
+}
+
+/* Keep hierarchy through typeface, size, spacing and color rather than weight. */
+body.afc-frontend-page .afc-frontend-shell .afc-dashboard-header h1,
+body.afc-frontend-page .afc-frontend-shell .afc-workspace-title h1 {
+	line-height: 1.15 !important;
+}
