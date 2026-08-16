@@ -18,7 +18,14 @@ class AFC_App_Typography {
 			return;
 		}
 
-		self::enqueue();
+		wp_enqueue_style(
+			'afc-source-serif-4',
+			'https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400&display=swap',
+			array(),
+			null
+		);
+
+		self::enqueue( array( 'afc-source-serif-4' ) );
 	}
 
 	public static function enqueue_admin( $hook_suffix ) {
@@ -29,11 +36,11 @@ class AFC_App_Typography {
 		self::enqueue();
 	}
 
-	private static function enqueue() {
+	private static function enqueue( $dependencies = array() ) {
 		wp_enqueue_style(
 			'afc-app-typography',
 			AFC_URL . 'assets/css/app-typography.css',
-			array(),
+			$dependencies,
 			AFC_VERSION
 		);
 	}
