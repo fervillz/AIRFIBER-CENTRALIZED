@@ -9,55 +9,37 @@
 		return index >= 0 ? source.src.slice( 0, index ) : '';
 	}
 
-	function loadStyle() {
-		if ( document.getElementById( 'afc-dashboard-premium-v2-style' ) ) return;
+	function forceLight() {
+		document.documentElement.setAttribute( 'data-afc-theme', 'light' );
+		document.body.setAttribute( 'data-afc-theme', 'light' );
+		try { localStorage.removeItem( 'afcDashboardTheme' ); } catch ( error ) {}
+		document.querySelectorAll( '[data-afc-dashboard-theme-toggle], #afc-dashboard-theme-pill-css, #afc-dashboard-theme-pill-js, #afc-dashboard-theme-pill-v216-js' ).forEach( function ( node ) {
+			node.remove();
+		} );
+	}
+
+	function loadStyle( id, path, version ) {
+		if ( document.getElementById( id ) ) return;
 		const base = baseUrl();
 		if ( ! base ) return;
 		const link = document.createElement( 'link' );
-		link.id = 'afc-dashboard-premium-v2-style';
+		link.id = id;
 		link.rel = 'stylesheet';
-		link.href = base + '/assets/css/dashboard-premium-v2.css?v=2.8.0';
+		link.href = base + path + '?v=' + version;
 		document.head.appendChild( link );
 	}
 
-	function loadThemeController() {
-		if ( document.getElementById( 'afc-dashboard-theme-pill-v216-js' ) ) return;
-		const base = baseUrl();
-		if ( ! base ) return;
-		const script = document.createElement( 'script' );
-		script.id = 'afc-dashboard-theme-pill-v216-js';
-		script.src = base + '/assets/js/dashboard-theme-pill.js?v=2.8.0';
-		script.async = false;
-		document.body.appendChild( script );
-	}
-
-	function ensureThemeToggle() {
-		const root = document.getElementById( 'afc-main-dashboard' );
-		const actions = root && root.querySelector( '.afc-dashboard-header-actions' );
-		if ( ! actions || actions.querySelector( '[data-afc-dashboard-theme-toggle]' ) ) return;
-		const button = document.createElement( 'button' );
-		button.type = 'button';
-		button.className = 'afc-dashboard-theme-toggle';
-		button.setAttribute( 'data-afc-dashboard-theme-toggle', '' );
-		button.innerHTML = '<span aria-hidden="true">☾</span><b>Theme</b>';
-		button.addEventListener( 'click', function () {
-			const next = document.documentElement.getAttribute( 'data-afc-theme' ) === 'dark' ? 'light' : 'dark';
-			document.documentElement.setAttribute( 'data-afc-theme', next );
-			document.body.setAttribute( 'data-afc-theme', next );
-			try { localStorage.setItem( 'afcDashboardTheme', next ); } catch ( error ) {}
-		} );
-		const refresh = actions.querySelector( '[data-afc-dashboard-refresh]' );
-		actions.insertBefore( button, refresh || null );
-	}
-
 	function sync() {
-		loadStyle();
-		ensureThemeToggle();
-		loadThemeController();
+		forceLight();
+		loadStyle( 'afc-dashboard-premium-v2-style', '/assets/css/dashboard-premium-v2.css', '2.8.1' );
+		loadStyle( 'afc-advanced-ui-cleanup-style', '/assets/css/advanced-ui-cleanup.css', '2.7.17' );
 	}
 
 	sync();
-	document.addEventListener( 'afc:ajaxify-panel-loaded', function ( event ) {
-		if ( event.detail && event.detail.panel === 'dashboard' ) window.setTimeout( sync, 20 );
+	document.addEventListener( 'afc:admin-mode-change', function ( event ) {
+		if ( event.detail && event.detail.mode === 'advanced' ) sync();
+	} );
+	document.addEventListener( 'afc:ajaxify-panel-loaded', function () {
+		window.setTimeout( sync, 20 );
 	} );
 }() );
