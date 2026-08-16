@@ -153,11 +153,12 @@
 	}
 
 	function loadOptical( force ) {
-		if ( requestRunning || ! window.afcPPP || ! afcPPP.ajaxUrl || ! afcPPP.nonce ) return;
+		if ( requestRunning || ! window.afcPPP || ! afcPPP.ajaxUrl || ! afcPPP.nonce ) return false;
 		const customerTargets = targets();
-		if ( ! customerTargets.length ) return;
+		if ( ! customerTargets.length ) return false;
 
 		requestRunning = true;
+		if ( ! force ) lastAutoAt = Date.now();
 		const button = document.getElementById( 'afc-refresh-optical' );
 		if ( button ) {
 			button.disabled = true;
@@ -190,6 +191,7 @@
 				button.textContent = afcPPP.opticalButton || 'Refresh Optical';
 			}
 		} );
+		return true;
 	}
 
 	function scheduleAutoLoad( immediate ) {
@@ -198,7 +200,6 @@
 			const mismatch = applyCachedSignals();
 			const now = Date.now();
 			if ( mismatch || immediate || now - lastAutoAt >= 60000 ) {
-				lastAutoAt = now;
 				loadOptical( false );
 			}
 		}, immediate ? 60 : 220 );
