@@ -82,7 +82,7 @@ class AFC_OLT_Overview {
 			'good'     => __( 'Good', 'airfiber-centralized' ),
 			'warning'  => __( 'Warning', 'airfiber-centralized' ),
 			'critical' => __( 'Critical', 'airfiber-centralized' ),
-			'offline'  => __( 'Offline', 'airfiber-centralized' ),
+			'offline'  => __( 'No RX / Offline', 'airfiber-centralized' ),
 		);
 
 		return isset( $labels[ $status ] ) ? $labels[ $status ] : __( 'Unknown', 'airfiber-centralized' );
@@ -94,17 +94,21 @@ class AFC_OLT_Overview {
 		$counts   = self::empty_counts();
 		$rows     = array();
 		$pons     = array();
+		$zero_rx  = 0;
 
 		$payload = array(
-			'summary' => $summary,
-			'counts'  => $counts,
-			'pons'    => array(),
-			'onus'    => array(),
-			'limits'  => array(
+			'summary'     => $summary,
+			'counts'      => $counts,
+			'pons'        => array(),
+			'onus'        => array(),
+			'diagnostics' => array(
+				'zero_rx' => 0,
+			),
+			'limits'      => array(
 				'warning'  => (float) $settings['warning_dbm'],
 				'critical' => (float) $settings['critical_dbm'],
 			),
-			'olt'     => array(
+			'olt'         => array(
 				'name' => isset( $settings['name'] ) ? (string) $settings['name'] : __( 'Primary OLT', 'airfiber-centralized' ),
 			),
 		);
@@ -123,11 +127,17 @@ class AFC_OLT_Overview {
 				continue;
 			}
 
-			$key      = $pon . ':' . $onu;
-			$status   = isset( $entry['status'] ) && in_array( $entry['status'], array( 'good', 'warning', 'critical' ), true ) ? $entry['status'] : 'good';
-			$customer = isset( $bindings[ $key ] ) ? $bindings[ $key ] : null;
-			$power    = isset( $entry['rx_power'] ) && is_numeric( $entry['rx_power'] ) ? round( (float) $entry['rx_power'], 2 ) : null;
+			$key       = $pon . ':' . $onu;
+			$customer  = isset( $bindings[ $key ] ) ? $bindings[ $key ] : null;
+			$raw_power = isset( $entry['rx_power'] ) && is_numeric( $entry['rx_power'] ) ? (float) $entry['rx_power'] : null;
+			$is_zero   = null !== $raw_power && abs( $raw_power ) < 0.005;
+			$power     = $is_zero ? null : ( null !== $raw_power ? round( $raw_power, 2 ) : null );
+			$status    = $is_zero ? 'offline' : ( isset( $entry['status'] ) && in_array( $entry['status'], array( 'good', 'warning', 'critical', 'offline' ), true ) ? $entry['status'] : 'good' );
 			$seen[ $key ] = true;
+
+			if ( $is_zero ) {
+				$zero_rx++;
+			}
 
 			$rows[] = array(
 				'pon'          => $pon,
@@ -137,6 +147,7 @@ class AFC_OLT_Overview {
 				'status_label' => self::status_label( $status ),
 				'mapped'       => null !== $customer,
 				'customer'     => $customer,
+				'zero_rx'      => $is_zero,
 			);
 		}
 
@@ -160,6 +171,7 @@ class AFC_OLT_Overview {
 				'status_label' => self::status_label( 'offline' ),
 				'mapped'       => true,
 				'customer'     => $customer,
+				'zero_rx'      => false,
 			);
 		}
 
@@ -214,9 +226,10 @@ class AFC_OLT_Overview {
 		}
 
 		ksort( $pons, SORT_NUMERIC );
-		$payload['counts'] = $counts;
-		$payload['pons']   = array_values( $pons );
-		$payload['onus']   = $rows;
+		$payload['counts']                 = $counts;
+		$payload['pons']                   = array_values( $pons );
+		$payload['onus']                   = $rows;
+		$payload['diagnostics']['zero_rx'] = $zero_rx;
 
 		return $payload;
 	}
