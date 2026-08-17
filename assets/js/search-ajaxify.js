@@ -118,6 +118,11 @@
 		return 'DUE ' + dateLabel( record.next_due );
 	}
 
+	function credibleOptical( optical ) {
+		return optical && [ 'good', 'warning', 'critical' ].includes( optical.status ) &&
+			null !== optical.rx_power && undefined !== optical.rx_power && Number( optical.rx_power ) < -1;
+	}
+
 	function liveRowMarkup( record ) {
 		if ( ! record ) return '';
 		let html = '<span class="afc-search-live-chip ' + ( record.online ? 'is-online' : 'is-offline' ) + '"><i></i><b>' + ( record.online ? 'ONLINE' : 'OFFLINE' ) + '</b></span>';
@@ -128,7 +133,15 @@
 		if ( label ) {
 			html += '<span class="afc-search-live-chip is-' + dueTone( record.due_state ) + '"><b>' + esc( label ) + '</b></span>';
 		}
-		html += '<span class="afc-search-ajaxify-info" aria-label="PPP details">i</span>';
+
+		const optical = record.optical || {};
+		if ( credibleOptical( optical ) ) {
+			html += '<span class="afc-search-live-chip ' + ( optical.status === 'critical' ? 'is-danger' : optical.status === 'warning' ? 'is-warning' : 'is-safe' ) + '"><b>RX ' + esc( Number( optical.rx_power ).toFixed( 2 ) ) + ' dBm</b></span>';
+		} else if ( optical.mapped && optical.status === 'offline' ) {
+			html += '<span class="afc-search-live-chip is-neutral"><b>OLT OFFLINE</b></span>';
+		}
+
+		html += '<span class="afc-search-ajaxify-info" aria-label="PPP and optical details">i</span>';
 		return html;
 	}
 
@@ -154,11 +167,16 @@
 			mount.appendChild( row );
 		}
 
+		const optical = record.optical || {};
 		const signature = [
 			record.online ? '1' : '0',
 			record.expired ? '1' : '0',
 			record.due_state || '',
 			record.next_due || '',
+			optical.status || '',
+			optical.rx_power == null ? '' : optical.rx_power,
+			optical.pon || '',
+			optical.onu || '',
 		].join( '|' );
 		if ( row.dataset.afcLiveSignature !== signature ) {
 			row.dataset.afcLiveSignature = signature;
@@ -254,6 +272,7 @@
 				online: Boolean( user.active ),
 				profile: user.actual_profile || user.profile || previous.profile || '',
 				expired: String( user.actual_profile || user.profile || '' ).trim().toLowerCase() === 'expired',
+				optical: user.optical || previous.optical || null,
 			} ) );
 		} );
 		decorateAllFromCache();
@@ -286,12 +305,20 @@
 
 	function popoverMarkup( record ) {
 		const session = record.session || {};
+		const optical = record.optical || {};
 		const fields = Array.isArray( record.comment_fields ) ? record.comment_fields : [];
 		let comment = '';
 		fields.forEach( function ( field ) {
 			comment += '<div class="afc-search-comment-field' + ( field.sensitive ? ' is-sensitive' : '' ) + '"><span>' + esc( field.label || field.key ) + '</span><strong>' + esc( field.value ) + '</strong></div>';
 		} );
 		if ( ! comment ) comment = '<div class="afc-search-comment-empty">No structured PPP comment fields were found.</div>';
+
+		let opticalRx = '';
+		if ( credibleOptical( optical ) ) opticalRx = Number( optical.rx_power ).toFixed( 2 ) + ' dBm';
+		else if ( optical.mapped && optical.status === 'offline' ) opticalRx = 'Offline';
+		else if ( optical.mapped && optical.status ) opticalRx = 'Unavailable';
+		const opticalLocation = optical.mapped && optical.pon && optical.onu ? 'PON ' + optical.pon + ' / ONU ' + optical.onu : '';
+		const matchLabel = optical.auto_matched ? 'Exact MAC match' : ( optical.mapped && optical.match_method === 'mac' ? 'MAC matched' : '' );
 
 		return '<header>' +
 			'<div><small>LIVE MIKROTIK PPP</small><h4>' + esc( record.customer_name || record.account ) + '</h4><p>' + esc( record.account ) + '</p></div>' +
@@ -305,6 +332,10 @@
 			detailRow( 'IP address', session.address ) +
 			detailRow( 'Uptime', session.uptime ) +
 			detailRow( 'Caller ID', session.caller_id ) +
+			detailRow( 'Optical RX', opticalRx ) +
+			detailRow( 'OLT location', opticalLocation ) +
+			detailRow( 'ONU MAC', optical.onu_mac ) +
+			detailRow( 'OLT match', matchLabel ) +
 		'</dl>' +
 		'<section class="afc-search-comment-section"><div class="afc-search-comment-title"><span>PPP COMMENT</span><small>Live from RouterOS</small></div><div class="afc-search-comment-grid">' + comment + '</div></section>';
 	}
