@@ -42,8 +42,10 @@
 	function setNavState( state ) {
 		if ( ! navButton ) return;
 		navButton.dataset.state = state;
-		navButton.querySelector( '.afc-olt-nav-refresh-icon' ).innerHTML = icon( state === 'loading' ? 'loading' : ( lastRefreshTs ? 'check' : 'refresh' ) );
-		navButton.disabled = state === 'loading';
+		navButton.setAttribute( 'aria-disabled', state === 'loading' ? 'true' : 'false' );
+		navButton.classList.toggle( 'is-loading', state === 'loading' );
+		const iconNode = navButton.querySelector( '.afc-olt-nav-refresh-icon' );
+		if ( iconNode ) iconNode.innerHTML = icon( state === 'loading' ? 'loading' : ( lastRefreshTs ? 'check' : 'refresh' ) );
 		if ( navAge ) navAge.textContent = compactAge( lastRefreshTs );
 	}
 
@@ -60,24 +62,42 @@
 		return String( settings.data || '' ).includes( 'action=' + action );
 	}
 
+	function runFullRefresh() {
+		if ( ! navButton || navButton.dataset.state === 'loading' ) return;
+		const refresh = document.querySelector( '[data-afc-olt-overview-refresh]' );
+		if ( refresh ) {
+			refresh.click();
+			return;
+		}
+		window.location.hash = 'optical';
+		window.setTimeout( function () {
+			const retry = document.querySelector( '[data-afc-olt-overview-refresh]' );
+			if ( retry ) retry.click();
+		}, 120 );
+	}
+
 	function ensureNavRefresh() {
 		if ( navButton && document.body.contains( navButton ) ) return;
 		const optical = document.querySelector( '.afc-frontend-nav [data-afc-app-panel="optical"]' );
-		if ( ! optical || ! optical.parentNode ) return;
-		if ( optical.parentNode.querySelector( '.afc-olt-nav-refresh' ) ) {
-			navButton = optical.parentNode.querySelector( '.afc-olt-nav-refresh' );
+		if ( ! optical ) return;
+		optical.classList.add( 'afc-optical-has-refresh' );
+
+		const existing = optical.querySelector( '.afc-olt-nav-refresh' );
+		if ( existing ) {
+			navButton = existing;
 			navAge = navButton.querySelector( '.afc-olt-nav-refresh-age' );
 			setNavState( 'ready' );
 			return;
 		}
 
-		navButton = document.createElement( 'button' );
-		navButton.type = 'button';
+		navButton = document.createElement( 'span' );
 		navButton.className = 'afc-olt-nav-refresh';
+		navButton.setAttribute( 'role', 'button' );
+		navButton.setAttribute( 'tabindex', '0' );
 		navButton.setAttribute( 'aria-label', 'Refresh all OLT readings' );
 		navButton.title = 'Refresh all OLT readings';
 		navButton.innerHTML = '<span class="afc-olt-nav-refresh-icon"></span><sup class="afc-olt-nav-refresh-age"></sup>';
-		optical.insertAdjacentElement( 'afterend', navButton );
+		optical.appendChild( navButton );
 		navAge = navButton.querySelector( '.afc-olt-nav-refresh-age' );
 		setNavState( 'ready' );
 
@@ -85,19 +105,15 @@
 			navButton.addEventListener( eventName, function ( event ) {
 				event.preventDefault();
 				event.stopPropagation();
-				if ( eventName === 'click' && ! navButton.disabled ) {
-					const refresh = document.querySelector( '[data-afc-olt-overview-refresh]' );
-					if ( refresh ) refresh.click();
-					else {
-						window.location.hash = 'optical';
-						window.setTimeout( function () {
-							const retry = document.querySelector( '[data-afc-olt-overview-refresh]' );
-							if ( retry ) retry.click();
-						}, 120 );
-					}
-				}
+				if ( eventName === 'click' ) runFullRefresh();
 			}, true );
 		} );
+		navButton.addEventListener( 'keydown', function ( event ) {
+			if ( event.key !== 'Enter' && event.key !== ' ' ) return;
+			event.preventDefault();
+			event.stopPropagation();
+			runFullRefresh();
+		}, true );
 	}
 
 	function opticalFromRecord( account ) {
@@ -118,13 +134,13 @@
 	}
 
 	function opticalChip( optical ) {
-		if ( ! optical ) return '<span class="afc-olt-result-chip is-empty">RX —</span>';
-		if ( optical.status === 'offline' ) return '<span class="afc-olt-result-chip is-offline">RX offline</span>';
+		if ( ! optical ) return '<span class="afc-olt-result-chip is-empty">—</span>';
+		if ( optical.status === 'offline' ) return '<span class="afc-olt-result-chip is-offline">Offline</span>';
 		if ( optical.rx_power !== null && optical.rx_power !== undefined && Number( optical.rx_power ) < -1 ) {
 			const tone = optical.status === 'critical' ? ' is-critical' : ( optical.status === 'warning' ? ' is-warning' : ' is-good' );
-			return '<span class="afc-olt-result-chip' + tone + '">RX ' + esc( Number( optical.rx_power ).toFixed( 2 ) ) + '</span>';
+			return '<span class="afc-olt-result-chip' + tone + '">' + esc( Number( optical.rx_power ).toFixed( 2 ) ) + '</span>';
 		}
-		return '<span class="afc-olt-result-chip is-empty">RX —</span>';
+		return '<span class="afc-olt-result-chip is-empty">—</span>';
 	}
 
 	function resultToolsHtml( optical ) {
