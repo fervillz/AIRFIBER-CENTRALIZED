@@ -12,6 +12,17 @@ class AFC_OLT_Manager_Frontend {
 			return;
 		}
 		?>
+		<style id="afc-olt-manager-add-card-fix">
+		/* Some global button/icon rules add their own generated + to the add card.
+		 * The OLT card already has its own circular +, so suppress generated icons. */
+		.afc-olt-add-card::before,
+		.afc-olt-add-card::after,
+		.afc-olt-add-plus::before,
+		.afc-olt-add-plus::after {
+			content: none !important;
+			display: none !important;
+		}
+		</style>
 		<template id="afc-olt-manager-panel-template">
 			<section class="afc-frontend-panel afc-olt-manager-panel" data-afc-panel="olt" aria-hidden="true" hidden>
 				<?php AFC_OLT_Manager::render_panel(); ?>
