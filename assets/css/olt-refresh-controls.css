@@ -111,6 +111,19 @@
 	white-space: nowrap;
 }
 
+/* Search Ajaxify already renders the canonical "RX -xx.xx dBm" chip.
+ * Keep the per-customer refresh control, but hide this older numeric-only
+ * optical chip so Basic/Advanced search results show the RX only once. */
+.afc-search-ajaxify-live > .afc-olt-result-tools > .afc-olt-result-chip {
+	display: none !important;
+}
+
+/* The search popover already contains Optical RX / OLT location fields.
+ * Prevent the refresh helper from displaying a second copy below them. */
+.afc-search-ajaxify-popover .afc-olt-popover-facts {
+	display: none !important;
+}
+
 .afc-olt-result-chip.is-good {
 	border-color: #c9e6d2;
 	background: #edf8f1;
