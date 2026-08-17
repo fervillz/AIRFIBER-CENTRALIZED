@@ -2,6 +2,7 @@
 	'use strict';
 
 	const cache = new Map();
+	const pppUsers = new Map();
 	let requestRunning = false;
 	let loadTimer = null;
 	let patchTimer = null;
@@ -32,25 +33,54 @@
 		}
 	}
 
+	function rememberUser( user ) {
+		if ( user && user.name ) {
+			pppUsers.set( key( user.name ), user );
+		}
+	}
+
+	function rememberUsers( list ) {
+		( list || [] ).forEach( rememberUser );
+	}
+
 	function currentRows() {
 		return Array.from( document.querySelectorAll( '#afc-ppp-table tbody tr[data-user]' ) );
+	}
+
+	function accountPayload( user, fallbackName ) {
+		return {
+			username: user && user.name ? user.name : fallbackName,
+			caller_id: user && user.caller_id ? user.caller_id : '',
+			customer_id: Number( user && user.customer_id || 0 ),
+			imported: Boolean( user && user.imported )
+		};
 	}
 
 	function accounts() {
 		const out = [];
 		const seen = new Set();
-		currentRows().forEach( function ( row ) {
-			const user = parseRowUser( row );
-			const accountKey = user && user.name ? key( user.name ) : '';
+
+		function add( user, fallbackName ) {
+			const payload = accountPayload( user, fallbackName );
+			const accountKey = key( payload.username );
 			if ( ! accountKey || seen.has( accountKey ) ) return;
 			seen.add( accountKey );
-			out.push( {
-				username: user.name,
-				caller_id: user.caller_id || '',
-				customer_id: Number( user.customer_id || 0 ),
-				imported: Boolean( user.imported )
-			} );
+			out.push( payload );
+		}
+
+		currentRows().forEach( function ( row ) {
+			const user = parseRowUser( row );
+			rememberUser( user );
+			add( user, '' );
 		} );
+
+		/* Basic mode renders its own search cards. Use the actual PPP user shown
+		 * in those results instead of depending on the Advanced table existing. */
+		document.querySelectorAll( '.afc-basic-customer-result[data-account]' ).forEach( function ( result ) {
+			const account = result.getAttribute( 'data-account' ) || '';
+			add( pppUsers.get( key( account ) ) || null, account );
+		} );
+
 		return out;
 	}
 
@@ -204,24 +234,26 @@
 		window.clearTimeout( loadTimer );
 		loadTimer = window.setTimeout( function () {
 			patchAll();
-			if ( Date.now() - lastLoadAt > 10000 ) loadSignals( false );
+			const list = accounts();
+			const missing = list.some( function ( item ) { return ! cache.has( key( item.username ) ); } );
+			if ( missing || Date.now() - lastLoadAt > 10000 ) loadSignals( false );
 		}, null == delay ? 140 : delay );
 	}
 
 	function boot() {
 		const tableBody = document.querySelector( '#afc-ppp-table tbody' );
-		if ( ! tableBody ) return;
-
-		const tableObserver = new MutationObserver( function () {
-			scheduleLoad( 90 );
-		} );
-		tableObserver.observe( tableBody, { childList: true } );
+		if ( tableBody ) {
+			const tableObserver = new MutationObserver( function () {
+				scheduleLoad( 90 );
+			} );
+			tableObserver.observe( tableBody, { childList: true } );
+		}
 
 		const pageObserver = new MutationObserver( function ( mutations ) {
 			for ( let index = 0; index < mutations.length; index++ ) {
 				const target = mutations[ index ].target;
 				if ( target && target.closest && ( target.closest( '#afc-basic-payment-results' ) || target.closest( '.afc-basic-customer-result' ) ) ) {
-					schedulePatch();
+					scheduleLoad( 45 );
 					break;
 				}
 			}
@@ -233,12 +265,13 @@
 				window.setTimeout( function () { loadSignals( false ); }, 80 );
 			}
 			if ( requestHasAction( settings, 'afc_get_ppp_users' ) && xhr.responseJSON && xhr.responseJSON.success ) {
-				scheduleLoad( 90 );
+				rememberUsers( xhr.responseJSON.data && xhr.responseJSON.data.users ? xhr.responseJSON.data.users : [] );
+				scheduleLoad( 45 );
 			}
 		} );
 
-		/* The normal request is database-backed, so start it as soon as PPP rows
-		 * exist. It no longer waits for a live OLT walk. */
+		/* Basic mode may have no Advanced PPP table at all. The AJAX user list and
+		 * visible Basic search cards are enough to fetch the current result's RX. */
 		scheduleLoad( 180 );
 	}
 
