@@ -1,0 +1,293 @@
+/* Compact OLT refresh controls. All frontend typography remains regular-weight. */
+.afc-olt-nav-refresh,
+.afc-olt-result-refresh,
+.afc-olt-schedule-panel button,
+.afc-olt-schedule-panel input {
+	font-weight: 400 !important;
+}
+
+.afc-olt-nav-refresh {
+	position: relative;
+	display: inline-grid;
+	width: 38px;
+	height: 38px;
+	margin-left: -5px;
+	place-items: center;
+	border: 0;
+	border-radius: 11px;
+	background: transparent;
+	color: #6f7f91;
+	cursor: pointer;
+}
+
+.afc-olt-nav-refresh:hover,
+.afc-olt-nav-refresh:focus-visible {
+	outline: 0;
+	background: #edf5ff;
+	color: #2671b8;
+}
+
+.afc-olt-nav-refresh:disabled {
+	cursor: wait;
+	opacity: .75;
+}
+
+.afc-olt-nav-refresh-icon,
+.afc-olt-result-refresh-icon {
+	display: inline-grid;
+	place-items: center;
+}
+
+.afc-olt-nav-refresh svg,
+.afc-olt-result-refresh svg {
+	width: 17px;
+	height: 17px;
+	fill: none;
+	stroke: currentColor;
+	stroke-width: 1.8;
+	stroke-linecap: round;
+	stroke-linejoin: round;
+}
+
+.afc-olt-nav-refresh-age {
+	position: absolute;
+	top: 2px;
+	right: 1px;
+	min-width: 15px;
+	padding: 1px 3px;
+	border-radius: 999px;
+	background: #fff;
+	color: #7f8b99;
+	font-size: 8px;
+	line-height: 1.2;
+	text-align: center;
+	box-shadow: 0 0 0 1px #dfe7ef;
+}
+
+.afc-olt-refresh-spinner {
+	animation: afc-olt-spin .75s linear infinite;
+}
+
+.afc-olt-refresh-spinner circle {
+	stroke-dasharray: 34;
+	stroke-dashoffset: 10;
+}
+
+@keyframes afc-olt-spin {
+	to { transform: rotate(360deg); }
+}
+
+/* The compact nav refresh replaces the larger duplicate button on the frontend overview. */
+#afc-frontend-app .afc-olt-overview-refresh {
+	display: none !important;
+}
+
+.afc-olt-result-tools {
+	display: inline-flex;
+	align-items: center;
+	gap: 5px;
+	margin-left: 2px;
+}
+
+.afc-olt-result-chip {
+	display: inline-flex;
+	align-items: center;
+	min-height: 21px;
+	padding: 0 7px;
+	border: 1px solid #dce5ed;
+	border-radius: 999px;
+	background: #f5f8fb;
+	color: #657486;
+	font-size: 9px !important;
+	font-variant-numeric: tabular-nums;
+	white-space: nowrap;
+}
+
+.afc-olt-result-chip.is-good {
+	border-color: #c9e6d2;
+	background: #edf8f1;
+	color: #337049;
+}
+
+.afc-olt-result-chip.is-warning {
+	border-color: #edd7a9;
+	background: #fff7e5;
+	color: #84652c;
+}
+
+.afc-olt-result-chip.is-critical {
+	border-color: #edc4c8;
+	background: #fff0f1;
+	color: #9a4b53;
+}
+
+.afc-olt-result-chip.is-offline,
+.afc-olt-result-chip.is-empty {
+	background: #f3f5f7;
+	color: #7b8795;
+}
+
+.afc-olt-result-refresh {
+	position: relative;
+	display: inline-grid;
+	width: 34px;
+	height: 30px;
+	place-items: center;
+	padding: 6px 9px;
+	border: 1px solid #d8e2eb;
+	border-radius: 10px;
+	background: #fff;
+	color: #63809b;
+	cursor: pointer;
+	z-index: 5;
+}
+
+.afc-olt-result-refresh:hover,
+.afc-olt-result-refresh:focus-visible {
+	outline: 0;
+	border-color: #b9cfe3;
+	background: #f5f9fd;
+	color: #2e72b1;
+}
+
+.afc-olt-result-refresh:disabled {
+	cursor: wait;
+}
+
+.afc-olt-result-refresh sup {
+	position: absolute;
+	top: -5px;
+	right: -5px;
+	min-width: 16px;
+	padding: 1px 3px;
+	border: 1px solid #dce5ed;
+	border-radius: 999px;
+	background: #fff;
+	color: #7b8796;
+	font-size: 8px;
+	line-height: 1.2;
+}
+
+.afc-olt-popover-facts {
+	position: relative;
+}
+
+.afc-olt-popover-facts small {
+	display: block;
+	grid-column: 1 / -1;
+	margin-top: 3px;
+	color: #8a95a3;
+	font-size: 9px;
+}
+
+.afc-olt-schedule-panel {
+	display: grid;
+	grid-template-columns: minmax(220px, 1.35fr) auto minmax(340px, 1fr);
+	gap: 14px 18px;
+	align-items: end;
+	margin: 0 0 18px;
+	padding: 16px 18px;
+	border: 1px solid #e1e7ee;
+	border-radius: 16px;
+	background: #fff;
+	box-shadow: 0 7px 24px rgba(31, 42, 55, .035);
+}
+
+.afc-olt-schedule-copy span {
+	display: block;
+	margin-bottom: 3px;
+	color: #7c8998;
+	font-size: 10px;
+	letter-spacing: .05em;
+	text-transform: uppercase;
+}
+
+.afc-olt-schedule-copy h3 {
+	margin: 0;
+	font-family: "Source Serif 4", Georgia, serif;
+	font-size: 18px;
+	font-weight: 400 !important;
+}
+
+.afc-olt-schedule-copy p {
+	margin: 4px 0 0;
+	color: #728091;
+	font-size: 12px;
+}
+
+.afc-olt-schedule-toggle {
+	display: flex;
+	align-items: center;
+	gap: 7px;
+	padding-bottom: 7px;
+	color: #526273;
+	font-size: 12px;
+	white-space: nowrap;
+}
+
+.afc-olt-schedule-times {
+	display: grid;
+	grid-template-columns: repeat(4, minmax(76px, 1fr));
+	gap: 7px;
+}
+
+.afc-olt-schedule-times label span {
+	display: block;
+	margin: 0 0 3px 2px;
+	color: #85909e;
+	font-size: 9px;
+}
+
+.afc-olt-schedule-times input {
+	width: 100%;
+	min-height: 36px;
+	padding: 6px 7px;
+	border: 1px solid #dce4ec;
+	border-radius: 9px;
+	background: #fbfcfd;
+	color: #344253;
+	font-size: 12px;
+}
+
+.afc-olt-schedule-actions {
+	grid-column: 1 / -1;
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	padding-top: 2px;
+}
+
+.afc-olt-schedule-actions button {
+	min-height: 34px;
+	padding: 7px 11px;
+	border: 1px solid #bdd2e6;
+	border-radius: 9px;
+	background: #eef6fd;
+	color: #356f9f;
+	font-size: 11px;
+	cursor: pointer;
+}
+
+.afc-olt-schedule-actions button.is-secondary {
+	border-color: #dce3ea;
+	background: #f8fafc;
+	color: #708092;
+}
+
+.afc-olt-schedule-actions small {
+	color: #7d8997;
+	font-size: 10px;
+}
+
+@media (max-width: 1100px) {
+	.afc-olt-schedule-panel {
+		grid-template-columns: 1fr;
+		align-items: start;
+	}
+	.afc-olt-schedule-times { grid-template-columns: repeat(4, 1fr); }
+}
+
+@media (max-width: 700px) {
+	.afc-olt-schedule-times { grid-template-columns: repeat(2, 1fr); }
+	.afc-olt-schedule-actions { flex-wrap: wrap; }
+}
