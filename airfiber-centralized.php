@@ -2,14 +2,14 @@
 /**
  * Plugin Name: Airfiber - Centralized
  * Description: Customer, billing, payment, installation, notification, and MikroTik management for Airfiber.
- * Version: 2.12.1
+ * Version: 2.12.2
  * Author: Airfiber
  * Text Domain: airfiber-centralized
  */
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'AFC_VERSION', '2.12.1' );
+define( 'AFC_VERSION', '2.12.2' );
 define( 'AFC_FILE', __FILE__ );
 define( 'AFC_PATH', plugin_dir_path( __FILE__ ) );
 define( 'AFC_URL', plugin_dir_url( __FILE__ ) );
@@ -148,6 +148,32 @@ function afc_boot_plugin() {
 	do_action( 'afc_loaded' );
 }
 add_action( 'plugins_loaded', 'afc_boot_plugin' );
+
+function afc_enqueue_olt_refresh_feedback() {
+	if (
+		is_admin() ||
+		! current_user_can( 'manage_options' ) ||
+		! class_exists( 'AFC_Frontend_Page' ) ||
+		! AFC_Frontend_Page::is_app_request()
+	) {
+		return;
+	}
+
+	wp_enqueue_style(
+		'afc-olt-refresh-feedback',
+		AFC_URL . 'assets/css/olt-refresh-feedback.css',
+		array( 'afc-olt-refresh-controls' ),
+		AFC_VERSION
+	);
+	wp_enqueue_script(
+		'afc-olt-refresh-feedback',
+		AFC_URL . 'assets/js/olt-refresh-feedback.js',
+		array( 'jquery', 'afc-olt-refresh-controls' ),
+		AFC_VERSION,
+		true
+	);
+}
+add_action( 'wp_enqueue_scripts', 'afc_enqueue_olt_refresh_feedback', 1050 );
 
 function afc_activate_plugin() {
 	AFC_Post_Types::register();
