@@ -11,6 +11,9 @@
 	let dirty = false;
 	let currentId = 0;
 	let currentStatus = 'draft';
+	let activeTestRequest = null;
+	let testElapsedTimer = null;
+	let testStartedAt = 0;
 
 	function q( selector, scope ) {
 		return ( scope || document ).querySelector( selector );
@@ -61,6 +64,82 @@
 		}
 	}
 
+	function ensureTestLog() {
+		let details = q( '[data-afc-olt-test-log]', modal );
+		if ( details ) return details;
+		const info = q( '[data-afc-olt-save-info]', modal );
+		if ( ! info ) return null;
+
+		details = document.createElement( 'details' );
+		details.setAttribute( 'data-afc-olt-test-log', '' );
+		details.style.margin = '10px 20px 0';
+		details.style.border = '1px solid #dce6ef';
+		details.style.borderRadius = '11px';
+		details.style.background = '#f8fbfe';
+		details.style.color = '#415269';
+		details.hidden = true;
+
+		const summary = document.createElement( 'summary' );
+		summary.textContent = 'Connection test details';
+		summary.style.padding = '9px 11px';
+		summary.style.cursor = 'pointer';
+		summary.style.fontSize = '11px';
+		summary.style.fontWeight = '600';
+		details.appendChild( summary );
+
+		const body = document.createElement( 'div' );
+		body.setAttribute( 'data-afc-olt-test-log-body', '' );
+		body.style.maxHeight = '190px';
+		body.style.overflowY = 'auto';
+		body.style.padding = '0 11px 10px';
+		body.style.fontFamily = 'ui-monospace, SFMono-Regular, Menlo, Consolas, monospace';
+		body.style.fontSize = '10.5px';
+		body.style.lineHeight = '1.55';
+		details.appendChild( body );
+
+		info.insertAdjacentElement( 'afterend', details );
+		return details;
+	}
+
+	function clearTestLog() {
+		const details = ensureTestLog();
+		if ( ! details ) return;
+		const body = q( '[data-afc-olt-test-log-body]', details );
+		if ( body ) body.innerHTML = '';
+		details.hidden = false;
+		details.open = true;
+	}
+
+	function testLog( message, tone ) {
+		const details = ensureTestLog();
+		if ( ! details ) return;
+		details.hidden = false;
+		const body = q( '[data-afc-olt-test-log-body]', details );
+		if ( ! body ) return;
+		const row = document.createElement( 'div' );
+		const elapsed = testStartedAt ? ( ( Date.now() - testStartedAt ) / 1000 ).toFixed( 1 ) + 's' : '0.0s';
+		row.textContent = '[' + elapsed + '] ' + message;
+		if ( tone === 'error' ) row.style.color = '#a84d57';
+		else if ( tone === 'success' ) row.style.color = '#317149';
+		else if ( tone === 'warning' ) row.style.color = '#88672d';
+		body.appendChild( row );
+		body.scrollTop = body.scrollHeight;
+	}
+
+	function stopTestClock() {
+		if ( testElapsedTimer ) window.clearInterval( testElapsedTimer );
+		testElapsedTimer = null;
+	}
+
+	function setTestRunning( running ) {
+		const button = q( '[data-afc-olt-test]', modal );
+		if ( ! button ) return;
+		button.disabled = Boolean( running );
+		button.textContent = running ? 'Testing…' : 'Test Connection';
+		button.style.opacity = running ? '.78' : '';
+		button.style.cursor = running ? 'wait' : '';
+	}
+
 	function countCards() {
 		const count = qa( '.afc-olt-card[data-afc-olt-card]', root ).length;
 		const node = q( '[data-afc-olt-count]', root );
@@ -104,6 +183,10 @@
 	function resetForm() {
 		window.clearTimeout( autosaveTimer );
 		autosaveTimer = null;
+		stopTestClock();
+		if ( activeTestRequest && activeTestRequest.readyState !== 4 ) activeTestRequest.abort();
+		activeTestRequest = null;
+		setTestRunning( false );
 		currentId = 0;
 		currentStatus = 'draft';
 		dirty = false;
@@ -122,6 +205,8 @@
 		q( '[name="retries"]', form ).value = '1';
 		updateVersionFields();
 		setTestAttention( false, false );
+		const details = ensureTestLog();
+		if ( details ) details.hidden = true;
 		const kicker = q( '[data-afc-olt-dialog-kicker]', modal );
 		if ( kicker ) kicker.textContent = 'New OLT';
 		setInfo( 'Start entering the OLT details. The first draft will save automatically after 5 seconds.', 'neutral' );
@@ -184,6 +269,10 @@
 		if ( ! modal ) return;
 		window.clearTimeout( autosaveTimer );
 		autosaveTimer = null;
+		stopTestClock();
+		if ( activeTestRequest && activeTestRequest.readyState !== 4 ) activeTestRequest.abort();
+		activeTestRequest = null;
+		setTestRunning( false );
 		modal.classList.remove( 'is-open' );
 		document.body.classList.remove( 'afc-olt-modal-open' );
 		window.setTimeout( function () { modal.hidden = true; }, 180 );
@@ -250,27 +339,92 @@
 	}
 
 	function testConnection() {
+		if ( activeTestRequest && activeTestRequest.readyState !== 4 ) return;
 		window.clearTimeout( autosaveTimer );
 		setTestAttention( false, false );
+		setTestRunning( true );
+		testStartedAt = Date.now();
+		clearTestLog();
+		testLog( 'Saving the current OLT settings before the test.' );
 		const mode = currentStatus === 'publish' ? 'keep' : 'autosave';
+
 		save( mode ).done( function () {
-			if ( ! currentId ) return;
-			setTestAttention( false, false );
-			setInfo( 'Testing SNMP connection and RX-power OID…', 'saving' );
-			post( 'afc_olt_manager_test', { id: currentId } ).done( function ( response ) {
-				if ( ! response || ! response.success ) return;
+			if ( ! currentId ) {
+				setTestRunning( false );
+				testLog( 'The OLT record was not saved, so the connection test could not start.', 'error' );
+				return;
+			}
+
+			const config = formConfig();
+			const version = config.version === '2c' ? 'SNMPv2c' : 'SNMPv3';
+			testLog( 'Settings saved. Starting ' + version + ' test to ' + ( config.host || '(no host)' ) + ':' + ( config.port || '161' ) + '.' );
+			testLog( 'Server will read the OLT identity, description, then RX OID ' + ( config.rx_oid || cfg.defaultRxOid || '' ) + '.' );
+			setInfo( 'Testing SNMP connection… 0s', 'saving' );
+
+			let lastMilestone = 0;
+			testElapsedTimer = window.setInterval( function () {
+				const seconds = Math.max( 0, Math.floor( ( Date.now() - testStartedAt ) / 1000 ) );
+				setInfo( 'Testing SNMP connection… ' + seconds + 's', 'saving' );
+				if ( seconds >= 5 && lastMilestone < 5 ) {
+					lastMilestone = 5;
+					testLog( 'Still waiting for the OLT. This can happen when UDP port 161 is filtered or the OLT does not accept this SNMP login.', 'warning' );
+				}
+				if ( seconds >= 15 && lastMilestone < 15 ) {
+					lastMilestone = 15;
+					testLog( 'No response yet. Check routing to the OLT, Remote Server/manager restrictions, SNMPv3 username/passwords, and UDP 161.', 'warning' );
+				}
+			}, 1000 );
+
+			activeTestRequest = $.ajax( {
+				url: cfg.ajaxUrl,
+				type: 'POST',
+				dataType: 'json',
+				timeout: Number( cfg.testClientTimeoutMs || 30000 ),
+				data: {
+					action: 'afc_olt_manager_test',
+					nonce: cfg.nonce,
+					id: currentId
+				}
+			} ).done( function ( response ) {
+				if ( ! response || ! response.success ) {
+					testLog( 'The server returned an invalid connection-test response.', 'error' );
+					setTestAttention( true, true );
+					setInfo( 'Connection test failed. Open Connection test details below.', 'error' );
+					return;
+				}
 				const device = response.data.device || {};
 				let message = response.data.message || 'Connection successful.';
 				if ( device.name ) message += ' OLT name: ' + device.name + '.';
+				testLog( message, 'success' );
+				if ( Number.isFinite( Number( device.onu_count ) ) ) testLog( 'ONU rows returned: ' + Number( device.onu_count ) + '; readable RX values: ' + Number( device.valid_count || 0 ) + '.', 'success' );
 				setTestAttention( false, false );
 				setInfo( message, 'success' );
 				refreshList();
-			} ).fail( function ( xhr ) {
-				const message = xhr.responseJSON && xhr.responseJSON.data && xhr.responseJSON.data.message ? xhr.responseJSON.data.message : 'Connection test failed.';
+			} ).fail( function ( xhr, textStatus, errorThrown ) {
+				let message = xhr.responseJSON && xhr.responseJSON.data && xhr.responseJSON.data.message ? xhr.responseJSON.data.message : '';
+				if ( textStatus === 'timeout' ) {
+					message = 'Connection test timed out after ' + Math.round( Number( cfg.testClientTimeoutMs || 30000 ) / 1000 ) + ' seconds.';
+					testLog( message, 'error' );
+					testLog( 'Most likely: the OLT is unreachable from this server, UDP/161 is blocked, or the OLT Remote Server/manager rule does not allow this server.', 'error' );
+				} else if ( textStatus === 'abort' ) {
+					message = 'Connection test was cancelled.';
+					testLog( message, 'warning' );
+				} else {
+					message = message || 'Connection test failed.';
+					testLog( message, 'error' );
+					testLog( 'HTTP ' + ( xhr.status || 0 ) + ( errorThrown ? ' · ' + errorThrown : '' ) + '.', 'error' );
+				}
 				setTestAttention( true, true );
-				setInfo( message, 'error' );
+				setInfo( message + ' Open Connection test details below.', 'error' );
 				refreshList();
+			} ).always( function () {
+				stopTestClock();
+				activeTestRequest = null;
+				setTestRunning( false );
 			} );
+		} ).fail( function () {
+			setTestRunning( false );
+			testLog( 'Could not save the OLT settings before testing.', 'error' );
 		} );
 	}
 
