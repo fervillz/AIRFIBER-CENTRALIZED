@@ -6,28 +6,36 @@
 	font-weight: 400 !important;
 }
 
+.afc-frontend-nav [data-afc-app-panel="optical"].afc-optical-has-refresh {
+	display: inline-flex !important;
+	align-items: center;
+	gap: 7px;
+}
+
 .afc-olt-nav-refresh {
 	position: relative;
 	display: inline-grid;
-	width: 38px;
-	height: 38px;
-	margin-left: -5px;
+	width: 25px;
+	height: 25px;
+	flex: 0 0 25px;
 	place-items: center;
 	border: 0;
-	border-radius: 11px;
-	background: transparent;
+	border-radius: 8px;
+	background: rgba(255,255,255,.72);
 	color: #6f7f91;
 	cursor: pointer;
+	transition: background .15s ease, color .15s ease, box-shadow .15s ease;
 }
 
 .afc-olt-nav-refresh:hover,
 .afc-olt-nav-refresh:focus-visible {
 	outline: 0;
-	background: #edf5ff;
+	background: #fff;
 	color: #2671b8;
+	box-shadow: 0 0 0 1px rgba(38,113,184,.12);
 }
 
-.afc-olt-nav-refresh:disabled {
+.afc-olt-nav-refresh[aria-disabled="true"] {
 	cursor: wait;
 	opacity: .75;
 }
@@ -40,8 +48,8 @@
 
 .afc-olt-nav-refresh svg,
 .afc-olt-result-refresh svg {
-	width: 17px;
-	height: 17px;
+	width: 16px;
+	height: 16px;
 	fill: none;
 	stroke: currentColor;
 	stroke-width: 1.8;
@@ -51,8 +59,8 @@
 
 .afc-olt-nav-refresh-age {
 	position: absolute;
-	top: 2px;
-	right: 1px;
+	top: -7px;
+	right: -8px;
 	min-width: 15px;
 	padding: 1px 3px;
 	border-radius: 999px;
