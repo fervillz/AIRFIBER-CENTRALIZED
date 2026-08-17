@@ -33,6 +33,34 @@
 		copy.textContent = message || '';
 	}
 
+	function setTestAttention( active, focus ) {
+		const button = q( '[data-afc-olt-test]', modal );
+		if ( ! button ) return;
+		button.classList.toggle( 'is-test-attention', Boolean( active ) );
+		if ( active ) {
+			button.style.setProperty( 'background', '#2f9e56', 'important' );
+			button.style.setProperty( 'border-color', '#2f9e56', 'important' );
+			button.style.setProperty( 'color', '#fff', 'important' );
+			button.style.setProperty( 'box-shadow', '0 0 0 4px rgba(47,158,86,.16), 0 8px 20px rgba(47,158,86,.20)', 'important' );
+			button.setAttribute( 'aria-label', 'Test Connection — next step' );
+			if ( focus ) {
+				window.setTimeout( function () {
+					try {
+						button.focus( { preventScroll: true } );
+					} catch ( error ) {
+						button.focus();
+					}
+				}, 80 );
+			}
+		} else {
+			button.style.removeProperty( 'background' );
+			button.style.removeProperty( 'border-color' );
+			button.style.removeProperty( 'color' );
+			button.style.removeProperty( 'box-shadow' );
+			button.removeAttribute( 'aria-label' );
+		}
+	}
+
 	function countCards() {
 		const count = qa( '.afc-olt-card[data-afc-olt-card]', root ).length;
 		const node = q( '[data-afc-olt-count]', root );
@@ -93,6 +121,7 @@
 		q( '[name="timeout_ms"]', form ).value = '2500';
 		q( '[name="retries"]', form ).value = '1';
 		updateVersionFields();
+		setTestAttention( false, false );
 		const kicker = q( '[data-afc-olt-dialog-kicker]', modal );
 		if ( kicker ) kicker.textContent = 'New OLT';
 		setInfo( 'Start entering the OLT details. The first draft will save automatically after 5 seconds.', 'neutral' );
@@ -127,10 +156,13 @@
 		const kicker = q( '[data-afc-olt-dialog-kicker]', modal );
 		if ( kicker ) kicker.textContent = currentStatus === 'publish' ? 'Published OLT' : 'Draft OLT';
 		if ( node.device && node.device.test_status === 'success' ) {
+			setTestAttention( false, false );
 			setInfo( 'Last test passed' + ( node.device.name ? ' · OLT reports its name as “' + node.device.name + '”.' : '.' ), 'success' );
 		} else if ( node.device && node.device.test_status === 'error' ) {
+			setTestAttention( currentStatus === 'publish', false );
 			setInfo( node.device.message || 'The last connection test failed.', 'error' );
 		} else {
+			setTestAttention( currentStatus === 'publish', false );
 			setInfo( currentStatus === 'publish' ? 'Published. Test the connection when ready.' : 'Draft loaded. Changes autosave after 5 seconds.', 'neutral' );
 		}
 		dirty = false;
@@ -188,10 +220,15 @@
 			q( '[name="post_status"]', form ).value = currentStatus;
 			dirty = false;
 			if ( response.data.node ) fillForm( response.data.node );
-			setInfo(
-				mode === 'autosave' ? 'Draft autosaved at ' + ( response.data.saved_at || 'just now' ) + '. You can keep editing.' : ( response.data.message || 'Saved.' ),
-				'success'
-			);
+			if ( mode === 'publish' ) {
+				setInfo( 'OLT published. Next step: click Test Connection to verify the OLT and read its RX data.', 'warning' );
+				setTestAttention( true, true );
+			} else {
+				setInfo(
+					mode === 'autosave' ? 'Draft autosaved at ' + ( response.data.saved_at || 'just now' ) + '. You can keep editing.' : ( response.data.message || 'Saved.' ),
+					'success'
+				);
+			}
 			refreshList();
 			if ( options.close ) window.setTimeout( closeModal, 260 );
 		} ).fail( function ( xhr ) {
@@ -214,19 +251,23 @@
 
 	function testConnection() {
 		window.clearTimeout( autosaveTimer );
+		setTestAttention( false, false );
 		const mode = currentStatus === 'publish' ? 'keep' : 'autosave';
 		save( mode ).done( function () {
 			if ( ! currentId ) return;
+			setTestAttention( false, false );
 			setInfo( 'Testing SNMP connection and RX-power OID…', 'saving' );
 			post( 'afc_olt_manager_test', { id: currentId } ).done( function ( response ) {
 				if ( ! response || ! response.success ) return;
 				const device = response.data.device || {};
 				let message = response.data.message || 'Connection successful.';
 				if ( device.name ) message += ' OLT name: ' + device.name + '.';
+				setTestAttention( false, false );
 				setInfo( message, 'success' );
 				refreshList();
 			} ).fail( function ( xhr ) {
 				const message = xhr.responseJSON && xhr.responseJSON.data && xhr.responseJSON.data.message ? xhr.responseJSON.data.message : 'Connection test failed.';
+				setTestAttention( true, true );
 				setInfo( message, 'error' );
 				refreshList();
 			} );
@@ -290,7 +331,7 @@
 		q( '[data-afc-olt-help-toggle]', modal ).addEventListener( 'click', function () { setHelpOpen( ! dialog.classList.contains( 'is-help-open' ), true ); } );
 		q( '[data-afc-olt-help-close]', modal ).addEventListener( 'click', function () { setHelpOpen( false, true ); } );
 		q( '[data-afc-olt-save-draft]', modal ).addEventListener( 'click', function () { save( 'draft' ); } );
-		q( '[data-afc-olt-publish]', modal ).addEventListener( 'click', function () { save( 'publish', { close: true } ); } );
+		q( '[data-afc-olt-publish]', modal ).addEventListener( 'click', function () { save( 'publish' ); } );
 		q( '[data-afc-olt-test]', modal ).addEventListener( 'click', testConnection );
 
 		form.addEventListener( 'input', scheduleAutosave );
