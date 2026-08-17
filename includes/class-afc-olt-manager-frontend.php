@@ -17,6 +17,29 @@ class AFC_OLT_Manager_Frontend {
 				<?php AFC_OLT_Manager::render_panel(); ?>
 			</section>
 		</template>
+		<script>
+		( function () {
+			'use strict';
+			var app = document.getElementById( 'afc-frontend-app' );
+			var template = document.getElementById( 'afc-olt-manager-panel-template' );
+			if ( ! app || ! template ) return;
+			var nav = app.querySelector( '.afc-frontend-nav' );
+			var main = app.querySelector( '.afc-frontend-content' );
+			if ( nav && ! nav.querySelector( '[data-afc-app-panel="olt"]' ) ) {
+				var link = document.createElement( 'a' );
+				link.href = '#olt';
+				link.className = 'afc-native-panel-link';
+				link.setAttribute( 'data-afc-app-panel', 'olt' );
+				link.setAttribute( 'aria-pressed', 'false' );
+				link.textContent = 'OLT';
+				var mikrotik = nav.querySelector( '[data-afc-app-panel="mikrotik"]' );
+				if ( mikrotik ) nav.insertBefore( link, mikrotik );
+				else nav.appendChild( link );
+			}
+			if ( main && ! main.querySelector( '[data-afc-panel="olt"]' ) ) main.appendChild( template.content.cloneNode( true ) );
+			template.remove();
+		}() );
+		</script>
 		<?php
 	}
 }
