@@ -2,14 +2,14 @@
 /**
  * Plugin Name: Airfiber - Centralized
  * Description: Customer, billing, payment, installation, notification, and MikroTik management for Airfiber.
- * Version: 2.12.4
+ * Version: 2.12.5
  * Author: Airfiber
  * Text Domain: airfiber-centralized
  */
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'AFC_VERSION', '2.12.4' );
+define( 'AFC_VERSION', '2.12.5' );
 define( 'AFC_FILE', __FILE__ );
 define( 'AFC_PATH', plugin_dir_path( __FILE__ ) );
 define( 'AFC_URL', plugin_dir_url( __FILE__ ) );
@@ -185,6 +185,7 @@ function afc_activate_plugin() {
 	AFC_SMS_Payer_Ratings::schedule();
 	AFC_SMS_PreCutoff::schedule();
 	AFC_PPP_Manager::ensure_schema_and_schedule();
+	AFC_OLT_PPP_Signals::ensure_schema();
 	AFC_Google_Sheets_Sync::ensure_schedule();
 	AFC_OLT_Refresh_Manager::ensure_schedule();
 	flush_rewrite_rules();
