@@ -386,10 +386,21 @@
 					id: currentId
 				}
 			} ).done( function ( response ) {
-				if ( ! response || ! response.success ) {
-					testLog( 'The server returned an invalid connection-test response.', 'error' );
+				if ( ! response ) {
+					testLog( 'The server returned an empty connection-test response.', 'error' );
 					setTestAttention( true, true );
-					setInfo( 'Connection test failed. Open Connection test details below.', 'error' );
+					setInfo( 'Connection test failed: empty server response.', 'error' );
+					return;
+				}
+				if ( ! response.success ) {
+					const data = response.data || {};
+					const message = data.message || 'Connection test failed.';
+					testLog( message, 'error' );
+					if ( data.error_code ) testLog( 'Server error code: ' + data.error_code + '.', 'error' );
+					if ( data.state ) testLog( 'OLT state after test: ' + data.state + '.', 'warning' );
+					setTestAttention( true, true );
+					setInfo( message + ' Open Connection test details below.', 'error' );
+					refreshList();
 					return;
 				}
 				const device = response.data.device || {};
