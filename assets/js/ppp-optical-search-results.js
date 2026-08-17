@@ -156,38 +156,11 @@
 		} );
 	}
 
-	function basicChipHtml( signal ) {
-		if ( ! signal || ( ! signal.mapped && ! signal.detected ) ) return '';
-		const status = statusMeta( signal.status || 'unavailable' );
-		const label = hasReading( signal )
-			? 'RX ' + Number( signal.rx_power ).toFixed( 2 ) + ' dBm'
-			: 'RX ' + status.label.toUpperCase();
-		const title = 'PON ' + signal.pon + ' / ONU ' + signal.onu +
-			( signal.description ? ' · ' + signal.description : '' ) +
-			( signal.collected_at ? ' · ' + signal.collected_at : '' ) +
-			( signal.persisted ? ' · saved database link' : '' );
-		return '<span class="afc-polished-signal ' + status.chip + '" title="' + escapeAttr( title ) + '"><b>' + escapeHtml( label ) + '</b></span>';
-	}
-
 	function patchBasic() {
-		document.querySelectorAll( '.afc-basic-customer-result[data-account]' ).forEach( function ( result ) {
-			const signal = cache.get( key( result.getAttribute( 'data-account' ) ) );
-			let row = result.querySelector( ':scope > .afc-optical-basic-row' );
-			const html = basicChipHtml( signal );
-
-			if ( ! html ) {
-				if ( row ) row.remove();
-				return;
-			}
-			if ( ! row ) {
-				row = document.createElement( 'span' );
-				row.className = 'afc-polished-signal-row afc-optical-basic-row';
-				row.style.gridColumn = '1 / -1';
-				result.appendChild( row );
-			}
-			if ( row.dataset.afcPppOpticalSignature === html ) return;
-			row.dataset.afcPppOpticalSignature = html;
-			row.innerHTML = html;
+		/* Basic search RX is rendered by search-ajaxify.js in the main status row.
+		 * Remove the older separate optical row so the same RX is not shown twice. */
+		document.querySelectorAll( '.afc-optical-basic-row' ).forEach( function ( row ) {
+			row.remove();
 		} );
 	}
 
