@@ -38,8 +38,12 @@
 		}
 		if ( ! optical.mapped ) {
 			if ( optical.suggested ) {
-				return '<span class="badge bg-azure-lt">Detected</span>' +
-					'<div class="small text-secondary">PON ' + escapeHtml( optical.suggested.pon ) + ' · ONU ' + escapeHtml( optical.suggested.onu ) + '</div>' +
+				const suggestion = optical.suggested || {};
+				const label = suggestion.match_method === 'description_fuzzy' ? 'Name suggestion' : 'Description match';
+				const confidence = suggestion.confidence ? ' · ' + escapeHtml( suggestion.confidence ) + '%' : '';
+				return '<span class="badge bg-azure-lt">' + label + '</span>' +
+					'<div class="small text-secondary">PON ' + escapeHtml( suggestion.pon ) + ' · ONU ' + escapeHtml( suggestion.onu ) + confidence + '</div>' +
+					( suggestion.description ? '<div class="small text-secondary">' + escapeHtml( suggestion.description ) + '</div>' : '' ) +
 					'<button class="btn btn-link btn-sm p-0 afc-map-onu" type="button">Review mapping</button>';
 			}
 			return '<span class="badge bg-secondary-lt">Not mapped</span><div><button class="btn btn-link btn-sm p-0 afc-map-onu" type="button">Map ONU</button></div>';
@@ -71,13 +75,18 @@
 			: '<span class="text-secondary">—</span>';
 		const title = [
 			'PON ' + optical.pon + ' / ONU ' + optical.onu,
+			optical.description ? 'OLT description: ' + optical.description : '',
+			optical.onu_mac ? 'ONU MAC: ' + optical.onu_mac : '',
+			optical.onu_type ? 'ONU type: ' + optical.onu_type : '',
 			optical.collected_at ? 'Collected: ' + optical.collected_at : '',
 			optical.message || ''
 		].filter( Boolean ).join( '\n' );
+		const auto = optical.auto_matched ? '<div class="small text-success">Matched automatically by MAC</div>' : '';
 
 		return '<div title="' + escapeAttr( title ) + '">' + reading +
 			' <span class="badge ' + ( classes[ status ] || classes.unavailable ) + '">' + escapeHtml( labels[ status ] || labels.unavailable ) + '</span>' +
 			'<div class="small text-secondary">PON ' + escapeHtml( optical.pon ) + ' · ONU ' + escapeHtml( optical.onu ) + '</div>' +
+			auto +
 			'<button class="btn btn-link btn-sm p-0 afc-map-onu" type="button">Edit mapping</button></div>';
 	}
 
@@ -139,7 +148,8 @@
 			seen.add( String( user.customer_id ) );
 			output.push( {
 				id: Number( user.customer_id ),
-				caller_id: user.caller_id || ''
+				caller_id: user.caller_id || '',
+				username: user.name || ''
 			} );
 		} );
 		return output;
