@@ -46,8 +46,11 @@ class AFC_OLT_Overview {
 				'name'        => get_the_title( $customer_id ),
 				'username'    => (string) get_post_meta( $customer_id, '_afc_ppp_username', true ),
 				'onu_mac'     => (string) get_post_meta( $customer_id, '_afc_olt_onu_mac', true ),
-				'description' => get_the_title( $customer_id ),
+				'description' => (string) get_post_meta( $customer_id, '_afc_olt_description', true ),
 			);
+			if ( '' === $bindings[ $pon . ':' . $onu ]['description'] ) {
+				$bindings[ $pon . ':' . $onu ]['description'] = get_the_title( $customer_id );
+			}
 		}
 		return $bindings;
 	}
@@ -98,13 +101,20 @@ class AFC_OLT_Overview {
 			'good'     => __( 'Good', 'airfiber-centralized' ),
 			'warning'  => __( 'Warning', 'airfiber-centralized' ),
 			'critical' => __( 'Critical', 'airfiber-centralized' ),
-			'invalid'  => __( 'Invalid RX', 'airfiber-centralized' ),
+			'invalid'  => __( 'Signal unavailable', 'airfiber-centralized' ),
 			'offline'  => __( 'Offline', 'airfiber-centralized' ),
 		);
 		return isset( $labels[ $status ] ) ? $labels[ $status ] : __( 'Unknown', 'airfiber-centralized' );
 	}
 
-	private static function build_payload( $snapshot ) {
+	private static function add_unique_mac( &$macs, $mac ) {
+		$mac = trim( (string) $mac );
+		if ( '' !== $mac && ! in_array( $mac, $macs, true ) ) {
+			$macs[] = $mac;
+		}
+	}
+
+	private static function build_payload( $snapshot, $inventory ) {
 		$summary  = AFC_OLT::snapshot_summary( $snapshot );
 		$settings = AFC_OLT::get_settings();
 		$counts   = self::empty_counts();
@@ -112,100 +122,81 @@ class AFC_OLT_Overview {
 		$pons     = array();
 		$invalid_samples = array();
 
-		$payload = array(
-			'summary' => $summary,
-			'counts'  => $counts,
-			'pons'    => array(),
-			'onus'    => array(),
-			'diagnostics' => array(
-				'invalid_rx'      => 0,
-				'invalid_samples' => array(),
-				'rx_oid'          => isset( $snapshot['rx_oid'] ) ? (string) $snapshot['rx_oid'] : (string) $settings['rx_oid'],
-			),
-			'limits' => array(
-				'warning'  => (float) $settings['warning_dbm'],
-				'critical' => (float) $settings['critical_dbm'],
-			),
-			'olt' => array(
-				'name' => isset( $settings['name'] ) ? (string) $settings['name'] : __( 'Primary OLT', 'airfiber-centralized' ),
-			),
-		);
+		$snapshot_entries  = ! is_wp_error( $snapshot ) && ! empty( $snapshot['entries'] ) && is_array( $snapshot['entries'] ) ? $snapshot['entries'] : array();
+		$inventory_entries = ! empty( $inventory['entries'] ) && is_array( $inventory['entries'] ) ? $inventory['entries'] : array();
+		$bindings          = self::customer_bindings();
+		$location_macs     = self::learned_macs_by_location( $snapshot );
+		$keys              = array_unique( array_merge( array_keys( $snapshot_entries ), array_keys( $inventory_entries ), array_keys( $bindings ) ) );
 
-		if ( is_wp_error( $snapshot ) || empty( $snapshot['entries'] ) ) {
-			return $payload;
-		}
-
-		$bindings      = self::customer_bindings();
-		$location_macs = self::learned_macs_by_location( $snapshot );
-		$seen          = array();
-
-		foreach ( $snapshot['entries'] as $entry ) {
-			$pon = isset( $entry['pon'] ) ? absint( $entry['pon'] ) : 0;
-			$onu = isset( $entry['onu'] ) ? absint( $entry['onu'] ) : 0;
-			if ( $pon < 1 || $onu < 1 ) {
-				continue;
-			}
-
-			$key      = $pon . ':' . $onu;
-			$customer = isset( $bindings[ $key ] ) ? $bindings[ $key ] : null;
-			$macs     = isset( $location_macs[ $key ] ) ? $location_macs[ $key ] : array();
-			if ( $customer && ! empty( $customer['onu_mac'] ) && ! in_array( $customer['onu_mac'], $macs, true ) ) {
-				array_unshift( $macs, $customer['onu_mac'] );
-			}
-
-			$signal_valid = ! empty( $entry['signal_valid'] ) && isset( $entry['rx_power'] ) && null !== $entry['rx_power'];
-			$power        = $signal_valid ? round( (float) $entry['rx_power'], 2 ) : null;
-			$status       = isset( $entry['status'] ) && in_array( $entry['status'], array( 'good', 'warning', 'critical', 'invalid' ), true ) ? $entry['status'] : ( $signal_valid ? 'good' : 'invalid' );
-			$raw_rx       = isset( $entry['raw_rx'] ) ? $entry['raw_rx'] : null;
-			$raw_text     = isset( $entry['raw_rx_text'] ) ? (string) $entry['raw_rx_text'] : '';
-			$seen[ $key ] = true;
-
-			if ( 'invalid' === $status && count( $invalid_samples ) < 8 ) {
-				$invalid_samples[] = array( 'pon' => $pon, 'onu' => $onu, 'raw' => $raw_rx, 'raw_text' => $raw_text );
-			}
-
-			$rows[] = array(
-				'pon'          => $pon,
-				'onu'          => $onu,
-				'description'  => $customer ? (string) $customer['description'] : '',
-				'mac_addresses'=> array_values( $macs ),
-				'rx_power'     => $power,
-				'raw_rx'       => $raw_rx,
-				'raw_rx_text'  => $raw_text,
-				'signal_valid' => $signal_valid,
-				'status'       => $status,
-				'status_label' => self::status_label( $status ),
-				'mapped'       => null !== $customer,
-				'customer'     => $customer,
-			);
-		}
-
-		foreach ( $bindings as $key => $customer ) {
-			if ( isset( $seen[ $key ] ) ) {
-				continue;
-			}
+		foreach ( $keys as $key ) {
 			$parts = array_map( 'absint', explode( ':', $key, 2 ) );
 			$pon   = isset( $parts[0] ) ? $parts[0] : 0;
 			$onu   = isset( $parts[1] ) ? $parts[1] : 0;
 			if ( $pon < 1 || $onu < 1 ) {
 				continue;
 			}
-			$macs = isset( $location_macs[ $key ] ) ? $location_macs[ $key ] : array();
-			if ( ! empty( $customer['onu_mac'] ) && ! in_array( $customer['onu_mac'], $macs, true ) ) {
-				array_unshift( $macs, $customer['onu_mac'] );
+
+			$entry     = isset( $snapshot_entries[ $key ] ) ? $snapshot_entries[ $key ] : array();
+			$onu_info  = isset( $inventory_entries[ $key ] ) ? $inventory_entries[ $key ] : array();
+			$customer  = isset( $bindings[ $key ] ) ? $bindings[ $key ] : null;
+			$macs      = array();
+			$online    = array_key_exists( 'online', $onu_info ) ? $onu_info['online'] : null;
+			$onu_type  = isset( $onu_info['onu_type'] ) ? (string) $onu_info['onu_type'] : '';
+
+			if ( ! empty( $onu_info['mac'] ) ) {
+				self::add_unique_mac( $macs, $onu_info['mac'] );
 			}
+			if ( $customer && ! empty( $customer['onu_mac'] ) ) {
+				self::add_unique_mac( $macs, $customer['onu_mac'] );
+			}
+			if ( ! empty( $location_macs[ $key ] ) ) {
+				foreach ( $location_macs[ $key ] as $mac ) {
+					self::add_unique_mac( $macs, $mac );
+				}
+			}
+
+			$description = isset( $onu_info['description'] ) ? trim( (string) $onu_info['description'] ) : '';
+			if ( '' === $description && $customer ) {
+				$description = (string) $customer['description'];
+			}
+
+			$signal_valid = ! empty( $entry['signal_valid'] ) && isset( $entry['rx_power'] ) && null !== $entry['rx_power'];
+			$power        = $signal_valid ? round( (float) $entry['rx_power'], 2 ) : null;
+			$raw_rx       = isset( $entry['raw_rx'] ) ? $entry['raw_rx'] : null;
+			$raw_text     = isset( $entry['raw_rx_text'] ) ? (string) $entry['raw_rx_text'] : '';
+
+			if ( false === $online ) {
+				$status       = 'offline';
+				$signal_valid = false;
+				$power        = null;
+			} elseif ( $entry ) {
+				$status = isset( $entry['status'] ) && in_array( $entry['status'], array( 'good', 'warning', 'critical', 'invalid' ), true )
+					? $entry['status']
+					: ( $signal_valid ? 'good' : 'invalid' );
+			} elseif ( true === $online ) {
+				$status = 'invalid';
+			} else {
+				$status = 'offline';
+			}
+
+			if ( 'invalid' === $status && count( $invalid_samples ) < 8 ) {
+				$invalid_samples[] = array( 'pon' => $pon, 'onu' => $onu, 'raw' => $raw_rx, 'raw_text' => $raw_text );
+			}
+
 			$rows[] = array(
 				'pon'           => $pon,
 				'onu'           => $onu,
-				'description'   => (string) $customer['description'],
+				'description'   => $description,
 				'mac_addresses' => array_values( $macs ),
-				'rx_power'      => null,
-				'raw_rx'        => null,
-				'raw_rx_text'   => '',
-				'signal_valid'  => false,
-				'status'        => 'offline',
-				'status_label'  => self::status_label( 'offline' ),
-				'mapped'        => true,
+				'onu_type'      => $onu_type,
+				'onu_online'    => $online,
+				'rx_power'      => $power,
+				'raw_rx'        => $raw_rx,
+				'raw_rx_text'   => $raw_text,
+				'signal_valid'  => $signal_valid,
+				'status'        => $status,
+				'status_label'  => self::status_label( $status ),
+				'mapped'        => null !== $customer,
 				'customer'      => $customer,
 			);
 		}
@@ -214,7 +205,7 @@ class AFC_OLT_Overview {
 			return $a['pon'] === $b['pon'] ? $a['onu'] <=> $b['onu'] : $a['pon'] <=> $b['pon'];
 		} );
 
-		$counts['readings'] = isset( $snapshot['count'] ) ? absint( $snapshot['count'] ) : count( $snapshot['entries'] );
+		$counts['readings'] = ! is_wp_error( $snapshot ) && isset( $snapshot['count'] ) ? absint( $snapshot['count'] ) : 0;
 		$counts['total']    = count( $rows );
 
 		foreach ( $rows as $row ) {
@@ -255,18 +246,36 @@ class AFC_OLT_Overview {
 		}
 
 		ksort( $pons, SORT_NUMERIC );
-		$payload['counts']                          = $counts;
-		$payload['pons']                            = array_values( $pons );
-		$payload['onus']                            = $rows;
-		$payload['diagnostics']['invalid_rx']       = $counts['invalid'];
-		$payload['diagnostics']['invalid_samples']  = $invalid_samples;
-		return $payload;
+
+		return array(
+			'summary' => $summary,
+			'counts'  => $counts,
+			'pons'    => array_values( $pons ),
+			'onus'    => $rows,
+			'diagnostics' => array(
+				'invalid_rx'       => $counts['invalid'],
+				'invalid_samples'  => $invalid_samples,
+				'rx_oid'           => ! is_wp_error( $snapshot ) && isset( $snapshot['rx_oid'] ) ? (string) $snapshot['rx_oid'] : (string) $settings['rx_oid'],
+				'inventory_count'  => isset( $inventory['count'] ) ? (int) $inventory['count'] : 0,
+				'inventory_columns'=> isset( $inventory['columns'] ) ? $inventory['columns'] : array(),
+				'inventory_stale'  => ! empty( $inventory['stale'] ),
+				'inventory_error'  => isset( $inventory['error'] ) ? $inventory['error'] : '',
+			),
+			'limits' => array(
+				'warning'  => (float) $settings['warning_dbm'],
+				'critical' => (float) $settings['critical_dbm'],
+			),
+			'olt' => array(
+				'name' => isset( $settings['name'] ) ? (string) $settings['name'] : __( 'Primary OLT', 'airfiber-centralized' ),
+			),
+		);
 	}
 
 	public static function ajax_overview() {
 		self::authorize();
-		$force    = ! empty( $_POST['refresh'] );
-		$snapshot = AFC_OLT::get_snapshot( $force );
-		wp_send_json_success( self::build_payload( $snapshot ) );
+		$force     = ! empty( $_POST['refresh'] );
+		$snapshot  = AFC_OLT::get_snapshot( $force );
+		$inventory = class_exists( 'AFC_OLT_Inventory' ) ? AFC_OLT_Inventory::get_inventory( $force ) : array( 'entries' => array() );
+		wp_send_json_success( self::build_payload( $snapshot, $inventory ) );
 	}
 }
