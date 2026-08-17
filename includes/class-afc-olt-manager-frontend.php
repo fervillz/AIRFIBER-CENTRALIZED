@@ -38,6 +38,22 @@ class AFC_OLT_Manager_Frontend {
 			}
 			if ( main && ! main.querySelector( '[data-afc-panel="olt"]' ) ) main.appendChild( template.content.cloneNode( true ) );
 			template.remove();
+
+			/*
+			 * The OLT panel can live inside app containers that establish their own
+			 * positioning context. Keep the dialog itself directly under <body> so
+			 * position:fixed + place-items:center always centers against the browser
+			 * viewport, not against the OLT panel or a transformed ancestor.
+			 * Run after the manager's DOMContentLoaded boot so its references and
+			 * event listeners are already attached before the node is moved.
+			 */
+			document.addEventListener( 'DOMContentLoaded', function () {
+				window.setTimeout( function () {
+					var manager = document.getElementById( 'afc-olt-manager' );
+					var modal = manager ? manager.querySelector( '[data-afc-olt-modal]' ) : null;
+					if ( modal && modal.parentNode !== document.body ) document.body.appendChild( modal );
+				}, 0 );
+			} );
 		}() );
 		</script>
 		<?php
