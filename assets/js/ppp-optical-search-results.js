@@ -72,7 +72,8 @@
 		if ( 'mac' === signal.match_method ) return 'MAC match';
 		if ( 'description' === signal.match_method ) return 'ONU description match';
 		if ( 'description_fuzzy' === signal.match_method ) return 'ONU name match';
-		return signal.temporary ? 'Detected from OLT' : '';
+		if ( 'customer' === signal.match_method ) return 'Customer mapping';
+		return signal.persisted ? 'Saved OLT link' : ( signal.temporary ? 'Detected from OLT' : '' );
 	}
 
 	function hasReading( signal ) {
@@ -91,14 +92,18 @@
 			: '<span class="text-secondary">No live reading</span>';
 		const detected = matchLabel( signal );
 		const confidence = signal.confidence ? ' · ' + escapeHtml( signal.confidence ) + '%' : '';
-		const note = ! user.imported
-			? '<div class="small text-primary">' + escapeHtml( detected || 'Detected from OLT' ) + confidence + ' · import to save mapping</div>'
-			: ( signal.temporary ? '<div class="small text-primary">' + escapeHtml( detected ) + confidence + '</div>' : '' );
+		let note = '';
+		if ( signal.persisted ) {
+			note = '<div class="small text-success">Saved OLT link in database' + ( detected ? ' · ' + escapeHtml( detected ) : '' ) + confidence + '</div>';
+		} else if ( signal.temporary ) {
+			note = '<div class="small text-primary">' + escapeHtml( detected || 'Detected from OLT' ) + confidence + '</div>';
+		}
 		const title = [
 			'PON ' + signal.pon + ' / ONU ' + signal.onu,
 			signal.description ? 'OLT description: ' + signal.description : '',
 			signal.onu_mac ? 'ONU MAC: ' + signal.onu_mac : '',
 			signal.collected_at ? 'Collected: ' + signal.collected_at : '',
+			signal.persisted ? 'Link source: database' : '',
 			signal.message || ''
 		].filter( Boolean ).join( '\n' );
 
@@ -129,7 +134,8 @@
 			: 'RX ' + status.label.toUpperCase();
 		const title = 'PON ' + signal.pon + ' / ONU ' + signal.onu +
 			( signal.description ? ' · ' + signal.description : '' ) +
-			( signal.collected_at ? ' · ' + signal.collected_at : '' );
+			( signal.collected_at ? ' · ' + signal.collected_at : '' ) +
+			( signal.persisted ? ' · saved database link' : '' );
 		return '<span class="afc-polished-signal ' + status.chip + '" title="' + escapeAttr( title ) + '"><b>' + escapeHtml( label ) + '</b></span>';
 	}
 
@@ -198,8 +204,8 @@
 		window.clearTimeout( loadTimer );
 		loadTimer = window.setTimeout( function () {
 			patchAll();
-			if ( Date.now() - lastLoadAt > 15000 ) loadSignals( false );
-		}, null == delay ? 260 : delay );
+			if ( Date.now() - lastLoadAt > 10000 ) loadSignals( false );
+		}, null == delay ? 140 : delay );
 	}
 
 	function boot() {
@@ -207,7 +213,7 @@
 		if ( ! tableBody ) return;
 
 		const tableObserver = new MutationObserver( function () {
-			scheduleLoad( 180 );
+			scheduleLoad( 90 );
 		} );
 		tableObserver.observe( tableBody, { childList: true } );
 
@@ -224,17 +230,16 @@
 
 		$( document ).ajaxSuccess( function ( event, xhr, settings ) {
 			if ( requestHasAction( settings, 'afc_get_olt_customer_signals' ) && xhr.responseJSON && xhr.responseJSON.success ) {
-				window.setTimeout( function () { loadSignals( false ); }, 120 );
+				window.setTimeout( function () { loadSignals( false ); }, 80 );
 			}
 			if ( requestHasAction( settings, 'afc_get_ppp_users' ) && xhr.responseJSON && xhr.responseJSON.success ) {
-				scheduleLoad( 220 );
+				scheduleLoad( 90 );
 			}
 		} );
 
-		/* Let the normal imported-customer optical request start first. If it is
-		 * already refreshing the OLT, this request will reuse the resulting cache
-		 * on the follow-up ajaxSuccess above. */
-		scheduleLoad( 650 );
+		/* The normal request is database-backed, so start it as soon as PPP rows
+		 * exist. It no longer waits for a live OLT walk. */
+		scheduleLoad( 180 );
 	}
 
 	if ( document.readyState === 'loading' ) document.addEventListener( 'DOMContentLoaded', boot );
