@@ -2,14 +2,14 @@
 /**
  * Plugin Name: Airfiber - Centralized
  * Description: Customer, billing, payment, installation, notification, and MikroTik management for Airfiber.
- * Version: 2.11.1
+ * Version: 2.12.0
  * Author: Airfiber
  * Text Domain: airfiber-centralized
  */
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'AFC_VERSION', '2.11.1' );
+define( 'AFC_VERSION', '2.12.0' );
 define( 'AFC_FILE', __FILE__ );
 define( 'AFC_PATH', plugin_dir_path( __FILE__ ) );
 define( 'AFC_URL', plugin_dir_url( __FILE__ ) );
@@ -18,6 +18,7 @@ require_once AFC_PATH . 'includes/class-afc-post-types.php';
 require_once AFC_PATH . 'includes/class-afc-mikrotik.php';
 require_once AFC_PATH . 'includes/class-afc-olt.php';
 require_once AFC_PATH . 'includes/class-afc-olt-inventory.php';
+require_once AFC_PATH . 'includes/class-afc-olt-refresh-manager.php';
 require_once AFC_PATH . 'includes/class-afc-olt-mac-link.php';
 require_once AFC_PATH . 'includes/class-afc-olt-overview.php';
 require_once AFC_PATH . 'includes/class-afc-comment-fields.php';
@@ -85,6 +86,7 @@ function afc_boot_plugin() {
 	AFC_OLT::init();
 	AFC_OLT_Inventory::init();
 	AFC_OLT_MAC_Link::init();
+	AFC_OLT_Refresh_Manager::init();
 	AFC_OLT_Overview::init();
 	AFC_Comment_Fields::init();
 	AFC_Comment_Formatting::init();
@@ -143,7 +145,6 @@ function afc_boot_plugin() {
 	}
 
 	add_action( 'init', array( 'AFC_Billing_Cycles', 'init' ), 1 );
-
 	do_action( 'afc_loaded' );
 }
 add_action( 'plugins_loaded', 'afc_boot_plugin' );
@@ -157,6 +158,7 @@ function afc_activate_plugin() {
 	AFC_SMS_PreCutoff::schedule();
 	AFC_PPP_Manager::ensure_schema_and_schedule();
 	AFC_Google_Sheets_Sync::ensure_schedule();
+	AFC_OLT_Refresh_Manager::ensure_schedule();
 	flush_rewrite_rules();
 }
 register_activation_hook( __FILE__, 'afc_activate_plugin' );
@@ -166,6 +168,7 @@ function afc_deactivate_plugin() {
 	AFC_SMS_PreCutoff::unschedule();
 	AFC_PPP_Manager::unschedule();
 	AFC_Google_Sheets_Sync::deactivate();
+	AFC_OLT_Refresh_Manager::clear_schedule();
 	wp_clear_scheduled_hook( AFC_Google_Sheets_Paid_History::CRON_REFRESH );
 	wp_clear_scheduled_hook( AFC_Google_Sheets_Targeted_Payment_Sync::CRON_TARGETED );
 	flush_rewrite_rules();
