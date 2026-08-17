@@ -89,7 +89,7 @@ class AFC_OLT_MAC_Link {
 				if ( 0 === strcasecmp( AFC_OLT_Inventory::normalize_mac( $snapshot_mac ), $mac ) ) {
 					$locations = is_array( $items ) ? $items : array();
 					break;
-				}
+			}
 			}
 			$unique = array();
 			foreach ( $locations as $location ) {
@@ -292,13 +292,29 @@ class AFC_OLT_MAC_Link {
 			if ( ! $customer_id ) {
 				continue;
 			}
+
+			$caller_id = ! empty( $record['session']['caller_id'] ) ? (string) $record['session']['caller_id'] : (string) get_post_meta( $customer_id, '_afc_caller_id', true );
+			if ( '' !== trim( $caller_id ) ) {
+				/* Keep the latest RouterOS caller-id so scheduled refreshes can map without a live PPP lookup. */
+				update_post_meta( $customer_id, '_afc_caller_id', sanitize_text_field( $caller_id ) );
+			}
+
 			$saved = get_post_meta( $customer_id, AFC_OLT_Refresh_Manager::CUSTOMER_SIGNAL, true );
-			if ( is_array( $saved ) && ! empty( $saved ) ) {
+			if ( is_array( $saved ) && ! empty( $saved['mapped'] ) ) {
 				$record['optical'] = $saved;
 				continue;
 			}
-			$caller_id = ! empty( $record['session']['caller_id'] ) ? (string) $record['session']['caller_id'] : (string) get_post_meta( $customer_id, '_afc_caller_id', true );
-			$record['optical'] = self::signal_from_stored( $customer_id, $caller_id, $username, true );
+
+			/*
+			 * Older refreshes may have persisted an unmapped placeholder. Do not let
+			 * that placeholder permanently hide a later exact MAC match. Rebuild only
+			 * from the saved OLT snapshot/inventory; this does not contact the OLT.
+			 */
+			$signal = self::signal_from_stored( $customer_id, $caller_id, $username, true );
+			$record['optical'] = $signal;
+			if ( is_array( $signal ) && ! empty( $signal['mapped'] ) ) {
+				self::persist_signal( $customer_id, $signal );
+			}
 		}
 		unset( $record );
 		return $records;
@@ -330,15 +346,24 @@ class AFC_OLT_MAC_Link {
 			if ( ! $customer_id || 'afc_customer' !== get_post_type( $customer_id ) ) {
 				continue;
 			}
+
+			$caller_id = isset( $item['caller_id'] ) ? sanitize_text_field( $item['caller_id'] ) : (string) get_post_meta( $customer_id, '_afc_caller_id', true );
+			$username  = isset( $item['username'] ) ? sanitize_text_field( $item['username'] ) : (string) get_post_meta( $customer_id, '_afc_ppp_username', true );
+			if ( '' !== trim( $caller_id ) ) {
+				update_post_meta( $customer_id, '_afc_caller_id', $caller_id );
+			}
+
 			$saved = get_post_meta( $customer_id, AFC_OLT_Refresh_Manager::CUSTOMER_SIGNAL, true );
-			if ( is_array( $saved ) && ! empty( $saved ) ) {
+			if ( is_array( $saved ) && ! empty( $saved['mapped'] ) ) {
 				$signals[ (string) $customer_id ] = $saved;
 				continue;
 			}
-			$caller_id = isset( $item['caller_id'] ) ? sanitize_text_field( $item['caller_id'] ) : (string) get_post_meta( $customer_id, '_afc_caller_id', true );
-			$username  = isset( $item['username'] ) ? sanitize_text_field( $item['username'] ) : (string) get_post_meta( $customer_id, '_afc_ppp_username', true );
-			$signal    = self::signal_for_customer( $customer_id, $caller_id, $username, $snapshot, $inventory, true );
+
+			$signal = self::signal_for_customer( $customer_id, $caller_id, $username, $snapshot, $inventory, true );
 			$signals[ (string) $customer_id ] = $signal;
+			if ( is_array( $signal ) && ! empty( $signal['mapped'] ) ) {
+				self::persist_signal( $customer_id, $signal );
+			}
 		}
 
 		wp_send_json_success(
