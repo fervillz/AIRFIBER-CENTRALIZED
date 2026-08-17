@@ -42,10 +42,10 @@ class AFC_OLT_Manager_Console_UI {
 		);
 
 		/*
-		 * Safety net: if an older cached manager script creates its legacy inline
-		 * <details> log, move it into the new sidebar console as soon as the
-		 * console UI has created its destination. This keeps the form/footer from
-		 * being pushed down even during mixed-cache upgrades.
+		 * Safety net for mixed-cache upgrades: older manager code may still create
+		 * the legacy inline <details> log. Relocate only the log node here. The
+		 * console UI owns all visibility/animation classes so this fallback can
+		 * never bypass the measured slide-up animation.
 		 */
 		wp_add_inline_script(
 			'afc-olt-manager-console-ui',
@@ -58,14 +58,8 @@ class AFC_OLT_Manager_Console_UI {
 		if (!modal) return;
 		var log = modal.querySelector('[data-afc-olt-test-log]');
 		var consoleBody = modal.querySelector('[data-afc-olt-console-body]');
-		var aside = modal.querySelector('[data-afc-olt-help]');
-		var dialog = modal.querySelector('.afc-olt-dialog');
-		if (!log || !consoleBody || !aside || !dialog) return;
-
+		if (!log || !consoleBody) return;
 		if (log.parentNode !== consoleBody) consoleBody.appendChild(log);
-		aside.classList.add('is-console-open');
-		dialog.classList.add('is-help-open');
-		aside.setAttribute('aria-hidden', 'false');
 	}
 
 	function bootOLTConsoleSafety() {
