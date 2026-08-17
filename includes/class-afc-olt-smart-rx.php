@@ -141,6 +141,27 @@ class AFC_OLT_Smart_RX {
 		return strlen( $warning ) > 240 ? substr( $warning, 0, 237 ) . '...' : $warning;
 	}
 
+	private static function friendly_warning( $warning ) {
+		$warning = strtolower( (string) $warning );
+		if ( '' === trim( $warning ) ) return '';
+		if ( false !== strpos( $warning, 'unknown user' ) || false !== strpos( $warning, 'unknownusername' ) ) {
+			return __( 'The OLT does not recognize this SNMPv3 monitoring username. Check the User Table entry and spelling.', 'airfiber-centralized' );
+		}
+		if ( false !== strpos( $warning, 'authentication failure' ) || false !== strpos( $warning, 'wrong digest' ) || false !== strpos( $warning, 'authorization error' ) ) {
+			return __( 'The OLT rejected SNMPv3 authentication. Recheck the monitoring username and Login password (HMAC-SHA).', 'airfiber-centralized' );
+		}
+		if ( false !== strpos( $warning, 'decryption' ) || false !== strpos( $warning, 'privacy' ) || false !== strpos( $warning, 'decrypt' ) ) {
+			return __( 'SNMPv3 privacy/encryption failed. Recheck the Encryption password and CBC-DES setting.', 'airfiber-centralized' );
+		}
+		if ( false !== strpos( $warning, 'no access' ) || false !== strpos( $warning, 'not in view' ) || false !== strpos( $warning, 'no such object' ) ) {
+			return __( 'The SNMP login reached the OLT, but its read view may not permit this OID.', 'airfiber-centralized' );
+		}
+		if ( false !== strpos( $warning, 'timeout' ) || false !== strpos( $warning, 'no response' ) ) {
+			return __( 'No SNMP reply arrived. Check UDP 161 and any Remote Server/manager IP restriction on the OLT.', 'airfiber-centralized' );
+		}
+		return '';
+	}
+
 	private static function capture_snmp_call( $callback, &$warning ) {
 		$warning = '';
 		set_error_handler(
@@ -290,7 +311,11 @@ class AFC_OLT_Smart_RX {
 		if ( is_wp_error( $walk ) ) {
 			$data = $walk->get_error_data();
 			self::log( sprintf( __( '%s RX table returned no usable rows.', 'airfiber-centralized' ), $label ), 'warning' );
-			if ( is_array( $data ) && ! empty( $data['warning'] ) ) self::log( 'SNMP: ' . $data['warning'], 'warning' );
+			if ( is_array( $data ) && ! empty( $data['warning'] ) ) {
+				self::log( 'SNMP: ' . $data['warning'], 'warning' );
+				$friendly = self::friendly_warning( $data['warning'] );
+				if ( $friendly ) self::log( $friendly, 'warning' );
+			}
 			return null;
 		}
 
@@ -329,7 +354,13 @@ class AFC_OLT_Smart_RX {
 		self::log( sprintf( __( 'Scanning the %s optical diagnostics table for an RX-like column.', 'airfiber-centralized' ), $label ) );
 		$walk = self::snmp_walk( $config, $parent_oid );
 		if ( is_wp_error( $walk ) ) {
+			$data = $walk->get_error_data();
 			self::log( sprintf( __( 'Could not scan the %s optical diagnostics table.', 'airfiber-centralized' ), $label ), 'warning' );
+			if ( is_array( $data ) && ! empty( $data['warning'] ) ) {
+				self::log( 'SNMP: ' . $data['warning'], 'warning' );
+				$friendly = self::friendly_warning( $data['warning'] );
+				if ( $friendly ) self::log( $friendly, 'warning' );
+			}
 			return null;
 		}
 
@@ -475,24 +506,40 @@ class AFC_OLT_Smart_RX {
 
 		$name_result        = self::snmp_get( $config, self::SYS_NAME_OID );
 		$description_result = self::snmp_get( $config, self::SYS_DESCR_OID );
-		if ( is_wp_error( $name_result ) && is_wp_error( $description_result ) ) {
+		$identity_failed    = is_wp_error( $name_result ) && is_wp_error( $description_result );
+		$identity_warning   = '';
+
+		if ( $identity_failed ) {
 			$name_data = $name_result->get_error_data();
-			self::log( __( 'SNMP identity could not be read. The login, manager access rule, or UDP/161 path may be blocking the request.', 'airfiber-centralized' ), 'error' );
-			if ( is_array( $name_data ) && ! empty( $name_data['warning'] ) ) self::log( 'SNMP: ' . $name_data['warning'], 'error' );
-			self::error_response(
-				$post_id,
-				new WP_Error( 'snmp_identity_failed', __( 'Airfiber could not read the OLT identity over SNMP. Check the monitoring login, Remote Server/manager access, and UDP port 161.', 'airfiber-centralized' ) )
-			);
+			$desc_data = $description_result->get_error_data();
+			if ( is_array( $name_data ) && ! empty( $name_data['warning'] ) ) $identity_warning = $name_data['warning'];
+			elseif ( is_array( $desc_data ) && ! empty( $desc_data['warning'] ) ) $identity_warning = $desc_data['warning'];
+
+			self::log( __( 'Standard OLT identity OIDs are not readable. Airfiber will not stop here; it will now probe the VSOL vendor RX tables directly.', 'airfiber-centralized' ), 'warning' );
+			if ( $identity_warning ) {
+				self::log( 'SNMP: ' . $identity_warning, 'warning' );
+				$friendly = self::friendly_warning( $identity_warning );
+				if ( $friendly ) self::log( $friendly, 'warning' );
+			}
+		} else {
+			self::log( __( 'SNMP authentication succeeded; at least one standard OLT identity value is readable.', 'airfiber-centralized' ), 'success' );
 		}
 
 		$device_name = is_wp_error( $name_result ) ? '' : self::clean_snmp_string( $name_result );
 		$description = is_wp_error( $description_result ) ? '' : self::clean_snmp_string( $description_result );
-		self::log( __( 'SNMP authentication succeeded; the OLT identity is readable.', 'airfiber-centralized' ), 'success' );
 		if ( $device_name ) self::log( sprintf( __( 'OLT reports its name as %s.', 'airfiber-centralized' ), $device_name ), 'success' );
 		if ( $description ) self::log( sprintf( __( 'Device description: %s', 'airfiber-centralized' ), $description ) );
 
 		$match = self::detect_rx( $config, $device_name, $description );
 		if ( ! $match ) {
+			if ( $identity_failed ) {
+				self::log( __( 'Neither the standard identity OIDs nor the known VSOL RX tables were readable.', 'airfiber-centralized' ), 'error' );
+				self::error_response(
+					$post_id,
+					new WP_Error( 'snmp_access_failed', __( 'Airfiber could not read any SNMP data from this OLT. This points to SNMPv3 credentials, access/view permissions, Remote Server restrictions, or UDP 161 rather than the RX OID itself.', 'airfiber-centralized' ) )
+				);
+			}
+
 			self::log( __( 'SNMP works, but no ONU RX-power table could be identified automatically.', 'airfiber-centralized' ), 'error' );
 			self::error_response(
 				$post_id,
@@ -500,13 +547,16 @@ class AFC_OLT_Smart_RX {
 			);
 		}
 
-		$old_oid             = isset( $config['rx_oid'] ) ? $config['rx_oid'] : '';
-		$config['rx_oid']    = $match['oid'];
-		$oid_changed         = $old_oid !== $match['oid'];
+		$old_oid          = isset( $config['rx_oid'] ) ? $config['rx_oid'] : '';
+		$config['rx_oid'] = $match['oid'];
+		$oid_changed      = $old_oid !== $match['oid'];
 		update_post_meta( $post_id, AFC_OLT_Manager::CONFIG_META, $config );
 		self::sync_primary_legacy( $post_id, $config );
 		delete_post_meta( $post_id, AFC_OLT_Manager::DISCONNECTED_META );
 
+		if ( $identity_failed ) {
+			self::log( __( 'The vendor RX table is readable even though the standard identity OIDs are blocked. Monitoring can still continue.', 'airfiber-centralized' ), 'success' );
+		}
 		if ( $oid_changed ) {
 			self::log( sprintf( __( 'Detected RX OID %s and saved it to this OLT automatically.', 'airfiber-centralized' ), $match['oid'] ), 'success' );
 		} else {
