@@ -284,6 +284,9 @@ class AFC_Search_Ajaxify {
 			$profile = isset( $secret['profile'] ) ? (string) $secret['profile'] : '';
 			$due = self::due_state( $profile, $next_due, $cutoff );
 			$session = isset( $active_map[ $key ] ) ? $active_map[ $key ] : array();
+			$caller_id = isset( $session['caller-id'] ) && '' !== trim( (string) $session['caller-id'] )
+				? (string) $session['caller-id']
+				: ( isset( $secret['caller-id'] ) ? (string) $secret['caller-id'] : '' );
 
 			$result[ $key ] = array(
 				'found'          => true,
@@ -302,7 +305,7 @@ class AFC_Search_Ajaxify {
 				'comment_fields' => self::formatted_comment_fields( $pairs ),
 				'session'        => array(
 					'address'   => isset( $session['address'] ) ? (string) $session['address'] : '',
-					'caller_id' => isset( $session['caller-id'] ) ? (string) $session['caller-id'] : '',
+					'caller_id' => $caller_id,
 					'uptime'    => isset( $session['uptime'] ) ? (string) $session['uptime'] : '',
 					'service'   => isset( $session['service'] ) ? (string) $session['service'] : '',
 				),
