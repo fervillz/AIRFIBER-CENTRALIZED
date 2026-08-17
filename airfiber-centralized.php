@@ -2,14 +2,14 @@
 /**
  * Plugin Name: Airfiber - Centralized
  * Description: Customer, billing, payment, installation, notification, and MikroTik management for Airfiber.
- * Version: 2.11.0
+ * Version: 2.11.1
  * Author: Airfiber
  * Text Domain: airfiber-centralized
  */
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'AFC_VERSION', '2.11.0' );
+define( 'AFC_VERSION', '2.11.1' );
 define( 'AFC_FILE', __FILE__ );
 define( 'AFC_PATH', plugin_dir_path( __FILE__ ) );
 define( 'AFC_URL', plugin_dir_url( __FILE__ ) );
@@ -18,6 +18,7 @@ require_once AFC_PATH . 'includes/class-afc-post-types.php';
 require_once AFC_PATH . 'includes/class-afc-mikrotik.php';
 require_once AFC_PATH . 'includes/class-afc-olt.php';
 require_once AFC_PATH . 'includes/class-afc-olt-inventory.php';
+require_once AFC_PATH . 'includes/class-afc-olt-mac-link.php';
 require_once AFC_PATH . 'includes/class-afc-olt-overview.php';
 require_once AFC_PATH . 'includes/class-afc-comment-fields.php';
 require_once AFC_PATH . 'includes/class-afc-comment-formatting.php';
@@ -83,6 +84,7 @@ function afc_boot_plugin() {
 	AFC_MikroTik::init();
 	AFC_OLT::init();
 	AFC_OLT_Inventory::init();
+	AFC_OLT_MAC_Link::init();
 	AFC_OLT_Overview::init();
 	AFC_Comment_Fields::init();
 	AFC_Comment_Formatting::init();
