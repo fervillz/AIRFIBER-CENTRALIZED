@@ -59,8 +59,29 @@
 		return '';
 	}
 
+	function isStructuredRowButton( button ) {
+		return Boolean( button && button.matches && button.matches(
+			'.afc-scheduler-insight-row, .afc-dashboard-list-item, .afc-dashboard-payment-result, .afc-basic-customer-result'
+		) );
+	}
+
+	function removeInjectedIcon( button ) {
+		if ( ! button ) return;
+		const injected = button.querySelector( ':scope > .afc-ui-icon' );
+		if ( injected ) injected.remove();
+		button.classList.remove( 'afc-has-ui-icon' );
+		delete button.dataset.afcIconDone;
+	}
+
 	function shouldDecorate( button ) {
 		if ( ! button || button.hasAttribute( 'data-afc-no-auto-icon' ) ) return false;
+		/* Structured customer rows already have their own avatar/status layout.
+		 * Injecting another SVG becomes an extra grid child and pushes the actual
+		 * customer columns to the right. Keep those rows untouched and left aligned. */
+		if ( isStructuredRowButton( button ) ) {
+			removeInjectedIcon( button );
+			return false;
+		}
 		if ( button.dataset.afcIconDone === '1' && button.querySelector( '.afc-ui-icon' ) ) return false;
 		if ( button.dataset.afcIconDone === '1' ) delete button.dataset.afcIconDone;
 		if ( button.classList.contains( 'btn-close' ) || button.matches( '[aria-label="Close"], [data-afc-actions-close], [data-afc-google-help-close]' ) ) return false;
