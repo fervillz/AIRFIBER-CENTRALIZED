@@ -2,6 +2,8 @@
 
 defined( 'ABSPATH' ) || exit;
 
+require_once AFC_PATH . 'includes/class-afc-ppp-billing-ux.php';
+
 /**
  * Small UX improvements shared by the Basic payment screen, PPP editor, and
  * billing-field migration. Also provides an explicit, confirmed PPP delete.
@@ -11,6 +13,7 @@ class AFC_PPP_Operations_UX {
 	const NONCE = 'afc_ppp_operations_ux';
 
 	public static function init() {
+		AFC_PPP_Billing_UX::init();
 		add_action( 'wp_ajax_afc_ppp_delete_account', array( __CLASS__, 'ajax_delete_account' ) );
 		add_action( 'wp_enqueue_scripts', array( __CLASS__, 'enqueue_frontend_assets' ), 95 );
 		add_action( 'admin_enqueue_scripts', array( __CLASS__, 'enqueue_admin_assets' ), 95 );
