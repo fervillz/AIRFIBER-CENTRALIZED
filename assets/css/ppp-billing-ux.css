@@ -1,0 +1,313 @@
+/* PPP + Billing UX cleanup. Presentation only: no controls are removed. */
+
+.afc-admin-page,
+.afc-scheduler-shell {
+	--afc-ux-radius: 14px;
+	--afc-ux-gap: 14px;
+	--afc-ux-muted: #667382;
+}
+
+/* Shared page-header rhythm. */
+.afc-admin-page .page-header,
+.afc-admin-page .afc-basic-payment-heading,
+.afc-scheduler-shell .afc-scheduler-header,
+.afc-scheduler-shell .afc-scheduler-section-head {
+	margin-bottom: 14px !important;
+	padding: 0 0 12px !important;
+	border-bottom: 1px solid rgba( 98, 105, 118, .15 );
+}
+
+.afc-admin-page .page-header .page-pretitle,
+.afc-admin-page .afc-basic-payment-kicker,
+.afc-scheduler-shell .afc-scheduler-kicker {
+	display: none !important;
+}
+
+.afc-admin-page .page-header .page-title,
+.afc-admin-page .afc-basic-payment-heading h1,
+.afc-scheduler-shell .afc-scheduler-header h1,
+.afc-scheduler-shell .afc-scheduler-section-head h2 {
+	margin: 0 !important;
+	font-size: clamp( 1.25rem, 2vw, 1.65rem ) !important;
+	font-weight: 700 !important;
+	line-height: 1.2 !important;
+}
+
+.afc-admin-page .page-header p,
+.afc-admin-page .afc-basic-payment-heading p,
+.afc-scheduler-shell .afc-scheduler-header p,
+.afc-scheduler-shell .afc-scheduler-section-head p {
+	margin: 4px 0 0 !important;
+	max-width: 700px;
+	color: var(--afc-ux-muted) !important;
+	font-size: .78rem !important;
+	line-height: 1.35 !important;
+}
+
+/* Header actions: primary actions stay visible; lower-frequency actions live in Tools. */
+.afc-admin-page .afc-ppp-header-actions,
+.afc-admin-page .afc-basic-payment-heading .afc-ux-basic-actions {
+	display: flex;
+	align-items: center;
+	justify-content: flex-end;
+	gap: 8px;
+	flex-wrap: wrap;
+}
+
+.afc-admin-page .afc-basic-payment-heading {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 16px;
+	text-align: left !important;
+}
+
+.afc-admin-page .afc-basic-payment-heading > .afc-ux-heading-copy {
+	min-width: 0;
+}
+
+.afc-admin-page .afc-basic-payment-heading p:empty {
+	display: none;
+}
+
+.afc-ux-tools {
+	position: relative;
+	margin: 0;
+}
+
+.afc-ux-tools > summary {
+	list-style: none;
+	min-height: 38px;
+	padding: 8px 12px;
+	border: 1px solid #d7dde5;
+	border-radius: 9px;
+	background: #fff;
+	color: #344054;
+	font-size: .78rem;
+	font-weight: 700;
+	cursor: pointer;
+	user-select: none;
+}
+
+.afc-ux-tools > summary::-webkit-details-marker { display: none; }
+.afc-ux-tools > summary::after { content: "  ⋯"; }
+
+.afc-ux-tools[open] > summary {
+	border-color: #206bc4;
+	color: #206bc4;
+}
+
+.afc-ux-tools-menu {
+	position: absolute;
+	right: 0;
+	top: calc( 100% + 7px );
+	z-index: 900;
+	display: grid;
+	gap: 6px;
+	min-width: 205px;
+	padding: 8px;
+	border: 1px solid #dfe4ea;
+	border-radius: 12px;
+	background: #fff;
+	box-shadow: 0 16px 40px rgba( 15, 23, 42, .14 );
+}
+
+.afc-ux-tools-menu .btn {
+	justify-content: flex-start;
+	width: 100%;
+	min-height: 38px;
+	text-align: left;
+}
+
+/* Alerts / notices should appear first, consistently. */
+.afc-ux-notice-stack {
+	display: grid;
+	gap: 8px;
+	margin: 0 0 14px;
+}
+
+.afc-ux-notice-stack:empty { display: none; }
+
+.afc-ux-notice-stack .alert,
+.afc-ux-notice-stack [class*="notice"],
+.afc-ux-notice-stack [aria-live] {
+	margin: 0 !important;
+}
+
+/* Compact advanced overview without losing data. */
+body.afc-admin-mode-advanced .afc-admin-page #afc-ppp-summary .card-body {
+	padding: 10px 12px;
+}
+
+body.afc-admin-mode-advanced .afc-admin-page #afc-ppp-summary .text-secondary {
+	font-size: .68rem;
+}
+
+body.afc-admin-mode-advanced .afc-admin-page #afc-ppp-summary .h2 {
+	font-size: 1.2rem;
+}
+
+/* Lower-frequency cards become progressive disclosure. */
+.afc-ux-collapsible {
+	margin-bottom: 14px;
+	border: 1px solid #e1e6ec;
+	border-radius: var(--afc-ux-radius);
+	background: #fff;
+	overflow: clip;
+}
+
+.afc-ux-collapsible > summary {
+	list-style: none;
+	padding: 12px 14px;
+	font-size: .84rem;
+	font-weight: 700;
+	cursor: pointer;
+}
+
+.afc-ux-collapsible > summary::-webkit-details-marker { display: none; }
+.afc-ux-collapsible > summary::after {
+	float: right;
+	content: "+";
+	color: var(--afc-ux-muted);
+}
+.afc-ux-collapsible[open] > summary::after { content: "−"; }
+.afc-ux-collapsible > .card { margin: 0 !important; border: 0 !important; box-shadow: none !important; }
+.afc-ux-collapsible > .card .card-header { display: none; }
+
+/* Dialogs: same header size, notes first, primary action last/right. */
+.afc-dialog .afc-dialog-header {
+	align-items: center;
+	min-height: 64px;
+	padding: 14px 18px !important;
+}
+
+.afc-dialog .afc-dialog-header .text-secondary.small {
+	display: none;
+}
+
+.afc-dialog .afc-dialog-header h3 {
+	font-size: 1.15rem !important;
+	font-weight: 700;
+}
+
+.afc-dialog .afc-dialog-body > .alert:first-child,
+.afc-dialog .afc-ux-dialog-notice {
+	margin: 0 0 14px !important;
+	padding: 9px 11px !important;
+	border-radius: 10px !important;
+	font-size: .76rem !important;
+	line-height: 1.35 !important;
+}
+
+.afc-dialog .afc-dialog-footer {
+	gap: 8px;
+	padding: 12px 18px !important;
+}
+
+/* Advanced PPP editor: show customer/service first, then grouped settings. */
+.afc-ppp-manage-dialog .afc-ppp-advanced-editor.afc-ux-grouped {
+	display: block !important;
+}
+
+.afc-ux-settings-section {
+	margin-top: 10px;
+	border: 1px solid #e1e6ec;
+	border-radius: 12px;
+	background: #fff;
+	overflow: hidden;
+}
+
+.afc-ux-settings-section > summary {
+	list-style: none;
+	padding: 11px 13px;
+	background: #f8fafc;
+	font-size: .8rem;
+	font-weight: 750;
+	cursor: pointer;
+}
+
+.afc-ux-settings-section > summary::-webkit-details-marker { display: none; }
+.afc-ux-settings-section > summary::after {
+	float: right;
+	content: "+";
+	color: var(--afc-ux-muted);
+}
+.afc-ux-settings-section[open] > summary::after { content: "−"; }
+
+.afc-ux-settings-grid {
+	display: grid;
+	grid-template-columns: repeat( 2, minmax( 0, 1fr ) );
+	gap: 12px;
+	padding: 13px;
+}
+
+.afc-ux-settings-grid > .afc-span-2 { grid-column: 1 / -1; }
+.afc-ux-settings-grid textarea { min-height: 150px; }
+
+/* Scheduler cleanup: alerts first, fewer decorative words. */
+.afc-scheduler-shell .afc-scheduler-notice {
+	margin: 0 0 12px !important;
+}
+
+.afc-scheduler-shell .afc-scheduler-mega small {
+	display: none !important;
+}
+
+.afc-scheduler-shell .afc-scheduler-mega button,
+.afc-scheduler-shell .afc-scheduler-mega a {
+	min-height: 52px !important;
+	padding-top: 10px !important;
+	padding-bottom: 10px !important;
+}
+
+.afc-scheduler-shell .afc-scheduler-hero p,
+.afc-scheduler-shell .afc-scheduler-overview-grid p,
+.afc-scheduler-shell .afc-scheduler-script-card > p,
+.afc-scheduler-shell .afc-scheduler-safety-grid span {
+	font-size: .74rem !important;
+	line-height: 1.35 !important;
+}
+
+.afc-ux-scheduler-details {
+	margin-top: 12px;
+	border: 1px solid #e1e6ec;
+	border-radius: 12px;
+	background: #fff;
+	overflow: hidden;
+}
+
+.afc-ux-scheduler-details > summary {
+	list-style: none;
+	padding: 11px 13px;
+	font-size: .8rem;
+	font-weight: 750;
+	cursor: pointer;
+}
+.afc-ux-scheduler-details > summary::-webkit-details-marker { display: none; }
+.afc-ux-scheduler-details > summary::after { float: right; content: "+"; color: var(--afc-ux-muted); }
+.afc-ux-scheduler-details[open] > summary::after { content: "−"; }
+.afc-ux-scheduler-details > *:not(summary) { margin: 0 !important; border: 0 !important; }
+
+/* Mobile: keep primary actions easy to reach. */
+@media ( max-width: 782px ) {
+	.afc-admin-page .afc-basic-payment-heading {
+		align-items: flex-start;
+	}
+	.afc-admin-page .afc-basic-payment-heading .afc-ux-basic-actions {
+		flex: 0 0 auto;
+	}
+	.afc-admin-page .afc-basic-payment-heading .afc-ux-basic-actions .btn {
+		min-height: 42px;
+	}
+	.afc-ux-tools-menu {
+		position: fixed;
+		right: 12px;
+		left: 12px;
+		top: auto;
+		bottom: 12px;
+		min-width: 0;
+		border-radius: 16px;
+	}
+	.afc-ux-settings-grid { grid-template-columns: 1fr; }
+	.afc-ux-settings-grid > .afc-span-2 { grid-column: auto; }
+}
