@@ -18,13 +18,15 @@ class AFC_Scheduler_Installed_Fallback {
 	const SCRIPT_MARKER = 'AFC-MANAGED-SCHEDULER v1';
 
 	public static function init() {
-		self::ensure_billing_fields();
+		// WordPress 6.7+ warns when a plugin textdomain is triggered before init.
+		// Register the schema bootstrap now, but run it only after init begins.
+		add_action( 'init', array( __CLASS__, 'ensure_billing_fields' ), 20 );
 		add_action( 'wp_ajax_afc_scheduler_installed_candidates', array( __CLASS__, 'ajax_candidates' ) );
 		add_action( 'wp_ajax_afc_scheduler_installed_apply', array( __CLASS__, 'ajax_apply' ) );
 		add_action( 'wp_enqueue_scripts', array( __CLASS__, 'enqueue_frontend_assets' ), 101 );
 	}
 
-	private static function ensure_billing_fields() {
+	public static function ensure_billing_fields() {
 		$fields = get_option( AFC_Comment_Fields::OPTION_KEY, array() );
 		$fields = is_array( $fields ) ? $fields : array();
 		$needed = array(
@@ -229,8 +231,8 @@ class AFC_Scheduler_Installed_Fallback {
 	}
 
 	private static function scheduled_datetime( DateTimeImmutable $expiry, $username, $settings ) {
-		$parts = array_map( 'intval', explode( ':', isset( $settings['base_time'] ) ? $settings['base_time'] : '00:05:00' ) );
-		$date  = $expiry->setTime( $parts[0], $parts[1], $parts[2] );
+		$parts   = array_map( 'intval', explode( ':', isset( $settings['base_time'] ) ? $settings['base_time'] : '00:05:00' ) );
+		$date    = $expiry->setTime( $parts[0], $parts[1], $parts[2] );
 		$stagger = isset( $settings['stagger_seconds'] ) ? absint( $settings['stagger_seconds'] ) : 0;
 		if ( $stagger > 0 ) {
 			$slots  = max( 1, (int) floor( 3600 / $stagger ) );
