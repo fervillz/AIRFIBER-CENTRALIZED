@@ -89,11 +89,20 @@
 		return value <= local;
 	}
 
+	/*
+	 * Respect the server-side scheduler analysis. A PPP account with no
+	 * scheduler is NOT automatically a migration candidate: it first needs
+	 * valid nextDue and cutoffDate values. Previously this helper classified
+	 * every scheduler-less PPP account as "missing", which overwrote the
+	 * backend's "invalid" state and exposed Create/Bulk actions that could
+	 * never succeed.
+	 */
 	function migrationType( row ) {
-		if ( ! row.schedulerId ) {
+		const status = String( row.status || '' );
+		if ( 'missing' === status && ! row.schedulerId ) {
 			return 'missing';
 		}
-		if ( ! row.managed ) {
+		if ( 'legacy' === status && row.schedulerId && ! row.managed ) {
 			return 'legacy';
 		}
 		return '';
@@ -131,13 +140,12 @@
 						row.bulkMigrationCandidate = candidate;
 						row.bulkMigrationType = kind;
 						row.pastCutoff = past;
-						row.selectedByDefault = candidate;
-						row.selectable = candidate;
 
 						if ( candidate ) {
+							row.selectedByDefault = true;
+							row.selectable = true;
 							candidateIds.add( String( row.pppId ) );
 							candidateTypes.set( String( row.pppId ), kind );
-							row.status = kind;
 							if ( past ) {
 								row.message = 'Past cutoff: Airfiber will ' + ( 'missing' === kind ? 'create' : 'upgrade' ) + ' this scheduler disabled. The next payment will move and enable it.';
 							}
@@ -188,7 +196,7 @@
 		const bulkPanel = root.querySelector( '[data-afc-scheduler-panel="bulk"]' );
 		if ( bulkPanel ) {
 			const description = bulkPanel.querySelector( '.afc-scheduler-section-head p' );
-			setText( description, 'Only PPP users with no scheduler or an old legacy event are shown here. Past-cutoff candidates are migrated disabled so they cannot immediately disconnect a customer.' );
+			setText( description, 'Only PPP users with valid billing dates and no scheduler, or an old legacy event, are shown here. Past-cutoff candidates are migrated disabled so they cannot immediately disconnect a customer.' );
 
 			const master = bulkPanel.querySelector( '[data-afc-scheduler-select-safe]' );
 			if ( master && master.parentElement ) {
@@ -238,7 +246,7 @@
 		if ( ! empty ) {
 			empty = document.createElement( 'p' );
 			empty.setAttribute( 'data-afc-migration-empty', '' );
-			empty.textContent = 'No missing or legacy schedulers were found.';
+			empty.textContent = 'No missing or legacy schedulers with valid billing dates were found.';
 			list.appendChild( empty );
 		}
 		empty.hidden = visible > 0;
