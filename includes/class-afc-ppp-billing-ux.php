@@ -30,14 +30,21 @@ class AFC_PPP_Billing_UX {
 	}
 
 	private static function enqueue_assets() {
-		$css = AFC_PATH . 'assets/css/ppp-billing-ux.css';
-		$js  = AFC_PATH . 'assets/js/ppp-billing-ux.js';
+		$css        = AFC_PATH . 'assets/css/ppp-billing-ux.css';
+		$manage_css = AFC_PATH . 'assets/css/ppp-manage-layout.css';
+		$js         = AFC_PATH . 'assets/js/ppp-billing-ux.js';
 
 		wp_enqueue_style(
 			'afc-ppp-billing-ux',
 			AFC_URL . 'assets/css/ppp-billing-ux.css',
 			array(),
 			file_exists( $css ) ? (string) filemtime( $css ) : AFC_VERSION
+		);
+		wp_enqueue_style(
+			'afc-ppp-manage-layout',
+			AFC_URL . 'assets/css/ppp-manage-layout.css',
+			array( 'afc-ppp-billing-ux' ),
+			file_exists( $manage_css ) ? (string) filemtime( $manage_css ) : AFC_VERSION
 		);
 		wp_add_inline_style(
 			'afc-ppp-billing-ux',
