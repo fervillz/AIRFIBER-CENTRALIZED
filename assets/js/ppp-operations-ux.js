@@ -34,7 +34,22 @@
 	function ensureBasicAddButton() {
 		const app = document.getElementById( 'afc-basic-payment-app' );
 		const heading = app && app.querySelector( '.afc-basic-payment-heading' );
-		if ( ! heading || document.getElementById( 'afc-basic-add-ppp' ) ) {
+		if ( ! heading ) {
+			return;
+		}
+
+		/* The native Add PPP control is now moved into the Basic header by the
+		 * unified PPP/Billing UX layer. Keep the older helper only as a fallback
+		 * for installs where that native control is genuinely unavailable. */
+		const source = document.getElementById( 'afc-add-ppp-account' );
+		const legacy = document.getElementById( 'afc-basic-add-ppp' );
+		if ( source ) {
+			if ( legacy ) {
+				legacy.remove();
+			}
+			return;
+		}
+		if ( legacy ) {
 			return;
 		}
 
@@ -46,11 +61,6 @@
 		button.setAttribute( 'aria-label', 'Add PPP Account' );
 		button.innerHTML = '<span aria-hidden="true">+</span><small>Add PPP</small>';
 		button.addEventListener( 'click', function () {
-			const source = document.getElementById( 'afc-add-ppp-account' );
-			if ( source ) {
-				source.click();
-				return;
-			}
 			const dialog = document.getElementById( 'afc-ppp-create-dialog' );
 			if ( dialog && ! dialog.open ) {
 				dialog.showModal();
