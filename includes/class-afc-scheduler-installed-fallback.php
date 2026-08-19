@@ -333,6 +333,7 @@ class AFC_Scheduler_Installed_Fallback {
 			if ( ! empty( $secret['.id'] ) ) {
 				$secret_map[ (string) $secret['.id'] ] = $secret;
 			}
+		}
 		$names    = self::scheduler_names( $schedulers );
 		$settings = AFC_Schedulers::get_settings();
 		$updated  = array();
