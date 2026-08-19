@@ -288,6 +288,93 @@ body.afc-admin-mode-advanced .afc-admin-page #afc-ppp-summary .h2 {
 .afc-ux-scheduler-details[open] > summary::after { content: "−"; }
 .afc-ux-scheduler-details > *:not(summary) { margin: 0 !important; border: 0 !important; }
 
+/* Basic payment: one clean header row, one Add PPP action, no overlapping circles. */
+body.afc-admin-mode-basic .afc-admin-page .afc-basic-payment-app {
+	padding-top: .35rem;
+}
+
+body.afc-admin-mode-basic .afc-admin-page .afc-basic-payment-heading {
+	min-height: 48px;
+	margin-bottom: 10px !important;
+	padding: 0 0 10px !important;
+}
+
+body.afc-admin-mode-basic .afc-admin-page .afc-basic-payment-heading h1 {
+	font-size: 1.15rem !important;
+	font-weight: 700 !important;
+}
+
+body.afc-admin-mode-basic .afc-admin-page .afc-basic-payment-heading .afc-ux-basic-actions {
+	gap: 7px;
+	flex-wrap: nowrap;
+}
+
+body.afc-admin-mode-basic .afc-admin-page #afc-add-ppp-account,
+body.afc-admin-mode-basic .afc-admin-page #afc-find-edit-ppp {
+	position: static !important;
+	display: inline-flex !important;
+	width: auto !important;
+	height: 38px !important;
+	min-width: 0 !important;
+	min-height: 38px !important;
+	align-items: center;
+	justify-content: center;
+	gap: 6px;
+	margin: 0 !important;
+	padding: 0 12px !important;
+	border-radius: 10px !important;
+	box-shadow: none !important;
+	transform: none !important;
+	white-space: nowrap;
+}
+
+body.afc-admin-mode-basic .afc-admin-page #afc-add-ppp-account {
+	border-color: #2fb344 !important;
+	background: #2fb344 !important;
+	color: #fff !important;
+}
+
+body.afc-admin-mode-basic .afc-admin-page #afc-add-ppp-account .afc-add-ppp-basic-icon {
+	display: inline !important;
+	font-size: 1.05rem !important;
+	line-height: 1 !important;
+}
+
+body.afc-admin-mode-basic .afc-admin-page #afc-add-ppp-account .afc-add-ppp-advanced-label {
+	display: inline !important;
+	font-size: .76rem !important;
+	font-weight: 700 !important;
+}
+
+body.afc-admin-mode-basic .afc-admin-page #afc-find-edit-ppp {
+	border-color: #cfd7e2 !important;
+	background: #fff !important;
+	color: #344054 !important;
+	font-size: .76rem !important;
+	font-weight: 700 !important;
+}
+
+body.afc-admin-mode-basic .afc-admin-page #afc-find-edit-ppp::before {
+	content: "⚙";
+	font-size: .75rem;
+	color: #667382;
+}
+
+body.afc-admin-mode-basic .afc-admin-page #afc-basic-add-ppp {
+	display: none !important;
+}
+
+body.afc-admin-mode-basic .afc-admin-page .afc-basic-payment-search-wrap {
+	padding-top: 0;
+}
+
+body.afc-admin-mode-basic .afc-admin-page .afc-basic-payment-empty {
+	min-height: 76px;
+	padding: 1.5rem 1rem;
+	display: grid;
+	place-items: center;
+}
+
 /* Mobile: keep primary actions easy to reach. */
 @media ( max-width: 782px ) {
 	.afc-admin-page .afc-basic-payment-heading {
@@ -310,4 +397,22 @@ body.afc-admin-mode-advanced .afc-admin-page #afc-ppp-summary .h2 {
 	}
 	.afc-ux-settings-grid { grid-template-columns: 1fr; }
 	.afc-ux-settings-grid > .afc-span-2 { grid-column: auto; }
+}
+
+@media ( max-width: 560px ) {
+	body.afc-admin-mode-basic .afc-admin-page .afc-basic-payment-heading {
+		align-items: center;
+	}
+	body.afc-admin-mode-basic .afc-admin-page .afc-basic-payment-heading h1 {
+		font-size: 1.05rem !important;
+	}
+	body.afc-admin-mode-basic .afc-admin-page #afc-add-ppp-account,
+	body.afc-admin-mode-basic .afc-admin-page #afc-find-edit-ppp {
+		height: 36px !important;
+		min-height: 36px !important;
+		padding: 0 9px !important;
+	}
+	body.afc-admin-mode-basic .afc-admin-page #afc-add-ppp-account .afc-add-ppp-advanced-label {
+		display: none !important;
+	}
 }
