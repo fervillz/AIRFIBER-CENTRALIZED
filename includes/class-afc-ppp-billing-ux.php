@@ -39,6 +39,10 @@ class AFC_PPP_Billing_UX {
 			array(),
 			file_exists( $css ) ? (string) filemtime( $css ) : AFC_VERSION
 		);
+		wp_add_inline_style(
+			'afc-ppp-billing-ux',
+			'body.afc-admin-mode-basic .afc-admin-page .afc-ux-notice-stack #afc-ppp-notice{display:block!important}body.afc-admin-mode-basic .afc-admin-page .afc-ux-notice-stack #afc-optical-status{display:block!important}'
+		);
 		wp_enqueue_script(
 			'afc-ppp-billing-ux',
 			AFC_URL . 'assets/js/ppp-billing-ux.js',
