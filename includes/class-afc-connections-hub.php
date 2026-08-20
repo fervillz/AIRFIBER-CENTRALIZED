@@ -28,8 +28,10 @@ class AFC_Connections_Hub {
 			return;
 		}
 
-		$css = AFC_PATH . 'assets/css/connections-hub.css';
-		$js  = AFC_PATH . 'assets/js/connections-hub.js';
+		$css        = AFC_PATH . 'assets/css/connections-hub.css';
+		$js         = AFC_PATH . 'assets/js/connections-hub.js';
+		$polish_css = AFC_PATH . 'assets/css/connections-hub-polish.css';
+		$polish_js  = AFC_PATH . 'assets/js/connections-hub-polish.js';
 
 		wp_enqueue_style(
 			'afc-connections-hub',
@@ -43,6 +45,21 @@ class AFC_Connections_Hub {
 			AFC_URL . 'assets/js/connections-hub.js',
 			array( 'afc-advanced-workspace' ),
 			file_exists( $js ) ? (string) filemtime( $js ) : AFC_VERSION,
+			true
+		);
+
+		wp_enqueue_style(
+			'afc-connections-hub-polish',
+			AFC_URL . 'assets/css/connections-hub-polish.css',
+			array( 'afc-connections-hub' ),
+			file_exists( $polish_css ) ? (string) filemtime( $polish_css ) : AFC_VERSION
+		);
+
+		wp_enqueue_script(
+			'afc-connections-hub-polish',
+			AFC_URL . 'assets/js/connections-hub-polish.js',
+			array( 'afc-connections-hub' ),
+			file_exists( $polish_js ) ? (string) filemtime( $polish_js ) : AFC_VERSION,
 			true
 		);
 
@@ -210,7 +227,6 @@ class AFC_Connections_Hub {
 				$ordered[] = $card;
 				unset( $map[ $card['key'] ] );
 			}
-		}
 		return $ordered;
 	}
 
