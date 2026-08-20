@@ -122,6 +122,41 @@ body.afc-workspace-active .afc-connection-card.is-draft:focus-visible {
 	outline-offset: 3px;
 }
 
+/* The add chooser uses the same visual vocabulary, so users learn the three
+ * connection types before the card even exists. */
+.afc-connection-add-option[data-afc-add-type="olt"] > span {
+	border-color: #d5cff2;
+	background: #f1effc;
+	color: #5648b6;
+}
+.afc-connection-add-option[data-afc-add-type="olt"]:hover,
+.afc-connection-add-option[data-afc-add-type="olt"]:focus-visible {
+	border-color: #bfb6ea;
+	background: #faf9ff;
+}
+
+.afc-connection-add-option[data-afc-add-type="mikrotik"] > span {
+	border-color: #bde7ec;
+	background: #edf9fb;
+	color: #315f72;
+}
+.afc-connection-add-option[data-afc-add-type="mikrotik"]:hover,
+.afc-connection-add-option[data-afc-add-type="mikrotik"]:focus-visible {
+	border-color: #87d3db;
+	background: #f5fcfd;
+}
+
+.afc-connection-add-option[data-afc-add-type="sheet"] > span {
+	border-color: #bfe2c8;
+	background: #edf8f0;
+	color: #137333;
+}
+.afc-connection-add-option[data-afc-add-type="sheet"]:hover,
+.afc-connection-add-option[data-afc-add-type="sheet"]:focus-visible {
+	border-color: #87c897;
+	background: #f6fcf7;
+}
+
 @supports not (color: color-mix(in srgb, #000 50%, #fff)) {
 	body.afc-workspace-active .afc-connection-card.is-online:hover,
 	body.afc-workspace-active .afc-connection-card.is-online:focus-visible {
