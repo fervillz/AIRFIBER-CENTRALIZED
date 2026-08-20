@@ -4,9 +4,18 @@
 	let frame = 0;
 	let settingsDialog = null;
 	let library = null;
+	let cardObserver = null;
 
 	function sheetIcon() {
 		return '<svg class="afc-google-sheet-svg" viewBox="0 0 36 36" aria-hidden="true"><path fill="currentColor" d="M9 3h13l7 7v23H9a3 3 0 0 1-3-3V6a3 3 0 0 1 3-3Z"/><path fill="#fff" opacity=".9" d="M22 3v8h7z"/><path fill="#fff" d="M11 15h13v12H11zm2 2v2h3v-2zm5 0v2h4v-2zm-5 4v2h3v-2zm5 0v2h4v-2zm-5 4v1h3v-1zm5 0v1h4v-1z"/></svg>';
+	}
+
+	function setText( node, value ) {
+		if ( node && node.textContent !== value ) node.textContent = value;
+	}
+
+	function setAttribute( node, name, value ) {
+		if ( node && node.getAttribute( name ) !== value ) node.setAttribute( name, value );
 	}
 
 	function panel() {
@@ -42,17 +51,19 @@
 		const view = library.querySelector( '[data-afc-sheet-view]' );
 		const dot = library.querySelector( '[data-afc-sheet-dot]' );
 		const add = library.querySelector( '[data-afc-sheet-add]' );
+		const cardTitle = isConnected && titleNode && titleNode.textContent && titleNode.textContent !== 'Not tested' ? titleNode.textContent : 'Primary Google Sheet';
+		const cardMeta = isConnected ? ( emailNode && emailNode.textContent !== '—' ? emailNode.textContent : 'Connected to Airfiber' ) : 'Needs setup or connection test';
+		const cardLast = isConnected ? ( lastNode && lastNode.textContent ? 'Last test · ' + lastNode.textContent : 'Connected' ) : 'Not connected';
 
 		if ( card ) card.classList.toggle( 'is-connected', isConnected );
-		if ( title ) title.textContent = isConnected && titleNode && titleNode.textContent && titleNode.textContent !== 'Not tested' ? titleNode.textContent : 'Primary Google Sheet';
-		if ( meta ) meta.textContent = isConnected ? ( emailNode && emailNode.textContent !== '—' ? emailNode.textContent : 'Connected to Airfiber' ) : 'Needs setup or connection test';
-		if ( last ) last.textContent = isConnected ? ( lastNode && lastNode.textContent ? 'Last test · ' + lastNode.textContent : 'Connected' ) : 'Not connected';
-		if ( view ) view.hidden = ! isConnected;
-		if ( dot ) dot.setAttribute( 'aria-label', isConnected ? 'Connected' : 'Not connected' );
+		setText( title, cardTitle );
+		setText( meta, cardMeta );
+		setText( last, cardLast );
+		if ( view && view.hidden === isConnected ) view.hidden = ! isConnected;
+		setAttribute( dot, 'aria-label', isConnected ? 'Connected' : 'Not connected' );
 		if ( add ) {
 			add.classList.toggle( 'is-future', isConnected );
-			const sub = add.querySelector( 'small' );
-			if ( sub ) sub.textContent = isConnected ? 'More sheets coming next' : 'Connect your first Sheet';
+			setText( add.querySelector( 'small' ), isConnected ? 'More sheets coming next' : 'Connect your first Sheet' );
 		}
 	}
 
@@ -63,8 +74,8 @@
 		const title = item.querySelector( 'b strong' );
 		const small = item.querySelector( 'b small' );
 		if ( icon && ! icon.querySelector( '.afc-google-sheet-svg' ) ) icon.innerHTML = sheetIcon();
-		if ( title ) title.textContent = 'Google Sheets';
-		if ( small ) small.textContent = 'Reporting & sync';
+		setText( title, 'Google Sheets' );
+		setText( small, 'Reporting & sync' );
 		item.classList.add( 'afc-google-sheets-menu-item' );
 	}
 
@@ -76,10 +87,16 @@
 			node.className = 'afc-sheet-library-note';
 			library.prepend( node );
 		}
-		node.textContent = message;
+		setText( node, message );
 		node.hidden = false;
 		window.clearTimeout( toast.timer );
 		toast.timer = window.setTimeout( function () { node.hidden = true; }, 4200 );
+	}
+
+	function watchGoogleCard( googleCard ) {
+		if ( cardObserver ) cardObserver.disconnect();
+		cardObserver = new MutationObserver( syncLibrary );
+		cardObserver.observe( googleCard, { childList: true, subtree: true, characterData: true, attributes: true } );
 	}
 
 	function build() {
@@ -93,6 +110,7 @@
 
 		if ( root.querySelector( '.afc-sheet-library' ) ) {
 			library = root.querySelector( '.afc-sheet-library' );
+			if ( ! settingsDialog || ! settingsDialog.isConnected ) settingsDialog = root.querySelector( '.afc-google-sheet-settings-dialog' );
 			syncLibrary();
 			return;
 		}
@@ -128,6 +146,7 @@
 		root.appendChild( settingsDialog );
 		settingsDialog.querySelector( '.afc-google-sheet-settings-content' ).appendChild( googleCard );
 		googleCard.classList.add( 'is-sheet-settings-card' );
+		watchGoogleCard( googleCard );
 
 		library.addEventListener( 'click', function ( event ) {
 			const add = event.target.closest( '[data-afc-sheet-add]' );
@@ -151,9 +170,6 @@
 			if ( event.target === settingsDialog || event.target.closest( '[data-afc-sheet-settings-close]' ) ) settingsDialog.close();
 		} );
 		settingsDialog.addEventListener( 'close', syncLibrary );
-
-		const observer = new MutationObserver( queue );
-		observer.observe( root, { childList: true, subtree: true, characterData: true, attributes: true } );
 		syncLibrary();
 	}
 
