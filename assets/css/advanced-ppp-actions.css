@@ -96,22 +96,86 @@ body.afc-workspace-active #afc-ppp-table .afc-ppp-row-more[aria-expanded="true"]
 	flex: 0 0 14px;
 }
 
-body.afc-workspace-active #afc-ppp-table .afc-ppp-name-link {
-	width: fit-content;
-	max-width: 100%;
-	border-radius: 5px;
-	color: #182433;
+/* The whole PPP row is now a safe quick-action target. Native controls keep
+ * their own click behavior and do not trigger the row popup. */
+body.afc-workspace-active #afc-ppp-table tbody tr.afc-ppp-clickable-row {
 	cursor: pointer;
-	transition: color .14s ease, background .14s ease;
+	transition: background-color .14s ease, box-shadow .14s ease;
 }
 
-body.afc-workspace-active #afc-ppp-table .afc-ppp-name-link:hover,
-body.afc-workspace-active #afc-ppp-table .afc-ppp-name-link:focus-visible {
-	outline: 0;
-	color: #1769b0;
-	text-decoration: underline;
-	text-decoration-thickness: 1px;
-	text-underline-offset: 2px;
+body.afc-workspace-active #afc-ppp-table tbody tr.afc-ppp-clickable-row:hover > td {
+	background-color: #f8fbff;
+}
+
+body.afc-workspace-active #afc-ppp-table tbody tr.afc-ppp-clickable-row:focus-visible {
+	outline: 2px solid rgba( 32, 107, 196, .42 );
+	outline-offset: -2px;
+}
+
+body.afc-workspace-active #afc-ppp-table tbody tr.afc-ppp-clickable-row:focus-visible > td:first-child,
+body.afc-workspace-active #afc-ppp-table tbody tr.afc-ppp-clickable-row:hover > td:first-child {
+	box-shadow: inset 3px 0 0 #206bc4;
+}
+
+/* Empty / failed optical values should not stretch the table. A single warning
+ * icon carries the full explanation in its tooltip. */
+body.afc-workspace-active #afc-ppp-table td:nth-child(6) {
+	min-width: 64px;
+}
+
+.afc-ppp-optical-warning {
+	position: relative;
+	display: inline-flex;
+	width: 29px;
+	height: 29px;
+	align-items: center;
+	justify-content: center;
+	border: 1px solid #f2d394;
+	border-radius: 8px;
+	background: #fff8e6;
+	color: #d98b00;
+	cursor: help;
+	vertical-align: middle;
+}
+
+.afc-ppp-optical-warning .afc-ppp-action-icon {
+	width: 15px;
+	height: 15px;
+}
+
+.afc-ppp-optical-warning::after {
+	position: absolute;
+	left: 50%;
+	bottom: calc(100% + 9px);
+	z-index: 10080;
+	width: max-content;
+	max-width: min(320px, 72vw);
+	padding: 8px 10px;
+	border-radius: 8px;
+	background: #182433;
+	color: #fff;
+	box-shadow: 0 10px 28px rgba( 15, 23, 42, .2 );
+	content: attr(data-tooltip);
+	font-size: 10px;
+	font-weight: 600;
+	line-height: 1.35;
+	text-align: left;
+	white-space: normal;
+	opacity: 0;
+	pointer-events: none;
+	transform: translate(-50%, 4px);
+	transition: opacity .14s ease, transform .14s ease;
+}
+
+.afc-ppp-optical-warning:hover::after,
+.afc-ppp-optical-warning:focus-visible::after {
+	opacity: 1;
+	transform: translate(-50%, 0);
+}
+
+.afc-ppp-optical-warning:focus-visible {
+	outline: 3px solid rgba( 217, 139, 0, .16 );
+	outline-offset: 2px;
 }
 
 .afc-ppp-more-popover {
@@ -216,6 +280,217 @@ body.afc-workspace-active #afc-ppp-table .afc-ppp-name-link:focus-visible {
 	height: 1px;
 	margin: 4px 5px;
 	background: #edf0f4;
+}
+
+/* Compact customer popup opened by clicking the PPP row. */
+.afc-ppp-quick-dialog {
+	width: min(470px, calc(100vw - 28px));
+	padding: 0;
+	border: 0;
+	border-radius: 18px;
+	background: transparent;
+	box-shadow: none;
+	overflow: visible;
+}
+
+.afc-ppp-quick-dialog::backdrop {
+	background: rgba( 18, 27, 38, .42 );
+	backdrop-filter: blur(4px);
+}
+
+.afc-ppp-quick-card {
+	overflow: hidden;
+	border: 1px solid rgba( 32, 45, 61, .08 );
+	border-radius: 18px;
+	background: #fff;
+	box-shadow: 0 26px 80px rgba( 15, 23, 42, .25 );
+}
+
+.afc-ppp-quick-card > header {
+	display: flex;
+	align-items: flex-start;
+	justify-content: space-between;
+	gap: 14px;
+	padding: 17px 18px 14px;
+	border-bottom: 1px solid #eef1f4;
+}
+
+.afc-ppp-quick-card > header small {
+	display: block;
+	margin-bottom: 3px;
+	color: #98a3b2;
+	font-size: 9px;
+	font-weight: 800;
+	letter-spacing: .09em;
+}
+
+.afc-ppp-quick-card > header h2 {
+	margin: 0;
+	color: #182433;
+	font-size: 18px;
+	line-height: 1.2;
+}
+
+.afc-ppp-quick-card > header p {
+	margin: 3px 0 0;
+	color: #7c8999;
+	font-size: 10px;
+}
+
+.afc-ppp-quick-card > header > button {
+	width: 32px;
+	height: 32px;
+	flex: 0 0 32px;
+	border: 0;
+	border-radius: 50%;
+	background: #f4f6f8;
+	color: #667382;
+	font-size: 20px;
+	line-height: 1;
+	cursor: pointer;
+}
+
+.afc-ppp-quick-card > main {
+	display: grid;
+	gap: 13px;
+	padding: 15px 18px 17px;
+}
+
+.afc-ppp-quick-status {
+	display: flex;
+	align-items: center;
+	gap: 7px;
+}
+
+.afc-ppp-quick-pill {
+	display: inline-flex;
+	align-items: center;
+	min-height: 24px;
+	padding: 4px 8px;
+	border-radius: 999px;
+	background: #eef1f5;
+	color: #667382;
+	font-size: 10px;
+	font-weight: 750;
+}
+
+.afc-ppp-quick-pill.is-online {
+	background: #e7f7ea;
+	color: #24923a;
+}
+
+.afc-ppp-quick-pill.is-expired,
+.afc-ppp-quick-pill.is-disabled {
+	background: #fff0f1;
+	color: #d33d49;
+}
+
+.afc-ppp-quick-grid {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: 8px;
+}
+
+.afc-ppp-quick-grid > div {
+	display: grid;
+	gap: 3px;
+	min-height: 60px;
+	align-content: center;
+	padding: 10px 11px;
+	border: 1px solid #e8edf2;
+	border-radius: 11px;
+	background: #fafbfd;
+}
+
+.afc-ppp-quick-grid span {
+	color: #8894a3;
+	font-size: 9px;
+	font-weight: 650;
+}
+
+.afc-ppp-quick-grid strong {
+	overflow: hidden;
+	color: #233044;
+	font-size: 11px;
+	font-weight: 750;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.afc-ppp-quick-warning {
+	display: inline-flex;
+	align-items: center;
+	gap: 5px;
+	width: fit-content;
+	color: #d98b00;
+	font-size: 10px;
+	font-weight: 750;
+	cursor: help;
+}
+
+.afc-ppp-quick-warning .afc-ppp-action-icon {
+	width: 14px;
+	height: 14px;
+}
+
+.afc-ppp-quick-contact {
+	display: grid;
+	gap: 4px;
+	padding-top: 2px;
+	color: #667382;
+	font-size: 10px;
+	line-height: 1.4;
+}
+
+.afc-ppp-quick-contact span:last-child {
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.afc-ppp-quick-card > footer {
+	display: flex;
+	align-items: center;
+	justify-content: flex-end;
+	gap: 7px;
+	padding: 12px 18px;
+	border-top: 1px solid #eef1f4;
+	background: #fafbfc;
+}
+
+.afc-ppp-quick-pay,
+.afc-ppp-quick-edit,
+.afc-ppp-quick-more {
+	display: inline-flex !important;
+	height: 35px;
+	min-height: 35px;
+	align-items: center;
+	justify-content: center;
+	gap: 6px;
+	border-radius: 9px;
+	font-size: 10px;
+	font-weight: 750;
+}
+
+.afc-ppp-quick-pay {
+	border-color: #2fb344 !important;
+	background: #2fb344 !important;
+	color: #fff !important;
+}
+
+.afc-ppp-quick-edit {
+	border: 1px solid #cbd9e8 !important;
+	background: #fff !important;
+	color: #1769b0 !important;
+}
+
+.afc-ppp-quick-more {
+	width: 35px;
+	min-width: 35px;
+	padding: 0 !important;
+	border: 1px solid #d5dde7 !important;
+	background: #fff !important;
+	color: #657386 !important;
 }
 
 .afc-ppp-delete-confirm {
@@ -343,9 +618,24 @@ body.afc-workspace-active #afc-ppp-table .afc-ppp-name-link:focus-visible {
 	}
 }
 
+@media (max-width: 560px) {
+	.afc-ppp-quick-grid {
+		grid-template-columns: 1fr;
+	}
+	.afc-ppp-quick-card > footer {
+		justify-content: stretch;
+	}
+	.afc-ppp-quick-pay,
+	.afc-ppp-quick-edit {
+		flex: 1 1 auto;
+	}
+}
+
 @media (prefers-reduced-motion: reduce) {
 	.afc-ppp-more-popover { animation: none; }
 	body.afc-workspace-active #afc-ppp-table .afc-ppp-row-pay,
 	body.afc-workspace-active #afc-ppp-table .afc-ppp-row-edit,
-	body.afc-workspace-active #afc-ppp-table .afc-ppp-row-more { transition: none; }
+	body.afc-workspace-active #afc-ppp-table .afc-ppp-row-more,
+	body.afc-workspace-active #afc-ppp-table tbody tr.afc-ppp-clickable-row,
+	.afc-ppp-optical-warning::after { transition: none; }
 }
