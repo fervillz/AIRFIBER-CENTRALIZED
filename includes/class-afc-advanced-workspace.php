@@ -169,6 +169,24 @@ class AFC_Advanced_Workspace {
 			file_exists( $focus_js ) ? (string) filemtime( $focus_js ) : AFC_VERSION,
 			true
 		);
+
+		$ppp_actions_css = AFC_PATH . 'assets/css/advanced-ppp-actions.css';
+		$ppp_actions_js  = AFC_PATH . 'assets/js/advanced-ppp-actions.js';
+
+		wp_enqueue_style(
+			'afc-advanced-ppp-actions',
+			AFC_URL . 'assets/css/advanced-ppp-actions.css',
+			array( 'afc-advanced-focus-ux' ),
+			file_exists( $ppp_actions_css ) ? (string) filemtime( $ppp_actions_css ) : AFC_VERSION
+		);
+
+		wp_enqueue_script(
+			'afc-advanced-ppp-actions',
+			AFC_URL . 'assets/js/advanced-ppp-actions.js',
+			array( 'afc-advanced-focus-ux', 'afc-ppp-operations-ux' ),
+			file_exists( $ppp_actions_js ) ? (string) filemtime( $ppp_actions_js ) : AFC_VERSION,
+			true
+		);
 	}
 
 	public static function register_rest_routes() {
