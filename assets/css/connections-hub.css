@@ -1,0 +1,57 @@
+/* Unified Advanced Connections library. */
+body.afc-workspace-active [data-afc-panel="integrations"] .afc-sheet-library{display:none!important}
+body.afc-workspace-active .afc-connections-menu-item>span{border-color:#d9e3ed;background:#f6f9fc;color:#50667c}
+body.afc-workspace-active .afc-connections-menu-item.is-active>span{border-color:#bfd8ef;background:#eaf4fd;color:#176fc1}
+.afc-connections-hub{max-width:1220px;margin:0 auto;padding:10px 0 42px;color:#2b3747}
+.afc-connections-head{display:flex;align-items:flex-end;justify-content:space-between;gap:18px;margin-bottom:18px}
+.afc-connections-head small{display:block;margin-bottom:3px;color:#1670cf;font-size:10px;letter-spacing:.08em;text-transform:uppercase}
+.afc-connections-head h2{margin:0;font-family:"Source Serif 4",Georgia,serif;font-size:24px;font-weight:400;line-height:1.15}
+.afc-connections-head p{margin:5px 0 0;color:#7a8796;font-size:12px}
+.afc-connections-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(245px,1fr));gap:18px}
+.afc-connection-add,.afc-connection-card{position:relative;min-height:210px;overflow:hidden;border:1px solid #dfe6ee;border-radius:18px;background:#fff;box-shadow:0 8px 24px rgba(40,54,72,.035);color:#263345;transition:transform .24s ease,box-shadow .24s ease,border-color .24s ease,background .24s ease,color .24s ease}
+.afc-connection-add{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;border-style:dashed;background:rgba(255,255,255,.65);color:#6d7c8e;font:inherit;cursor:pointer}
+.afc-connection-add:hover,.afc-connection-add:focus-visible{outline:0;transform:translateY(-3px);border-color:#8abbe8;background:#f7fbff;color:#1c70c2;box-shadow:0 14px 30px rgba(50,102,154,.1)}
+.afc-connection-add-plus{display:grid;width:52px;height:52px;place-items:center;border:1px solid #cbdcec;border-radius:50%;background:#fff;font-size:30px;font-weight:300;line-height:1;box-shadow:0 6px 18px rgba(39,83,126,.07)}
+.afc-connection-add small{font-size:10px;letter-spacing:.04em}
+.afc-connection-card{cursor:pointer}
+.afc-connection-card.is-online:hover,.afc-connection-card.is-online:focus-visible{outline:0;transform:translateY(-5px);border-color:#1b73cd;background:#1f76ce;color:#fff;box-shadow:0 18px 38px rgba(31,92,157,.22)}
+.afc-connection-card.is-error:hover,.afc-connection-card.is-error:focus-visible,.afc-connection-card.is-offline:hover,.afc-connection-card.is-offline:focus-visible,.afc-connection-card.is-draft:hover,.afc-connection-card.is-draft:focus-visible{outline:0;transform:translateY(-3px);border-color:#cbd2da;background:#f1f3f5;color:#344152;box-shadow:0 14px 30px rgba(60,70,82,.09)}
+.afc-connection-dot{position:absolute;top:16px;right:16px;width:9px;height:9px;border-radius:50%;background:#a6b0bc;box-shadow:0 0 0 4px rgba(166,176,188,.13);z-index:3}
+.afc-connection-card.is-online .afc-connection-dot{background:#2fb344;box-shadow:0 0 0 4px rgba(47,179,68,.13)}
+.afc-connection-card.is-error .afc-connection-dot{background:#d85a62;box-shadow:0 0 0 4px rgba(216,90,98,.13)}
+.afc-connection-drag{position:absolute;top:12px;left:12px;z-index:5;display:grid;width:28px;height:28px;place-items:center;border:0;border-radius:9px;background:transparent;color:#a0acb8;font:inherit;font-size:14px;letter-spacing:-2px;cursor:grab;opacity:0;transition:opacity .15s ease,background .15s ease,color .15s ease}
+.afc-connection-card:hover .afc-connection-drag,.afc-connection-card:focus-within .afc-connection-drag{opacity:1}
+.afc-connection-drag:hover,.afc-connection-drag:focus-visible{outline:0;background:rgba(255,255,255,.8);color:#526377}
+.afc-connection-card.is-dragging{opacity:.45;transform:scale(.98)}
+.afc-connection-card.is-drop-target{box-shadow:0 0 0 3px rgba(31,118,206,.16),0 14px 30px rgba(40,54,72,.08)}
+.afc-connection-center{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:30px 20px;text-align:center;transition:transform .25s ease}
+.afc-connection-type{display:inline-flex;margin-bottom:9px;padding:3px 7px;border:1px solid #d9e3ed;border-radius:999px;color:#718094;font-size:8px;font-weight:700;letter-spacing:.07em;text-transform:uppercase}
+.afc-connection-center h3{max-width:100%;margin:0;overflow:hidden;color:inherit;font-family:"Source Serif 4",Georgia,serif;font-size:23px;font-weight:400;line-height:1.15;text-overflow:ellipsis;white-space:nowrap;transition:font-size .25s ease}
+.afc-connection-center p{max-width:100%;margin:8px 0 0;overflow:hidden;color:#8490a0;font-size:10px;text-overflow:ellipsis;white-space:nowrap;transition:color .24s ease}
+.afc-connection-card:hover .afc-connection-center,.afc-connection-card:focus-visible .afc-connection-center{transform:translateY(-44px)}
+.afc-connection-card:hover .afc-connection-center h3,.afc-connection-card:focus-visible .afc-connection-center h3{font-size:18px}
+.afc-connection-card.is-online:hover .afc-connection-center p,.afc-connection-card.is-online:focus-visible .afc-connection-center p,.afc-connection-card.is-online:hover .afc-connection-type,.afc-connection-card.is-online:focus-visible .afc-connection-type{color:rgba(255,255,255,.78);border-color:rgba(255,255,255,.3)}
+.afc-connection-details{position:absolute;left:18px;right:18px;bottom:16px;transform:translateY(12px);opacity:0;pointer-events:none;transition:transform .22s ease,opacity .18s ease}
+.afc-connection-card:hover .afc-connection-details,.afc-connection-card:focus-visible .afc-connection-details{transform:translateY(0);opacity:1;pointer-events:auto}
+.afc-connection-details>div{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:4px;font-size:10px}
+.afc-connection-details small{display:block;min-height:14px;margin-bottom:10px;overflow:hidden;color:#7a8796;font-size:8px;text-overflow:ellipsis;white-space:nowrap}
+.afc-connection-card.is-online:hover .afc-connection-details,.afc-connection-card.is-online:focus-visible .afc-connection-details{color:rgba(255,255,255,.9)}
+.afc-connection-card.is-online:hover .afc-connection-details small,.afc-connection-card.is-online:focus-visible .afc-connection-details small{color:rgba(255,255,255,.62)}
+.afc-connection-open{width:100%;min-height:34px;border:1px solid #ccd7e1;border-radius:10px;background:rgba(255,255,255,.82);color:#506074;font:inherit;font-size:10px;cursor:pointer}
+.afc-connection-card.is-online:hover .afc-connection-open,.afc-connection-card.is-online:focus-visible .afc-connection-open{border-color:rgba(255,255,255,.38);background:rgba(255,255,255,.13);color:#fff}
+.afc-connection-empty{margin:16px 0 0;color:#8490a0;font-size:12px}
+.afc-connection-add-dialog{width:min(620px,calc(100vw - 32px));padding:0;border:0;border-radius:22px;background:transparent;box-shadow:0 30px 90px rgba(21,38,57,.3);overflow:visible}
+.afc-connection-add-dialog::backdrop{background:rgba(20,31,45,.45);backdrop-filter:blur(4px)}
+.afc-connection-add-shell{overflow:hidden;border:1px solid rgba(210,220,231,.92);border-radius:22px;background:#fff}
+.afc-connection-add-shell>header{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:18px 20px 14px;border-bottom:1px solid #edf1f5}
+.afc-connection-add-shell>header small{display:block;margin-bottom:2px;color:#2475c5;font-size:9px;letter-spacing:.08em;text-transform:uppercase}
+.afc-connection-add-shell>header h2{margin:0;font-family:"Source Serif 4",Georgia,serif;font-size:22px;font-weight:400}
+.afc-connection-add-close{display:grid;width:32px;height:32px;place-items:center;padding:0;border:1px solid #dce4ec;border-radius:10px;background:#fff;color:#6a7b8e;font:inherit;font-size:16px;cursor:pointer}
+.afc-connection-add-options{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;padding:18px}
+.afc-connection-add-option{display:flex;min-height:138px;flex-direction:column;align-items:center;justify-content:center;gap:7px;padding:14px;border:1px solid #dfe6ee;border-radius:16px;background:#fff;color:#344255;font:inherit;cursor:pointer;transition:transform .18s ease,border-color .18s ease,background .18s ease,box-shadow .18s ease}
+.afc-connection-add-option:hover,.afc-connection-add-option:focus-visible{outline:0;transform:translateY(-2px);border-color:#9fc8ea;background:#f7fbff;box-shadow:0 10px 24px rgba(50,102,154,.08)}
+.afc-connection-add-option>span{display:grid;width:44px;height:44px;place-items:center;border:1px solid #d5e2ed;border-radius:13px;background:#f8fbfe;color:#2676bd;font-size:18px;font-weight:700}
+.afc-connection-add-option strong{font-size:13px}
+.afc-connection-add-option small{color:#8a96a4;font-size:10px;text-align:center;line-height:1.35}
+@media(max-width:700px){.afc-connections-grid{grid-template-columns:1fr}.afc-connection-card,.afc-connection-add{min-height:190px}.afc-connection-details{opacity:1;transform:none;pointer-events:auto}.afc-connection-center{transform:translateY(-40px)}.afc-connection-drag{opacity:1}.afc-connection-add-options{grid-template-columns:1fr}.afc-connection-add-option{min-height:92px;flex-direction:row;justify-content:flex-start;text-align:left}}
+@media(prefers-reduced-motion:reduce){.afc-connection-card,.afc-connection-add,.afc-connection-center,.afc-connection-details{transition:none}}
