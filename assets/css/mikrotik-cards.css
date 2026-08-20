@@ -1,0 +1,49 @@
+/* Advanced MikroTik registry: keep the same card language as OLT. */
+body.afc-workspace-active [data-afc-panel="mikrotik"] .afc-mikrotik-library{max-width:1220px;margin:0 auto;padding:10px 0 36px;color:#2b3747}
+body.afc-workspace-active [data-afc-panel="mikrotik"] .afc-mikrotik-library-head{display:flex;align-items:flex-end;justify-content:space-between;gap:18px;margin-bottom:18px}
+body.afc-workspace-active [data-afc-panel="mikrotik"] .afc-mikrotik-library-head small{display:block;margin-bottom:3px;color:#1670cf;font-size:10px;letter-spacing:.08em;text-transform:uppercase}
+body.afc-workspace-active [data-afc-panel="mikrotik"] .afc-mikrotik-library-head h2{margin:0;font-family:"Source Serif 4",Georgia,serif;font-size:24px;font-weight:400;line-height:1.15}
+.afc-mikrotik-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(245px,1fr));gap:18px}
+.afc-mikrotik-card{position:relative;min-height:210px;overflow:hidden;border:1px solid #dfe6ee;border-radius:18px;background:#fff;box-shadow:0 8px 24px rgba(40,54,72,.035);color:#263345;cursor:pointer;transition:transform .24s ease,box-shadow .24s ease,border-color .24s ease,background .24s ease,color .24s ease}
+.afc-mikrotik-card.is-online:hover,.afc-mikrotik-card.is-online:focus-visible{outline:0;transform:translateY(-5px);border-color:#1b73cd;background:#1f76ce;color:#fff;box-shadow:0 18px 38px rgba(31,92,157,.22)}
+.afc-mikrotik-card.is-error:hover,.afc-mikrotik-card.is-error:focus-visible,.afc-mikrotik-card.is-untested:hover,.afc-mikrotik-card.is-untested:focus-visible{outline:0;transform:translateY(-3px);border-color:#cbd2da;background:#f1f3f5;color:#344152;box-shadow:0 14px 30px rgba(60,70,82,.09)}
+.afc-mikrotik-status{position:absolute;top:16px;right:16px;width:9px;height:9px;border-radius:50%;background:#a6b0bc;box-shadow:0 0 0 4px rgba(166,176,188,.13);z-index:3}
+.afc-mikrotik-card.is-online .afc-mikrotik-status{background:#2fb344;box-shadow:0 0 0 4px rgba(47,179,68,.13)}
+.afc-mikrotik-card.is-error .afc-mikrotik-status{background:#d85a62;box-shadow:0 0 0 4px rgba(216,90,98,.13)}
+.afc-mikrotik-center{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:30px 20px;text-align:center;transition:transform .25s ease}
+.afc-mikrotik-center h3{max-width:100%;margin:0;overflow:hidden;color:inherit;font-family:"Source Serif 4",Georgia,serif;font-size:24px;font-weight:400;line-height:1.15;text-overflow:ellipsis;white-space:nowrap;transition:font-size .25s ease}
+.afc-mikrotik-center p{display:flex;align-items:center;justify-content:center;gap:6px;max-width:100%;margin:8px 0 0;color:#8490a0;font-size:10px;line-height:1.25;transition:color .24s ease}
+.afc-mikrotik-center p span{padding:2px 5px;border:1px solid #d9e3ed;border-radius:999px;font-size:8px;letter-spacing:.06em}
+.afc-mikrotik-center p b{max-width:155px;overflow:hidden;font-weight:400;text-overflow:ellipsis;white-space:nowrap}
+.afc-mikrotik-card:hover .afc-mikrotik-center,.afc-mikrotik-card:focus-visible .afc-mikrotik-center{transform:translateY(-44px)}
+.afc-mikrotik-card:hover .afc-mikrotik-center h3,.afc-mikrotik-card:focus-visible .afc-mikrotik-center h3{font-size:18px}
+.afc-mikrotik-card.is-online:hover .afc-mikrotik-center p,.afc-mikrotik-card.is-online:focus-visible .afc-mikrotik-center p{color:rgba(255,255,255,.78)}
+.afc-mikrotik-card.is-online:hover .afc-mikrotik-center p span,.afc-mikrotik-card.is-online:focus-visible .afc-mikrotik-center p span{border-color:rgba(255,255,255,.3)}
+.afc-mikrotik-details{position:absolute;left:18px;right:18px;bottom:16px;transform:translateY(12px);opacity:0;pointer-events:none;transition:transform .22s ease,opacity .18s ease}
+.afc-mikrotik-card:hover .afc-mikrotik-details,.afc-mikrotik-card:focus-visible .afc-mikrotik-details{transform:translateY(0);opacity:1;pointer-events:auto}
+.afc-mikrotik-details>div{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:4px;font-size:10px}
+.afc-mikrotik-card.is-online:hover .afc-mikrotik-details,.afc-mikrotik-card.is-online:focus-visible .afc-mikrotik-details{color:rgba(255,255,255,.9)}
+.afc-mikrotik-details small{display:block;min-height:14px;margin-bottom:10px;color:#7a8796;font-size:8px}
+.afc-mikrotik-card.is-online:hover .afc-mikrotik-details small,.afc-mikrotik-card.is-online:focus-visible .afc-mikrotik-details small{color:rgba(255,255,255,.62)}
+.afc-mikrotik-action{width:100%;min-height:34px;border:1px solid #ccd7e1;border-radius:10px;background:rgba(255,255,255,.82);color:#506074;font:inherit;font-size:10px;cursor:pointer;transition:background .15s ease,transform .15s ease}
+.afc-mikrotik-card.is-online:hover .afc-mikrotik-action,.afc-mikrotik-card.is-online:focus-visible .afc-mikrotik-action{border-color:rgba(255,255,255,.38);background:rgba(255,255,255,.13);color:#fff;backdrop-filter:blur(5px)}
+.afc-mikrotik-action:hover{transform:translateY(-1px);background:#fff}
+.afc-mikrotik-add{display:flex;min-height:210px;flex-direction:column;align-items:center;justify-content:center;gap:10px;border:1px dashed #d2dce6;border-radius:18px;background:rgba(255,255,255,.65);color:#6d7c8e;font:inherit;cursor:pointer;transition:transform .24s ease,border-color .24s ease,background .24s ease,color .24s ease,box-shadow .24s ease}
+.afc-mikrotik-add:hover,.afc-mikrotik-add:focus-visible{outline:0;transform:translateY(-3px);border-color:#8abbe8;background:#f7fbff;color:#1c70c2;box-shadow:0 14px 30px rgba(50,102,154,.1)}
+.afc-mikrotik-add-plus{display:grid;width:52px;height:52px;place-items:center;border:1px solid #cbdcec;border-radius:50%;background:#fff;font-size:30px;font-weight:300;line-height:1;box-shadow:0 6px 18px rgba(39,83,126,.07)}
+.afc-mikrotik-add small{font-size:10px;letter-spacing:.04em}
+.afc-mikrotik-note{margin:0 0 14px;padding:9px 11px;border:1px solid #dde5ed;border-radius:10px;background:#f8fafc;color:#667587;font-size:11px}
+.afc-mikrotik-settings-dialog{width:min(900px,calc(100vw - 34px));max-height:min(90vh,860px);padding:0;border:0;border-radius:22px;background:transparent;box-shadow:0 30px 90px rgba(21,38,57,.3);overflow:visible}
+.afc-mikrotik-settings-dialog::backdrop{background:rgba(20,31,45,.45);backdrop-filter:blur(4px)}
+.afc-mikrotik-settings-shell{display:flex;max-height:min(90vh,860px);flex-direction:column;overflow:hidden;border:1px solid rgba(210,220,231,.92);border-radius:22px;background:#fff}
+.afc-mikrotik-settings-shell>header{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:18px 20px 14px;border-bottom:1px solid #edf1f5}
+.afc-mikrotik-settings-shell>header small{display:block;margin-bottom:2px;color:#2475c5;font-size:9px;letter-spacing:.08em;text-transform:uppercase}
+.afc-mikrotik-settings-shell>header h2{margin:0;font-family:"Source Serif 4",Georgia,serif;font-size:22px;font-weight:400}
+.afc-mikrotik-settings-close{display:grid;width:32px;height:32px;place-items:center;padding:0;border:1px solid #dce4ec;border-radius:10px;background:#fff;color:#6a7b8e;font:inherit;font-size:16px;cursor:pointer}
+.afc-mikrotik-settings-content{min-height:0;overflow:auto;padding:18px}
+.afc-mikrotik-settings-content>.row{margin:0}
+.afc-mikrotik-settings-content .col-lg-8,.afc-mikrotik-settings-content .col-lg-4{width:100%;max-width:none;flex:0 0 100%;padding:0}
+.afc-mikrotik-settings-content .col-lg-4{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:14px}
+.afc-mikrotik-settings-content .col-lg-4 .card{margin:0!important}
+@media(max-width:700px){.afc-mikrotik-grid{grid-template-columns:1fr}.afc-mikrotik-card,.afc-mikrotik-add{min-height:190px}.afc-mikrotik-details{opacity:1;transform:none;pointer-events:auto}.afc-mikrotik-center{transform:translateY(-40px)}.afc-mikrotik-settings-content .col-lg-4{grid-template-columns:1fr}}
+@media(prefers-reduced-motion:reduce){.afc-mikrotik-card,.afc-mikrotik-add,.afc-mikrotik-center,.afc-mikrotik-details{transition:none}}
