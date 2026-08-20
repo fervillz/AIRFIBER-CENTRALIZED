@@ -96,10 +96,10 @@ class AFC_Advanced_Workspace {
 			),
 			'integrations' => array(
 				'group'       => 'system',
-				'title'       => __( 'Integrations', 'airfiber-centralized' ),
-				'short'       => __( 'Connected services', 'airfiber-centralized' ),
-				'description' => __( 'Connect and manage external services one at a time.', 'airfiber-centralized' ),
-				'icon'        => '◇',
+				'title'       => __( 'Google Sheets', 'airfiber-centralized' ),
+				'short'       => __( 'Reporting & sync', 'airfiber-centralized' ),
+				'description' => __( 'View the Google Sheets connected to Airfiber and open connection or synchronization settings only when needed.', 'airfiber-centralized' ),
+				'icon'        => '▦',
 				'order'       => 60,
 			),
 		);
@@ -194,6 +194,24 @@ class AFC_Advanced_Workspace {
 			AFC_URL . 'assets/css/advanced-ppp-standard-scale.css',
 			array( 'afc-advanced-ppp-actions' ),
 			file_exists( $ppp_scale_css ) ? (string) filemtime( $ppp_scale_css ) : AFC_VERSION
+		);
+
+		$sheets_cards_css = AFC_PATH . 'assets/css/google-sheets-cards.css';
+		$sheets_cards_js  = AFC_PATH . 'assets/js/google-sheets-cards.js';
+
+		wp_enqueue_style(
+			'afc-google-sheets-cards',
+			AFC_URL . 'assets/css/google-sheets-cards.css',
+			array( 'afc-advanced-focus-ux', 'afc-integrations' ),
+			file_exists( $sheets_cards_css ) ? (string) filemtime( $sheets_cards_css ) : AFC_VERSION
+		);
+
+		wp_enqueue_script(
+			'afc-google-sheets-cards',
+			AFC_URL . 'assets/js/google-sheets-cards.js',
+			array( 'afc-advanced-workspace', 'afc-integrations' ),
+			file_exists( $sheets_cards_js ) ? (string) filemtime( $sheets_cards_js ) : AFC_VERSION,
+			true
 		);
 	}
 
