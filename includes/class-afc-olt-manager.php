@@ -24,7 +24,7 @@ class AFC_OLT_Manager {
 	const DEFAULT_EPON_HOST = '10.13.88.5';
 	const DEFAULT_GPON_HOST = '10.13.88.7';
 	const GPON_SEEDED_OPTION = 'afc_olt_seeded_10_13_88_7';
-	const GPON_TESTED_OPTION = 'afc_olt_auto_tested_10_13_88_7';
+	const GPON_TESTED_OPTION = 'afc_olt_auto_tested_10_13_88_7_v2';
 	const GPON_TEST_HOOK = 'afc_olt_test_seeded_gpon';
 
 	public static function init() {
@@ -131,16 +131,44 @@ class AFC_OLT_Manager {
 		return ! empty( $config['security_name'] ) && ! empty( $config['auth_passphrase'] ) && ! empty( $config['privacy_passphrase'] );
 	}
 
+	private static function inherit_monitoring_credentials( $config, $template_id ) {
+		if ( self::credentials_are_configured( $config ) || ! $template_id ) {
+			return $config;
+		}
+		$template = self::get_config( $template_id );
+		if ( ! self::credentials_are_configured( $template ) ) {
+			return $config;
+		}
+		foreach ( array( 'port', 'version', 'community', 'security_name', 'auth_protocol', 'auth_passphrase', 'privacy_protocol', 'privacy_passphrase', 'timeout_ms', 'retries' ) as $key ) {
+			$config[ $key ] = $template[ $key ];
+		}
+		return $config;
+	}
+
 	/**
 	 * Add the known GPON peer once, using the already-encrypted primary OLT
 	 * credentials as a starting profile. The background test records its real
 	 * online/error state after the plugin update is loaded on WordPress.
 	 */
 	public static function maybe_seed_default_gpon() {
+		self::maybe_import_legacy();
 		$seeded_id = absint( get_option( self::GPON_SEEDED_OPTION, 0 ) );
+		if ( $seeded_id && $seeded_id === self::primary_id() ) {
+			delete_option( self::GPON_SEEDED_OPTION );
+			$seeded_id = 0;
+		}
 		if ( $seeded_id && self::POST_TYPE === get_post_type( $seeded_id ) ) {
 			$config = self::get_config( $seeded_id );
+			$original_config = $config;
+			$config = self::inherit_monitoring_credentials( $config, self::primary_id() );
 			$config_changed = false;
+			if ( $config !== $original_config ) {
+				$config_changed = true;
+			}
+			if ( self::DEFAULT_GPON_HOST !== $config['host'] ) {
+				$config['host']   = self::DEFAULT_GPON_HOST;
+				$config_changed   = true;
+			}
 			if ( 'GPON' !== $config['technology'] ) {
 				$config['technology'] = 'GPON';
 				$config_changed        = true;
@@ -165,7 +193,6 @@ class AFC_OLT_Manager {
 			return;
 		}
 
-		self::maybe_import_legacy();
 		$nodes         = get_posts(
 			array(
 				'post_type'      => self::POST_TYPE,
@@ -214,6 +241,11 @@ class AFC_OLT_Manager {
 		if ( $existing_gpon ) {
 			update_option( self::GPON_SEEDED_OPTION, $existing_gpon, false );
 			$config = self::get_config( $existing_gpon );
+			$inherited = self::inherit_monitoring_credentials( $config, $template_id ? $template_id : self::primary_id() );
+			if ( $inherited !== $config ) {
+				$config = $inherited;
+				update_post_meta( $existing_gpon, self::CONFIG_META, $config );
+			}
 			$device = self::get_device( $existing_gpon );
 			if (
 				'publish' === get_post_status( $existing_gpon ) &&
@@ -278,11 +310,12 @@ class AFC_OLT_Manager {
 			return;
 		}
 
-		update_option( self::GPON_TESTED_OPTION, current_time( 'mysql' ), false );
 		$result = self::run_test( $post_id );
 		if ( is_wp_error( $result ) ) {
 			self::record_test_error( $post_id, $result );
+			return;
 		}
+		update_option( self::GPON_TESTED_OPTION, current_time( 'mysql' ), false );
 	}
 
 	private static function authorize() {
@@ -304,6 +337,70 @@ class AFC_OLT_Manager {
 				'no_found_rows'  => true,
 			)
 		);
+	}
+
+	/**
+	 * Return the published OLT profiles used by the monitoring data path.
+	 *
+	 * The primary profile keeps the stable "primary" reference so existing
+	 * customer mappings continue to work. Additional OLTs use their CPT ID,
+	 * which prevents identical PON/ONU numbers on two chassis from colliding.
+	 */
+	public static function monitoring_nodes() {
+		$nodes       = array();
+		$stored_nodes = self::get_nodes();
+		$primary     = self::primary_id();
+		if ( ! $primary && $stored_nodes ) {
+			foreach ( $stored_nodes as $candidate ) {
+				$candidate_config = self::get_config( $candidate->ID );
+				if ( self::DEFAULT_EPON_HOST === $candidate_config['host'] ) {
+					$primary = (int) $candidate->ID;
+					break;
+				}
+			}
+			if ( ! $primary ) {
+				$primary = (int) $stored_nodes[0]->ID;
+			}
+			update_post_meta( $primary, self::PRIMARY_META, '1' );
+		}
+
+		foreach ( $stored_nodes as $post ) {
+			$post_id = (int) $post->ID;
+			if ( 'publish' !== $post->post_status || get_post_meta( $post_id, self::DISCONNECTED_META, true ) ) {
+				continue;
+			}
+
+			$config          = self::get_config( $post_id );
+			$is_primary      = $post_id === $primary;
+			$reference       = $is_primary ? 'primary' : (string) $post_id;
+			$config['name']  = $post->post_title;
+			$config['enabled'] = 1;
+
+			$nodes[ $reference ] = array(
+				'id'         => $reference,
+				'post_id'    => $post_id,
+				'name'       => $post->post_title,
+				'technology' => self::normalize_technology( $config['technology'] ),
+				'primary'    => $is_primary,
+				'config'     => $config,
+			);
+		}
+
+		return $nodes;
+	}
+
+	/**
+	 * Resolve one stored customer OLT reference to an active monitoring node.
+	 */
+	public static function monitoring_node( $reference ) {
+		$reference = self::normalize_reference( $reference );
+		$nodes     = self::monitoring_nodes();
+		return isset( $nodes[ $reference ] ) ? $nodes[ $reference ] : null;
+	}
+
+	public static function normalize_reference( $reference ) {
+		$reference = trim( (string) $reference );
+		return '' === $reference || 'primary' === strtolower( $reference ) ? 'primary' : (string) absint( $reference );
 	}
 
 	private static function maybe_import_legacy() {

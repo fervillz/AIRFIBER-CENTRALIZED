@@ -122,7 +122,7 @@
 
 	function activePonSummary() {
 		if ( ! overviewData || ! Array.isArray( overviewData.pons ) ) return null;
-		return overviewData.pons.find( function ( item ) { return String( item.pon ) === String( selectedPon ); } ) || null;
+		return overviewData.pons.find( function ( item ) { return String( item.key || item.pon ) === String( selectedPon ); } ) || null;
 	}
 
 	function renderPonTabs( pons ) {
@@ -134,15 +134,17 @@
 			return;
 		}
 
-		if ( ! selectedPon || ! pons.some( function ( item ) { return String( item.pon ) === String( selectedPon ); } ) ) {
-			selectedPon = String( pons[0].pon );
+		if ( ! selectedPon || ! pons.some( function ( item ) { return String( item.key || item.pon ) === String( selectedPon ); } ) ) {
+			selectedPon = String( pons[0].key || pons[0].pon );
 		}
 
 		target.innerHTML = pons.map( function ( item ) {
-			const active = String( item.pon ) === String( selectedPon );
+			const itemKey = String( item.key || item.pon );
+			const active = itemKey === String( selectedPon );
 			const weak = Number( item.warning || 0 ) + Number( item.critical || 0 );
-			return '<button type="button" role="tab" class="afc-olt-pon-tab' + ( active ? ' is-active' : '' ) + '" data-afc-olt-pon-tab="' + escapeAttr( item.pon ) + '" aria-selected="' + ( active ? 'true' : 'false' ) + '">' +
-				'<span>PON ' + escapeHtml( item.pon ) + '</span>' +
+			const oltLabel = item.olt_name ? item.olt_name + ' · ' : '';
+			return '<button type="button" role="tab" class="afc-olt-pon-tab' + ( active ? ' is-active' : '' ) + '" data-afc-olt-pon-tab="' + escapeAttr( itemKey ) + '" aria-selected="' + ( active ? 'true' : 'false' ) + '">' +
+				'<span>' + escapeHtml( oltLabel ) + 'PON ' + escapeHtml( item.pon ) + '</span>' +
 				'<small>' + escapeHtml( item.total ) + ' ONU · ' + escapeHtml( item.valid ) + ' valid · ' + escapeHtml( item.invalid ) + ' invalid' + ( weak ? ' · ' + escapeHtml( weak ) + ' weak' : '' ) + '</small>' +
 			'</button>';
 		} ).join( '' );
@@ -157,7 +159,8 @@
 			return;
 		}
 		const weakest = null === item.weakest || undefined === item.weakest ? 'No valid RX yet' : 'Weakest valid RX ' + Number( item.weakest ).toFixed( 2 ) + ' dBm';
-		target.innerHTML = '<h4>PON ' + escapeHtml( item.pon ) + '</h4><p>' + escapeHtml( item.total ) + ' ONU · ' + escapeHtml( item.mapped ) + ' mapped · ' + escapeHtml( item.valid ) + ' valid signal · ' + escapeHtml( item.invalid ) + ' invalid RX · ' + escapeHtml( item.offline ) + ' offline · ' + escapeHtml( weakest ) + '</p>';
+		const title = ( item.olt_name ? item.olt_name + ' · ' : '' ) + 'PON ' + item.pon;
+		target.innerHTML = '<h4>' + escapeHtml( title ) + '</h4><p>' + escapeHtml( item.total ) + ' ONU · ' + escapeHtml( item.mapped ) + ' mapped · ' + escapeHtml( item.valid ) + ' valid signal · ' + escapeHtml( item.invalid ) + ' invalid RX · ' + escapeHtml( item.offline ) + ' offline · ' + escapeHtml( weakest ) + '</p>';
 	}
 
 	function filteredOnus() {
@@ -168,13 +171,14 @@
 		const status = statusNode ? statusNode.value : '';
 
 		return overviewData.onus.filter( function ( item ) {
-			if ( selectedPon && String( item.pon ) !== String( selectedPon ) ) return false;
+			const itemKey = String( item.olt_id === 'primary' || ! item.olt_id ? item.pon + ':0' : item.olt_id + ':' + item.pon + ':0' );
+			if ( selectedPon && itemKey !== String( selectedPon ) ) return false;
 			if ( status === 'unmapped' && item.mapped ) return false;
 			if ( status && status !== 'unmapped' && item.status !== status ) return false;
 			if ( ! search ) return true;
 			const customer = item.customer || {};
 			const macs = Array.isArray( item.mac_addresses ) ? item.mac_addresses.join( ' ' ) : '';
-			return [ item.pon, item.onu, item.description, macs, customer.name, customer.username, customer.onu_mac ].join( ' ' ).toLowerCase().includes( search );
+			return [ item.olt_name, item.technology, item.pon, item.onu, item.description, macs, customer.name, customer.username, customer.onu_mac ].join( ' ' ).toLowerCase().includes( search );
 		} );
 	}
 
@@ -214,7 +218,7 @@
 		}
 		target.innerHTML = onus.map( function ( item ) {
 			return '<tr>' +
-				'<td class="afc-olt-onu-number"><span>' + escapeHtml( item.onu ) + '</span><small>PON ' + escapeHtml( item.pon ) + '</small></td>' +
+				'<td class="afc-olt-onu-number"><span>' + escapeHtml( item.onu ) + '</span><small>' + escapeHtml( item.olt_name ? item.olt_name + ' · ' : '' ) + 'PON ' + escapeHtml( item.pon ) + '</small></td>' +
 				'<td>' + descriptionHtml( item ) + '</td>' +
 				'<td>' + macHtml( item ) + '</td>' +
 				'<td>' + signalHtml( item ) + '</td>' +
@@ -243,6 +247,10 @@
 		const when = summary.collected_at ? ' · collected ' + summary.collected_at : '';
 		if ( summary.stale ) {
 			setOverviewStatus( 'Showing the last successful OLT snapshot' + when + '. A live refresh failed, so treat these readings as stale.', 'stale' );
+			return;
+		}
+		if ( summary.partial ) {
+			setOverviewStatus( ( overviewData.olt && overviewData.olt.name ? overviewData.olt.name : 'OLT monitoring' ) + ' is partially available' + when + '. ' + ( summary.message || 'One OLT did not return data.' ), 'stale' );
 			return;
 		}
 

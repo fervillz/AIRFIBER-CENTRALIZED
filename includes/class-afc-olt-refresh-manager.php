@@ -209,8 +209,12 @@ class AFC_OLT_Refresh_Manager {
 		return (string) openssl_decrypt( substr( $data, 28 ), 'aes-256-gcm', $key, OPENSSL_RAW_DATA, substr( $data, 0, 12 ), substr( $data, 12, 16 ) );
 	}
 
-	private static function get_one_raw( $pon, $onu ) {
-		$settings = AFC_OLT::get_settings();
+	private static function get_one_raw( $olt_id, $pon, $onu ) {
+		$node = AFC_OLT::monitoring_node( $olt_id );
+		if ( ! $node || empty( $node['config'] ) ) {
+			return new WP_Error( 'afc_olt_node_unavailable', __( 'The OLT assigned to this customer is not active.', 'airfiber-centralized' ) );
+		}
+		$settings = $node['config'];
 		$oid      = trim( $settings['rx_oid'], '.' ) . '.' . absint( $pon ) . '.' . absint( $onu );
 		$target   = 161 === (int) $settings['port'] ? $settings['host'] : 'udp:' . $settings['host'] . ':' . (int) $settings['port'];
 		$timeout  = (int) $settings['timeout_ms'] * 1000;
@@ -262,8 +266,13 @@ class AFC_OLT_Refresh_Manager {
 		if ( ! is_array( $last ) || empty( $last['entries'] ) || empty( $signal['pon'] ) || empty( $signal['onu'] ) ) {
 			return;
 		}
-		$key = absint( $signal['pon'] ) . ':' . absint( $signal['onu'] );
+		$olt_id = AFC_OLT::normalize_olt_id( isset( $signal['olt_id'] ) ? $signal['olt_id'] : 'primary' );
+		$node   = AFC_OLT::monitoring_node( $olt_id );
+		$key    = AFC_OLT::entry_key( $olt_id, $signal['pon'], $signal['onu'] );
 		$last['entries'][ $key ] = array(
+			'olt_id'       => $olt_id,
+			'olt_name'     => $node ? $node['name'] : '',
+			'technology'   => $node ? $node['technology'] : '',
 			'pon'          => absint( $signal['pon'] ),
 			'onu'          => absint( $signal['onu'] ),
 			'rx_power'     => $signal['rx_power'],
@@ -281,7 +290,7 @@ class AFC_OLT_Refresh_Manager {
 		$last['valid_count']   = $valid;
 		$last['invalid_count'] = $invalid;
 		update_option( AFC_OLT::LAST_SNAPSHOT_KEY, $last, false );
-		$settings = AFC_OLT::get_settings();
+		$settings = $node && ! empty( $node['config'] ) ? $node['config'] : AFC_OLT::get_settings();
 		set_transient( AFC_OLT::SNAPSHOT_TRANSIENT, $last, (int) $settings['cache_ttl'] );
 	}
 
@@ -307,14 +316,18 @@ class AFC_OLT_Refresh_Manager {
 			wp_send_json_error( array( 'message' => __( 'This customer is not mapped to an ONU yet.', 'airfiber-centralized' ) ), 409 );
 		}
 
-		$raw = self::get_one_raw( $pon, $onu );
+		$olt_id = AFC_OLT::normalize_olt_id( get_post_meta( $customer_id, '_afc_olt_id', true ) );
+		$node   = AFC_OLT::monitoring_node( $olt_id );
+		$raw    = self::get_one_raw( $olt_id, $pon, $onu );
 		if ( is_wp_error( $raw ) ) {
 			wp_send_json_error( array( 'message' => $raw->get_error_message() ) );
 		}
-		$settings = AFC_OLT::get_settings();
+		$settings = $node && ! empty( $node['config'] ) ? $node['config'] : AFC_OLT::get_settings();
 		$reading  = self::parse_single_reading( $raw, $settings );
 		$signal   = array(
 			'mapped'       => true,
+			'olt_id'       => $olt_id,
+			'olt_name'     => $node ? $node['name'] : '',
 			'pon'          => $pon,
 			'onu'          => $onu,
 			'onu_mac'      => (string) get_post_meta( $customer_id, '_afc_olt_onu_mac', true ),

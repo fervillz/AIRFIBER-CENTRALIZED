@@ -129,7 +129,7 @@
 			note = '<div class="small text-primary">' + escapeHtml( detected || 'Detected from OLT' ) + confidence + '</div>';
 		}
 		const title = [
-			'PON ' + signal.pon + ' / ONU ' + signal.onu,
+			( signal.olt_name ? signal.olt_name + ' · ' : '' ) + 'PON ' + signal.pon + ' / ONU ' + signal.onu,
 			signal.description ? 'OLT description: ' + signal.description : '',
 			signal.onu_mac ? 'ONU MAC: ' + signal.onu_mac : '',
 			signal.collected_at ? 'Collected: ' + signal.collected_at : '',
@@ -139,7 +139,7 @@
 
 		return '<div title="' + escapeAttr( title ) + '">' + reading +
 			' <span class="badge ' + status.badge + '">' + escapeHtml( status.label ) + '</span>' +
-			'<div class="small text-secondary">PON ' + escapeHtml( signal.pon ) + ' · ONU ' + escapeHtml( signal.onu ) + '</div>' +
+			'<div class="small text-secondary">' + escapeHtml( signal.olt_name ? signal.olt_name + ' · ' : '' ) + 'PON ' + escapeHtml( signal.pon ) + ' · ONU ' + escapeHtml( signal.onu ) + '</div>' +
 			note + '</div>';
 	}
 

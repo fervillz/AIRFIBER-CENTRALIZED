@@ -42,7 +42,7 @@
 				const label = suggestion.match_method === 'description_fuzzy' ? 'Name suggestion' : 'Description match';
 				const confidence = suggestion.confidence ? ' · ' + escapeHtml( suggestion.confidence ) + '%' : '';
 				return '<span class="badge bg-azure-lt">' + label + '</span>' +
-					'<div class="small text-secondary">PON ' + escapeHtml( suggestion.pon ) + ' · ONU ' + escapeHtml( suggestion.onu ) + confidence + '</div>' +
+					'<div class="small text-secondary">' + escapeHtml( suggestion.olt_name ? suggestion.olt_name + ' · ' : '' ) + 'PON ' + escapeHtml( suggestion.pon ) + ' · ONU ' + escapeHtml( suggestion.onu ) + confidence + '</div>' +
 					( suggestion.description ? '<div class="small text-secondary">' + escapeHtml( suggestion.description ) + '</div>' : '' ) +
 					'<button class="btn btn-link btn-sm p-0 afc-map-onu" type="button">Review mapping</button>';
 			}
@@ -74,7 +74,7 @@
 			? '<span class="afc-optical-reading">' + escapeHtml( Number( optical.rx_power ).toFixed( 2 ) ) + ' dBm</span>'
 			: '<span class="text-secondary">—</span>';
 		const title = [
-			'PON ' + optical.pon + ' / ONU ' + optical.onu,
+			( optical.olt_name ? optical.olt_name + ' · ' : '' ) + 'PON ' + optical.pon + ' / ONU ' + optical.onu,
 			optical.description ? 'OLT description: ' + optical.description : '',
 			optical.onu_mac ? 'ONU MAC: ' + optical.onu_mac : '',
 			optical.onu_type ? 'ONU type: ' + optical.onu_type : '',
@@ -85,7 +85,7 @@
 
 		return '<div title="' + escapeAttr( title ) + '">' + reading +
 			' <span class="badge ' + ( classes[ status ] || classes.unavailable ) + '">' + escapeHtml( labels[ status ] || labels.unavailable ) + '</span>' +
-			'<div class="small text-secondary">PON ' + escapeHtml( optical.pon ) + ' · ONU ' + escapeHtml( optical.onu ) + '</div>' +
+			'<div class="small text-secondary">' + escapeHtml( optical.olt_name ? optical.olt_name + ' · ' : '' ) + 'PON ' + escapeHtml( optical.pon ) + ' · ONU ' + escapeHtml( optical.onu ) + '</div>' +
 			auto +
 			'<button class="btn btn-link btn-sm p-0 afc-map-onu" type="button">Edit mapping</button></div>';
 	}
@@ -118,7 +118,7 @@
 	function sameMapping( user, signal ) {
 		const current = user && user.optical ? user.optical : {};
 		if ( ! current.mapped || ! signal || ! signal.mapped ) return true;
-		return Number( current.pon || 0 ) === Number( signal.pon || 0 ) && Number( current.onu || 0 ) === Number( signal.onu || 0 );
+		return String( current.olt_id || 'primary' ) === String( signal.olt_id || 'primary' ) && Number( current.pon || 0 ) === Number( signal.pon || 0 ) && Number( current.onu || 0 ) === Number( signal.onu || 0 );
 	}
 
 	function applyCachedSignals() {

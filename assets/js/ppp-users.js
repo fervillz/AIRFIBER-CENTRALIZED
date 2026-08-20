@@ -71,7 +71,7 @@
 		if ( ! optical.mapped ) {
 			if ( optical.suggested ) {
 				return '<span class="badge bg-azure-lt">Detected</span>' +
-					'<div class="small text-secondary">PON ' + escapeHtml( optical.suggested.pon ) +
+					'<div class="small text-secondary">' + escapeHtml( optical.suggested.olt_name ? optical.suggested.olt_name + ' · ' : '' ) + 'PON ' + escapeHtml( optical.suggested.pon ) +
 					' · ONU ' + escapeHtml( optical.suggested.onu ) + '</div>' +
 					'<button class="btn btn-link btn-sm p-0 afc-map-onu" type="button">Review mapping</button>';
 			}
@@ -100,7 +100,7 @@
 			? '<strong>' + escapeHtml( Number( optical.rx_power ).toFixed( 2 ) ) + ' dBm</strong>'
 			: '<span class="text-secondary">No live reading</span>';
 		const title = [
-			'PON ' + optical.pon + ' / ONU ' + optical.onu,
+			( optical.olt_name ? optical.olt_name + ' · ' : '' ) + 'PON ' + optical.pon + ' / ONU ' + optical.onu,
 			optical.collected_at ? 'Collected: ' + optical.collected_at : '',
 			optical.message || ''
 		].filter( Boolean ).join( '\n' );
@@ -108,7 +108,7 @@
 		return '<div title="' + escapeAttr( title ) + '">' + reading +
 			' <span class="badge ' + ( classes[ status ] || classes.unavailable ) + '">' +
 			escapeHtml( labels[ status ] || labels.unavailable ) + '</span>' +
-			'<div class="small text-secondary">PON ' + escapeHtml( optical.pon ) + ' · ONU ' + escapeHtml( optical.onu ) + '</div>' +
+			'<div class="small text-secondary">' + escapeHtml( optical.olt_name ? optical.olt_name + ' · ' : '' ) + 'PON ' + escapeHtml( optical.pon ) + ' · ONU ' + escapeHtml( optical.onu ) + '</div>' +
 			'<button class="btn btn-link btn-sm p-0 afc-map-onu" type="button">Edit mapping</button></div>';
 	}
 
@@ -518,6 +518,7 @@
 			action: 'afc_save_olt_binding',
 			nonce: afcPPP.nonce,
 			customer_id: opticalUser.customer_id,
+			olt_id: $( '#afc-olt-node' ).val(),
 			pon: $( '#afc-olt-pon' ).val(),
 			onu: $( '#afc-olt-onu' ).val(),
 			onu_mac: $( '#afc-olt-onu-mac' ).val(),
@@ -618,6 +619,7 @@
 				const suggested = optical.suggested || {};
 				$( '#afc-olt-binding-customer' ).text( opticalUser.customer_name || opticalUser.name );
 				$( '#afc-olt-customer-id' ).val( opticalUser.customer_id );
+				$( '#afc-olt-node' ).val( optical.olt_id || suggested.olt_id || 'primary' );
 				$( '#afc-olt-pon' ).val( optical.pon || suggested.pon || '' );
 				$( '#afc-olt-onu' ).val( optical.onu || suggested.onu || '' );
 				$( '#afc-olt-onu-mac' ).val( optical.onu_mac || '' );

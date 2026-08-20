@@ -212,8 +212,75 @@ class AFC_OLT {
 	}
 
 	public static function is_enabled() {
+		if ( class_exists( 'AFC_OLT_Manager' ) && method_exists( 'AFC_OLT_Manager', 'monitoring_nodes' ) ) {
+			$nodes = AFC_OLT_Manager::monitoring_nodes();
+			if ( ! empty( $nodes ) ) {
+				return true;
+			}
+		}
 		$settings = self::get_settings();
 		return ! empty( $settings['enabled'] );
+	}
+
+	public static function normalize_olt_id( $olt_id ) {
+		$olt_id = trim( (string) $olt_id );
+		return '' === $olt_id || 'primary' === strtolower( $olt_id ) ? 'primary' : (string) absint( $olt_id );
+	}
+
+	public static function entry_key( $olt_id, $pon, $onu ) {
+		$olt_id = self::normalize_olt_id( $olt_id );
+		$prefix = 'primary' === $olt_id ? '' : $olt_id . ':';
+		return $prefix . absint( $pon ) . ':' . absint( $onu );
+	}
+
+	public static function entry_location( $key, $entry = array() ) {
+		if ( is_array( $entry ) && ! empty( $entry['pon'] ) && ! empty( $entry['onu'] ) ) {
+			return array(
+				'olt_id' => self::normalize_olt_id( isset( $entry['olt_id'] ) ? $entry['olt_id'] : 'primary' ),
+				'pon'    => absint( $entry['pon'] ),
+				'onu'    => absint( $entry['onu'] ),
+			);
+		}
+
+		$parts = explode( ':', (string) $key );
+		if ( 3 === count( $parts ) ) {
+			return array( 'olt_id' => self::normalize_olt_id( $parts[0] ), 'pon' => absint( $parts[1] ), 'onu' => absint( $parts[2] ) );
+		}
+		return array( 'olt_id' => 'primary', 'pon' => isset( $parts[0] ) ? absint( $parts[0] ) : 0, 'onu' => isset( $parts[1] ) ? absint( $parts[1] ) : 0 );
+	}
+
+	/**
+	 * Return active manager profiles, falling back to the legacy primary option
+	 * during upgrades or before the manager has imported it.
+	 */
+	public static function monitoring_nodes() {
+		if ( class_exists( 'AFC_OLT_Manager' ) && method_exists( 'AFC_OLT_Manager', 'monitoring_nodes' ) ) {
+			$nodes = AFC_OLT_Manager::monitoring_nodes();
+			if ( ! empty( $nodes ) ) {
+				return $nodes;
+			}
+		}
+
+		$settings = self::get_settings();
+		if ( empty( $settings['enabled'] ) ) {
+			return array();
+		}
+		return array(
+			'primary' => array(
+				'id'         => 'primary',
+				'post_id'    => 0,
+				'name'       => isset( $settings['name'] ) ? $settings['name'] : __( 'Primary OLT', 'airfiber-centralized' ),
+				'technology' => 'EPON',
+				'primary'    => true,
+				'config'     => $settings,
+			),
+		);
+	}
+
+	public static function monitoring_node( $olt_id ) {
+		$olt_id = self::normalize_olt_id( $olt_id );
+		$nodes  = self::monitoring_nodes();
+		return isset( $nodes[ $olt_id ] ) ? $nodes[ $olt_id ] : null;
 	}
 
 	public static function is_snmp_available( $version = '' ) {
@@ -282,7 +349,7 @@ class AFC_OLT {
 			return $saved ? $saved : new WP_Error( 'afc_olt_refresh_busy', __( 'Another optical refresh is already running. Try again in a few seconds.', 'airfiber-centralized' ) );
 		}
 
-		set_transient( self::POLL_LOCK_TRANSIENT, time(), 30 );
+		set_transient( self::POLL_LOCK_TRANSIENT, time(), 90 );
 		try {
 			$snapshot = self::poll_rx_power();
 		} finally {
@@ -290,8 +357,7 @@ class AFC_OLT {
 		}
 
 		if ( ! is_wp_error( $snapshot ) ) {
-			$settings = self::get_settings();
-			set_transient( self::SNAPSHOT_TRANSIENT, $snapshot, (int) $settings['cache_ttl'] );
+			set_transient( self::SNAPSHOT_TRANSIENT, $snapshot, self::snapshot_cache_ttl() );
 			update_option( self::LAST_SNAPSHOT_KEY, $snapshot, false );
 			return $snapshot;
 		}
@@ -300,8 +366,107 @@ class AFC_OLT {
 		return $last ? $last : $snapshot;
 	}
 
+	private static function snapshot_cache_ttl() {
+		$ttl = 300;
+		foreach ( self::monitoring_nodes() as $node ) {
+			if ( ! empty( $node['config']['cache_ttl'] ) ) {
+				$ttl = min( $ttl, max( 60, (int) $node['config']['cache_ttl'] ) );
+			}
+		}
+		return $ttl;
+	}
+
 	private static function poll_rx_power() {
-		$settings = self::get_settings();
+		$nodes         = self::monitoring_nodes();
+		$entries       = array();
+		$learned_macs  = array();
+		$node_results  = array();
+		$valid_count   = 0;
+		$invalid_count = 0;
+		$success_count = 0;
+
+		foreach ( $nodes as $olt_id => $node ) {
+			$result = self::poll_node_rx_power( $node );
+			if ( is_wp_error( $result ) ) {
+				$node_results[ $olt_id ] = array(
+					'id'         => $olt_id,
+					'name'       => $node['name'],
+					'technology' => $node['technology'],
+					'available'  => false,
+					'count'      => 0,
+					'error'      => $result->get_error_message(),
+				);
+				continue;
+			}
+
+			$success_count++;
+			$entries       = array_replace( $entries, $result['entries'] );
+			$valid_count  += (int) $result['valid_count'];
+			$invalid_count += (int) $result['invalid_count'];
+			foreach ( $result['learned_macs'] as $mac => $locations ) {
+				if ( ! isset( $learned_macs[ $mac ] ) ) {
+					$learned_macs[ $mac ] = array();
+				}
+				foreach ( (array) $locations as $location ) {
+					if ( ! in_array( $location, $learned_macs[ $mac ], true ) ) {
+						$learned_macs[ $mac ][] = $location;
+					}
+				}
+			}
+			$node_results[ $olt_id ] = array(
+				'id'         => $olt_id,
+				'name'       => $node['name'],
+				'technology' => $node['technology'],
+				'available'  => true,
+				'count'      => (int) $result['count'],
+				'valid_count'=> (int) $result['valid_count'],
+				'rx_oid'     => $result['rx_oid'],
+				'error'      => '',
+			);
+		}
+
+		if ( 0 === $success_count || empty( $entries ) ) {
+			$messages = array();
+			foreach ( $node_results as $node ) {
+				if ( ! empty( $node['error'] ) ) {
+					$messages[] = $node['name'] . ': ' . $node['error'];
+				}
+			}
+			return new WP_Error( 'afc_olt_all_walks_failed', $messages ? implode( ' ', $messages ) : __( 'No active OLT returned an RX-power table.', 'airfiber-centralized' ) );
+		}
+
+		$errors = array();
+		foreach ( $node_results as $node ) {
+			if ( ! empty( $node['error'] ) ) {
+				$errors[] = $node['name'] . ': ' . $node['error'];
+			}
+		}
+
+		return array(
+			'format'        => self::SNAPSHOT_FORMAT,
+			'entries'       => $entries,
+			'learned_macs'  => $learned_macs,
+			'nodes'         => $node_results,
+			'node_count'    => count( $node_results ),
+			'available_nodes' => $success_count,
+			'count'         => count( $entries ),
+			'valid_count'   => $valid_count,
+			'invalid_count' => $invalid_count,
+			'rx_oid'        => 1 === count( $node_results ) ? reset( $node_results )['rx_oid'] : '',
+			'collected_at'  => current_time( 'mysql' ),
+			'collected_ts'  => time(),
+			'source'        => 'live',
+			'stale'         => false,
+			'partial'       => $success_count < count( $node_results ),
+			'error'         => implode( ' ', $errors ),
+		);
+	}
+
+	public static function poll_node_rx_power( $node ) {
+		$settings   = isset( $node['config'] ) && is_array( $node['config'] ) ? $node['config'] : array();
+		$olt_id     = self::normalize_olt_id( isset( $node['id'] ) ? $node['id'] : 'primary' );
+		$olt_name   = isset( $node['name'] ) ? sanitize_text_field( $node['name'] ) : __( 'OLT', 'airfiber-centralized' );
+		$technology = isset( $node['technology'] ) ? sanitize_text_field( $node['technology'] ) : '';
 
 		if ( ! self::is_snmp_available( $settings['version'] ) ) {
 			return new WP_Error(
@@ -334,8 +499,11 @@ class AFC_OLT {
 
 			$is_valid = ! empty( $reading['valid'] );
 			$status   = $is_valid ? self::classify_power( $reading['power'], $settings ) : 'invalid';
-			$key      = $indexes['pon'] . ':' . $indexes['onu'];
+			$key      = self::entry_key( $olt_id, $indexes['pon'], $indexes['onu'] );
 			$entries[ $key ] = array(
+				'olt_id'       => $olt_id,
+				'olt_name'     => $olt_name,
+				'technology'   => $technology,
 				'pon'          => $indexes['pon'],
 				'onu'          => $indexes['onu'],
 				'rx_power'     => $is_valid ? round( (float) $reading['power'], 2 ) : null,
@@ -357,7 +525,7 @@ class AFC_OLT {
 			return new WP_Error( 'afc_olt_empty_walk', __( 'SNMP responded, but no ONU rows were found under the configured RX-power OID.', 'airfiber-centralized' ) );
 		}
 
-		$learned_macs = self::get_learned_macs( $settings );
+		$learned_macs = 'EPON' === strtoupper( $technology ) ? self::get_learned_macs( $settings, $olt_id ) : array();
 
 		return array(
 			'format'        => self::SNAPSHOT_FORMAT,
@@ -375,8 +543,15 @@ class AFC_OLT {
 		);
 	}
 
-	private static function get_learned_macs( $settings ) {
-		$cached = get_transient( self::MAC_TRANSIENT );
+	private static function node_transient_key( $base, $olt_id ) {
+		$olt_id = self::normalize_olt_id( $olt_id );
+		return 'primary' === $olt_id ? $base : $base . '_' . md5( $olt_id );
+	}
+
+	private static function get_learned_macs( $settings, $olt_id = 'primary' ) {
+		$olt_id    = self::normalize_olt_id( $olt_id );
+		$cache_key = self::node_transient_key( self::MAC_TRANSIENT, $olt_id );
+		$cached    = get_transient( $cache_key );
 		if ( is_array( $cached ) ) {
 			return $cached;
 		}
@@ -388,8 +563,19 @@ class AFC_OLT {
 			! empty( $last['collected_ts'] ) &&
 			time() - (int) $last['collected_ts'] < 3600
 		) {
-			set_transient( self::MAC_TRANSIENT, $last['learned_macs'], self::MAC_CACHE_TTL );
-			return $last['learned_macs'];
+			$filtered = array();
+			foreach ( $last['learned_macs'] as $mac => $locations ) {
+				foreach ( (array) $locations as $location ) {
+					$location_id = self::normalize_olt_id( isset( $location['olt_id'] ) ? $location['olt_id'] : 'primary' );
+					if ( $olt_id === $location_id ) {
+						$filtered[ $mac ][] = $location;
+					}
+				}
+			}
+			if ( $filtered ) {
+				set_transient( $cache_key, $filtered, self::MAC_CACHE_TTL );
+				return $filtered;
+			}
 		}
 
 		$learned_macs = array();
@@ -411,7 +597,7 @@ class AFC_OLT {
 				if ( ! $indexes || ! $mac ) {
 					continue;
 				}
-				$location = array( 'pon' => $indexes['pon'], 'onu' => $indexes['onu'] );
+				$location = array( 'olt_id' => $olt_id, 'pon' => $indexes['pon'], 'onu' => $indexes['onu'] );
 				if ( ! isset( $learned_macs[ $mac ] ) ) {
 					$learned_macs[ $mac ] = array();
 				}
@@ -421,7 +607,7 @@ class AFC_OLT {
 			}
 		}
 
-		set_transient( self::MAC_TRANSIENT, $learned_macs, self::MAC_CACHE_TTL );
+		set_transient( $cache_key, $learned_macs, self::MAC_CACHE_TTL );
 		return $learned_macs;
 	}
 
@@ -592,12 +778,17 @@ class AFC_OLT {
 
 	public static function get_customer_signal( $customer_id, $snapshot ) {
 		$customer_id = absint( $customer_id );
+		$olt_id      = self::normalize_olt_id( get_post_meta( $customer_id, '_afc_olt_id', true ) );
+		$node        = self::monitoring_node( $olt_id );
 		$pon         = absint( get_post_meta( $customer_id, '_afc_olt_pon', true ) );
 		$onu         = absint( get_post_meta( $customer_id, '_afc_olt_onu', true ) );
 		$onu_mac     = (string) get_post_meta( $customer_id, '_afc_olt_onu_mac', true );
 
 		$result = array(
 			'mapped'       => $pon > 0 && $onu > 0,
+			'olt_id'       => $olt_id,
+			'olt_name'     => $node ? $node['name'] : '',
+			'technology'   => $node ? $node['technology'] : '',
 			'pon'          => $pon,
 			'onu'          => $onu,
 			'onu_mac'      => $onu_mac,
@@ -620,7 +811,7 @@ class AFC_OLT {
 		$result['collected_at'] = isset( $snapshot['collected_at'] ) ? $snapshot['collected_at'] : '';
 		$result['stale']        = ! empty( $snapshot['stale'] );
 		$result['message']      = isset( $snapshot['error'] ) ? $snapshot['error'] : '';
-		$key                    = $pon . ':' . $onu;
+		$key                    = self::entry_key( $olt_id, $pon, $onu );
 		if ( empty( $snapshot['entries'][ $key ] ) ) {
 			$result['status'] = $result['stale'] ? 'stale' : 'offline';
 			return $result;
@@ -653,6 +844,9 @@ class AFC_OLT {
 		return array(
 			'enabled'       => true,
 			'available'     => true,
+			'partial'       => ! empty( $snapshot['partial'] ),
+			'node_count'    => isset( $snapshot['node_count'] ) ? (int) $snapshot['node_count'] : 1,
+			'available_nodes' => isset( $snapshot['available_nodes'] ) ? (int) $snapshot['available_nodes'] : 1,
 			'stale'         => ! empty( $snapshot['stale'] ),
 			'count'         => isset( $snapshot['count'] ) ? (int) $snapshot['count'] : count( $snapshot['entries'] ),
 			'valid_count'   => isset( $snapshot['valid_count'] ) ? (int) $snapshot['valid_count'] : 0,
@@ -665,8 +859,7 @@ class AFC_OLT {
 	public static function test_connection() {
 		$result = self::poll_rx_power();
 		if ( ! is_wp_error( $result ) ) {
-			$settings = self::get_settings();
-			set_transient( self::SNAPSHOT_TRANSIENT, $result, (int) $settings['cache_ttl'] );
+			set_transient( self::SNAPSHOT_TRANSIENT, $result, self::snapshot_cache_ttl() );
 			update_option( self::LAST_SNAPSHOT_KEY, $result, false );
 		}
 		return $result;
@@ -767,8 +960,13 @@ class AFC_OLT {
 			wp_send_json_success( array( 'message' => __( 'The ONU mapping was removed.', 'airfiber-centralized' ) ) );
 		}
 
-		$pon = isset( $_POST['pon'] ) ? absint( $_POST['pon'] ) : 0;
-		$onu = isset( $_POST['onu'] ) ? absint( $_POST['onu'] ) : 0;
+		$olt_id = self::normalize_olt_id( isset( $_POST['olt_id'] ) ? wp_unslash( $_POST['olt_id'] ) : 'primary' );
+		$node   = self::monitoring_node( $olt_id );
+		$pon    = isset( $_POST['pon'] ) ? absint( $_POST['pon'] ) : 0;
+		$onu    = isset( $_POST['onu'] ) ? absint( $_POST['onu'] ) : 0;
+		if ( ! $node ) {
+			wp_send_json_error( array( 'message' => __( 'Select an active OLT for this customer.', 'airfiber-centralized' ) ) );
+		}
 		if ( $pon < 1 || $pon > 16 || $onu < 1 || $onu > 256 ) {
 			wp_send_json_error( array( 'message' => __( 'Enter a valid PON number (1-16) and ONU ID (1-256).', 'airfiber-centralized' ) ) );
 		}
@@ -782,6 +980,7 @@ class AFC_OLT {
 				'post__not_in'   => array( $customer_id ),
 				'meta_query'     => array(
 					'relation' => 'AND',
+					array( 'key' => '_afc_olt_id', 'value' => $olt_id ),
 					array( 'key' => '_afc_olt_pon', 'value' => $pon ),
 					array( 'key' => '_afc_olt_onu', 'value' => $onu ),
 				),
@@ -799,12 +998,12 @@ class AFC_OLT {
 			$onu_mac = implode( ':', str_split( $onu_mac, 2 ) );
 		}
 
-		update_post_meta( $customer_id, '_afc_olt_id', 'primary' );
+		update_post_meta( $customer_id, '_afc_olt_id', $olt_id );
 		update_post_meta( $customer_id, '_afc_olt_pon', $pon );
 		update_post_meta( $customer_id, '_afc_olt_onu', $onu );
 		update_post_meta( $customer_id, '_afc_olt_onu_mac', $onu_mac );
 
-		wp_send_json_success( array( 'message' => sprintf( __( 'Customer mapped to PON %1$d / ONU %2$d.', 'airfiber-centralized' ), $pon, $onu ) ) );
+		wp_send_json_success( array( 'message' => sprintf( __( 'Customer mapped to %1$s, PON %2$d / ONU %3$d.', 'airfiber-centralized' ), $node['name'], $pon, $onu ) ) );
 	}
 
 	public static function render_settings_page() {

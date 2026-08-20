@@ -62,6 +62,9 @@ class AFC_OLT_PPP_Auto_Link {
 			'detected'     => false,
 			'temporary'    => false,
 			'persisted'    => false,
+			'olt_id'       => 'primary',
+			'olt_name'     => '',
+			'technology'   => '',
 			'pon'          => 0,
 			'onu'          => 0,
 			'onu_mac'      => '',
@@ -102,10 +105,11 @@ class AFC_OLT_PPP_Auto_Link {
 				continue;
 			}
 			foreach ( (array) $items as $location ) {
+				$olt_id = AFC_OLT::normalize_olt_id( isset( $location['olt_id'] ) ? $location['olt_id'] : 'primary' );
 				$pon = isset( $location['pon'] ) ? absint( $location['pon'] ) : 0;
 				$onu = isset( $location['onu'] ) ? absint( $location['onu'] ) : 0;
 				if ( $pon > 0 && $onu > 0 ) {
-					$locations[ $pon . ':' . $onu ] = array( 'pon' => $pon, 'onu' => $onu );
+					$locations[ AFC_OLT::entry_key( $olt_id, $pon, $onu ) ] = array( 'olt_id' => $olt_id, 'pon' => $pon, 'onu' => $onu );
 				}
 			}
 		}
@@ -140,6 +144,7 @@ class AFC_OLT_PPP_Auto_Link {
 
 	private static function signal_for_location( $match, $snapshot, $inventory ) {
 		$signal = self::empty_signal();
+		$olt_id = AFC_OLT::normalize_olt_id( isset( $match['olt_id'] ) ? $match['olt_id'] : 'primary' );
 		$pon    = isset( $match['pon'] ) ? absint( $match['pon'] ) : 0;
 		$onu    = isset( $match['onu'] ) ? absint( $match['onu'] ) : 0;
 		if ( ! $pon || ! $onu ) {
@@ -149,13 +154,17 @@ class AFC_OLT_PPP_Auto_Link {
 		$signal['mapped']       = true;
 		$signal['detected']     = true;
 		$signal['persisted']    = true;
+		$signal['olt_id']       = $olt_id;
+		$node                   = AFC_OLT::monitoring_node( $olt_id );
+		$signal['olt_name']     = $node ? $node['name'] : '';
+		$signal['technology']   = $node ? $node['technology'] : '';
 		$signal['pon']          = $pon;
 		$signal['onu']          = $onu;
 		$signal['match_method'] = isset( $match['match_method'] ) ? sanitize_key( $match['match_method'] ) : 'database';
 		$signal['confidence']   = isset( $match['confidence'] ) ? absint( $match['confidence'] ) : 100;
 		$signal['source']       = 'database';
 
-		$key = $pon . ':' . $onu;
+		$key = AFC_OLT::entry_key( $olt_id, $pon, $onu );
 		if ( ! empty( $inventory['entries'][ $key ] ) && is_array( $inventory['entries'][ $key ] ) ) {
 			$onu_row               = $inventory['entries'][ $key ];
 			$signal['onu_mac']     = isset( $onu_row['mac'] ) ? self::normalize_mac( $onu_row['mac'] ) : '';
@@ -197,6 +206,7 @@ class AFC_OLT_PPP_Auto_Link {
 
 	private static function signal_from_link( $link, $snapshot, $inventory ) {
 		$match = array(
+			'olt_id'       => isset( $link['olt_id'] ) ? $link['olt_id'] : 'primary',
 			'pon'          => isset( $link['pon'] ) ? absint( $link['pon'] ) : 0,
 			'onu'          => isset( $link['onu'] ) ? absint( $link['onu'] ) : 0,
 			'match_method' => isset( $link['match_method'] ) ? sanitize_key( $link['match_method'] ) : 'database',
@@ -234,6 +244,7 @@ class AFC_OLT_PPP_Auto_Link {
 			'ppp_username' => sanitize_text_field( $username ),
 			'ppp_mac'      => self::normalize_mac( $caller_id ),
 			'olt_mac'      => self::normalize_mac( isset( $signal['onu_mac'] ) ? $signal['onu_mac'] : '' ),
+			'olt_id'       => AFC_OLT::normalize_olt_id( isset( $signal['olt_id'] ) ? $signal['olt_id'] : 'primary' ),
 			'pon'          => absint( $signal['pon'] ),
 			'onu'          => absint( $signal['onu'] ),
 			'description'  => isset( $signal['description'] ) ? sanitize_text_field( $signal['description'] ) : '',
@@ -273,6 +284,7 @@ class AFC_OLT_PPP_Auto_Link {
 
 		if ( is_array( $existing_optical ) && ! empty( $existing_optical['mapped'] ) && ! empty( $existing_optical['pon'] ) && ! empty( $existing_optical['onu'] ) ) {
 			$match = array(
+				'olt_id'       => isset( $existing_optical['olt_id'] ) ? $existing_optical['olt_id'] : 'primary',
 				'pon'          => absint( $existing_optical['pon'] ),
 				'onu'          => absint( $existing_optical['onu'] ),
 				'match_method' => ! empty( $existing_optical['match_method'] ) ? sanitize_key( $existing_optical['match_method'] ) : 'customer',

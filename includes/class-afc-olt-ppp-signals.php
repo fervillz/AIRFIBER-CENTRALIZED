@@ -14,7 +14,7 @@ defined( 'ABSPATH' ) || exit;
 class AFC_OLT_PPP_Signals {
 
 	const SCHEMA_OPTION  = 'afc_olt_ppp_links_schema_v1';
-	const SCHEMA_VERSION = '1';
+	const SCHEMA_VERSION = '2';
 
 	public static function init() {
 		self::ensure_schema();
@@ -43,6 +43,7 @@ class AFC_OLT_PPP_Signals {
 			ppp_username varchar(191) NOT NULL,
 			ppp_mac varchar(17) NOT NULL DEFAULT '',
 			olt_mac varchar(17) NOT NULL DEFAULT '',
+			olt_id varchar(32) NOT NULL DEFAULT 'primary',
 			pon smallint(5) unsigned NOT NULL DEFAULT 0,
 			onu smallint(5) unsigned NOT NULL DEFAULT 0,
 			description varchar(255) NOT NULL DEFAULT '',
@@ -57,7 +58,7 @@ class AFC_OLT_PPP_Signals {
 			UNIQUE KEY ppp_username (ppp_username),
 			KEY ppp_mac (ppp_mac),
 			KEY olt_mac (olt_mac),
-			KEY olt_location (pon,onu)
+			KEY olt_node_location (olt_id,pon,onu)
 		) {$charset};";
 
 		dbDelta( $sql );
@@ -164,6 +165,9 @@ class AFC_OLT_PPP_Signals {
 			'detected'     => false,
 			'temporary'    => false,
 			'persisted'    => false,
+			'olt_id'       => 'primary',
+			'olt_name'     => '',
+			'technology'   => '',
 			'pon'          => 0,
 			'onu'          => 0,
 			'onu_mac'      => '',
@@ -189,6 +193,7 @@ class AFC_OLT_PPP_Signals {
 		$signal['detected']     = $signal['mapped'];
 		$signal['persisted']    = $signal['mapped'];
 		$signal['temporary']    = false;
+		$signal['olt_id']       = AFC_OLT::normalize_olt_id( isset( $link['olt_id'] ) ? $link['olt_id'] : 'primary' );
 		$signal['pon']          = isset( $link['pon'] ) ? absint( $link['pon'] ) : 0;
 		$signal['onu']          = isset( $link['onu'] ) ? absint( $link['onu'] ) : 0;
 		$signal['onu_mac']      = isset( $link['olt_mac'] ) ? (string) $link['olt_mac'] : '';
@@ -202,6 +207,7 @@ class AFC_OLT_PPP_Signals {
 	}
 
 	private static function signal_for_location( $match, $snapshot, $inventory, $temporary = true ) {
+		$olt_id = AFC_OLT::normalize_olt_id( isset( $match['olt_id'] ) ? $match['olt_id'] : 'primary' );
 		$pon    = isset( $match['pon'] ) ? absint( $match['pon'] ) : 0;
 		$onu    = isset( $match['onu'] ) ? absint( $match['onu'] ) : 0;
 		$signal = self::empty_signal( 'unavailable' );
@@ -214,13 +220,17 @@ class AFC_OLT_PPP_Signals {
 		$signal['detected']     = true;
 		$signal['temporary']    = (bool) $temporary;
 		$signal['persisted']    = ! $temporary;
+		$signal['olt_id']       = $olt_id;
+		$node                   = AFC_OLT::monitoring_node( $olt_id );
+		$signal['olt_name']     = $node ? $node['name'] : '';
+		$signal['technology']   = $node ? $node['technology'] : '';
 		$signal['pon']          = $pon;
 		$signal['onu']          = $onu;
 		$signal['match_method'] = isset( $match['match_method'] ) ? sanitize_key( $match['match_method'] ) : '';
 		$signal['confidence']   = isset( $match['confidence'] ) ? absint( $match['confidence'] ) : 0;
 		$signal['source']       = $temporary ? 'detected' : 'database';
 
-		$key = $pon . ':' . $onu;
+		$key = AFC_OLT::entry_key( $olt_id, $pon, $onu );
 		if ( ! empty( $inventory['entries'][ $key ] ) ) {
 			$entry                 = $inventory['entries'][ $key ];
 			$signal['description'] = isset( $entry['description'] ) ? (string) $entry['description'] : '';
@@ -279,6 +289,7 @@ class AFC_OLT_PPP_Signals {
 			'ppp_username' => sanitize_text_field( $account['username'] ),
 			'ppp_mac'      => self::normalize_mac( isset( $account['caller_id'] ) ? $account['caller_id'] : '' ),
 			'olt_mac'      => self::normalize_mac( isset( $signal['onu_mac'] ) ? $signal['onu_mac'] : '' ),
+			'olt_id'       => AFC_OLT::normalize_olt_id( isset( $signal['olt_id'] ) ? $signal['olt_id'] : 'primary' ),
 			'pon'          => isset( $signal['pon'] ) ? absint( $signal['pon'] ) : 0,
 			'onu'          => isset( $signal['onu'] ) ? absint( $signal['onu'] ) : 0,
 			'description'  => isset( $signal['description'] ) ? sanitize_text_field( $signal['description'] ) : '',
@@ -296,7 +307,7 @@ class AFC_OLT_PPP_Signals {
 		if ( ! $existing ) {
 			return true;
 		}
-		foreach ( array( 'ppp_username', 'ppp_mac', 'olt_mac', 'pon', 'onu', 'description', 'match_method', 'confidence', 'rx_power', 'signal_status', 'collected_at' ) as $key ) {
+		foreach ( array( 'ppp_username', 'ppp_mac', 'olt_mac', 'olt_id', 'pon', 'onu', 'description', 'match_method', 'confidence', 'rx_power', 'signal_status', 'collected_at' ) as $key ) {
 			if ( (string) ( isset( $existing[ $key ] ) ? $existing[ $key ] : '' ) !== (string) ( isset( $values[ $key ] ) ? $values[ $key ] : '' ) ) {
 				return true;
 			}
@@ -333,6 +344,7 @@ class AFC_OLT_PPP_Signals {
 	private static function signal_from_saved_link( $account, $link, $snapshot, $inventory ) {
 		$stored = self::signal_from_link_row( $link );
 		$match  = array(
+			'olt_id'       => isset( $stored['olt_id'] ) ? $stored['olt_id'] : 'primary',
 			'pon'          => $stored['pon'],
 			'onu'          => $stored['onu'],
 			'match_method' => $stored['match_method'],
@@ -380,6 +392,7 @@ class AFC_OLT_PPP_Signals {
 		}
 
 		$match = array(
+			'olt_id'       => isset( $signal['olt_id'] ) ? $signal['olt_id'] : 'primary',
 			'pon'          => isset( $signal['pon'] ) ? $signal['pon'] : 0,
 			'onu'          => isset( $signal['onu'] ) ? $signal['onu'] : 0,
 			'match_method' => ! empty( $signal['match_method'] ) ? $signal['match_method'] : 'customer',
@@ -441,6 +454,7 @@ class AFC_OLT_PPP_Signals {
 
 				if ( ! empty( $signal['mapped'] ) ) {
 					$match = array(
+						'olt_id'       => isset( $signal['olt_id'] ) ? $signal['olt_id'] : 'primary',
 						'pon'          => $signal['pon'],
 						'onu'          => $signal['onu'],
 						'match_method' => isset( $signal['match_method'] ) ? $signal['match_method'] : '',

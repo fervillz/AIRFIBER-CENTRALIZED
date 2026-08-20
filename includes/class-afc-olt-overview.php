@@ -35,12 +35,14 @@ class AFC_OLT_Overview {
 		);
 		$bindings = array();
 		foreach ( $ids as $customer_id ) {
+			$olt_id = AFC_OLT::normalize_olt_id( get_post_meta( $customer_id, '_afc_olt_id', true ) );
 			$pon = absint( get_post_meta( $customer_id, '_afc_olt_pon', true ) );
 			$onu = absint( get_post_meta( $customer_id, '_afc_olt_onu', true ) );
 			if ( $pon < 1 || $onu < 1 ) continue;
-			$key = $pon . ':' . $onu;
+			$key = AFC_OLT::entry_key( $olt_id, $pon, $onu );
 			$bindings[ $key ] = array(
 				'id'          => (int) $customer_id,
+				'olt_id'      => $olt_id,
 				'name'        => get_the_title( $customer_id ),
 				'username'    => (string) get_post_meta( $customer_id, '_afc_ppp_username', true ),
 				'onu_mac'     => (string) get_post_meta( $customer_id, '_afc_olt_onu_mac', true ),
@@ -56,10 +58,11 @@ class AFC_OLT_Overview {
 		if ( is_wp_error( $snapshot ) || empty( $snapshot['learned_macs'] ) || ! is_array( $snapshot['learned_macs'] ) ) return $locations;
 		foreach ( $snapshot['learned_macs'] as $mac => $items ) {
 			foreach ( (array) $items as $item ) {
+				$olt_id = AFC_OLT::normalize_olt_id( isset( $item['olt_id'] ) ? $item['olt_id'] : 'primary' );
 				$pon = isset( $item['pon'] ) ? absint( $item['pon'] ) : 0;
 				$onu = isset( $item['onu'] ) ? absint( $item['onu'] ) : 0;
 				if ( $pon < 1 || $onu < 1 ) continue;
-				$key = $pon . ':' . $onu;
+				$key = AFC_OLT::entry_key( $olt_id, $pon, $onu );
 				if ( ! isset( $locations[ $key ] ) ) $locations[ $key ] = array();
 				if ( ! in_array( $mac, $locations[ $key ], true ) ) $locations[ $key ][] = $mac;
 			}
@@ -101,13 +104,16 @@ class AFC_OLT_Overview {
 		$keys              = array_unique( array_merge( array_keys( $snapshot_entries ), array_keys( $inventory_entries ), array_keys( $bindings ) ) );
 
 		foreach ( $keys as $key ) {
-			$parts = array_map( 'absint', explode( ':', $key, 2 ) );
-			$pon = isset( $parts[0] ) ? $parts[0] : 0;
-			$onu = isset( $parts[1] ) ? $parts[1] : 0;
-			if ( $pon < 1 || $onu < 1 ) continue;
 			$entry    = isset( $snapshot_entries[ $key ] ) ? $snapshot_entries[ $key ] : array();
 			$onu_info = isset( $inventory_entries[ $key ] ) ? $inventory_entries[ $key ] : array();
 			$customer = isset( $bindings[ $key ] ) ? $bindings[ $key ] : null;
+			$location = AFC_OLT::entry_location( $key, $entry ? $entry : ( $onu_info ? $onu_info : ( $customer ? $customer : array() ) ) );
+			$olt_id   = $location['olt_id'];
+			$pon      = $location['pon'];
+			$onu      = $location['onu'];
+			if ( $pon < 1 || $onu < 1 ) continue;
+			$olt_name = ! empty( $entry['olt_name'] ) ? (string) $entry['olt_name'] : ( ! empty( $onu_info['olt_name'] ) ? (string) $onu_info['olt_name'] : '' );
+			$technology = ! empty( $entry['technology'] ) ? (string) $entry['technology'] : ( ! empty( $onu_info['technology'] ) ? (string) $onu_info['technology'] : '' );
 			$macs     = array();
 			$online   = array_key_exists( 'online', $onu_info ) ? $onu_info['online'] : null;
 			$onu_type = isset( $onu_info['onu_type'] ) ? (string) $onu_info['onu_type'] : '';
@@ -131,21 +137,25 @@ class AFC_OLT_Overview {
 			}
 			if ( 'invalid' === $status && count( $invalid_samples ) < 8 ) $invalid_samples[] = array( 'pon' => $pon, 'onu' => $onu, 'raw' => $raw_rx, 'raw_text' => $raw_text );
 			$rows[] = array(
+				'olt_id' => $olt_id, 'olt_name' => $olt_name, 'technology' => $technology,
 				'pon' => $pon, 'onu' => $onu, 'description' => $description, 'mac_addresses' => array_values( $macs ), 'onu_type' => $onu_type,
 				'onu_online' => $online, 'rx_power' => $power, 'raw_rx' => $raw_rx, 'raw_rx_text' => $raw_text, 'signal_valid' => $signal_valid,
 				'status' => $status, 'status_label' => self::status_label( $status ), 'mapped' => null !== $customer, 'customer' => $customer,
 			);
 		}
 
-		usort( $rows, function ( $a, $b ) { return $a['pon'] === $b['pon'] ? $a['onu'] <=> $b['onu'] : $a['pon'] <=> $b['pon']; } );
+		usort( $rows, function ( $a, $b ) {
+			if ( $a['olt_id'] !== $b['olt_id'] ) return strnatcasecmp( (string) $a['olt_id'], (string) $b['olt_id'] );
+			return $a['pon'] === $b['pon'] ? $a['onu'] <=> $b['onu'] : $a['pon'] <=> $b['pon'];
+		} );
 		$counts['readings'] = ! is_wp_error( $snapshot ) && isset( $snapshot['count'] ) ? absint( $snapshot['count'] ) : 0;
 		$counts['total'] = count( $rows );
 		foreach ( $rows as $row ) {
 			$status = $row['status'];
 			if ( isset( $counts[ $status ] ) ) $counts[ $status ]++;
 			$row['mapped'] ? $counts['mapped']++ : $counts['unmapped']++;
-			$pk = (string) $row['pon'];
-			if ( ! isset( $pons[ $pk ] ) ) $pons[ $pk ] = array( 'pon' => (int) $row['pon'], 'total' => 0, 'mapped' => 0, 'good' => 0, 'warning' => 0, 'critical' => 0, 'invalid' => 0, 'offline' => 0, 'valid' => 0, 'weakest' => null );
+			$pk = AFC_OLT::entry_key( $row['olt_id'], $row['pon'], 0 );
+			if ( ! isset( $pons[ $pk ] ) ) $pons[ $pk ] = array( 'key' => $pk, 'olt_id' => $row['olt_id'], 'olt_name' => $row['olt_name'], 'technology' => $row['technology'], 'pon' => (int) $row['pon'], 'total' => 0, 'mapped' => 0, 'good' => 0, 'warning' => 0, 'critical' => 0, 'invalid' => 0, 'offline' => 0, 'valid' => 0, 'weakest' => null );
 			$pons[ $pk ]['total']++;
 			if ( $row['mapped'] ) $pons[ $pk ]['mapped']++;
 			if ( isset( $pons[ $pk ][ $status ] ) ) $pons[ $pk ][ $status ]++;
@@ -154,7 +164,8 @@ class AFC_OLT_Overview {
 				if ( null === $pons[ $pk ]['weakest'] || $row['rx_power'] < $pons[ $pk ]['weakest'] ) $pons[ $pk ]['weakest'] = $row['rx_power'];
 			}
 		}
-		ksort( $pons, SORT_NUMERIC );
+		uksort( $pons, 'strnatcasecmp' );
+		$monitoring_nodes = AFC_OLT::monitoring_nodes();
 		return array(
 			'summary' => $summary,
 			'counts' => $counts,
@@ -169,7 +180,10 @@ class AFC_OLT_Overview {
 				'inventory_error' => isset( $inventory['error'] ) ? $inventory['error'] : '',
 			),
 			'limits' => array( 'warning' => (float) $settings['warning_dbm'], 'critical' => (float) $settings['critical_dbm'] ),
-			'olt' => array( 'name' => isset( $settings['name'] ) ? (string) $settings['name'] : __( 'Primary OLT', 'airfiber-centralized' ) ),
+			'olt' => array(
+				'name'  => 1 === count( $monitoring_nodes ) ? reset( $monitoring_nodes )['name'] : sprintf( __( '%d active OLTs', 'airfiber-centralized' ), count( $monitoring_nodes ) ),
+				'nodes' => isset( $snapshot['nodes'] ) ? $snapshot['nodes'] : array(),
+			),
 			'last_refresh' => class_exists( 'AFC_OLT_Refresh_Manager' ) ? AFC_OLT_Refresh_Manager::get_last_refresh() : array(),
 		);
 	}

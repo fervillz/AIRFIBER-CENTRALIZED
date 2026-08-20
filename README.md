@@ -42,10 +42,10 @@ EPON: 1.3.6.1.4.1.37950.1.1.5.12.2.1.8.1.7
 GPON: 1.3.6.1.4.1.37950.1.1.6.1.1.3.1.7
 ```
 
-The plugin performs one bulk SNMP walk, caches the complete result for five minutes, and reuses the last successful snapshot if the OLT is temporarily unavailable. It never performs a separate SNMP request for every customer. OLT secrets are encrypted at rest with AES-256-GCM using the WordPress authentication key and are deleted when the plugin is uninstalled.
+The plugin performs one bulk SNMP walk per active OLT, combines the results into an OLT-aware snapshot, caches it for five minutes, and reuses the last successful snapshot if monitoring is temporarily unavailable. It never performs a separate SNMP request for every customer. OLT secrets are encrypted at rest with AES-256-GCM using the WordPress authentication key and are deleted when the plugin is uninstalled.
 
-Customer-to-ONU bindings are stored on the customer record as the primary OLT, PON number, ONU ID, and optional ONU MAC. Duplicate PON/ONU assignments are rejected.
-When the OLT exposes its learned-MAC table, the plugin compares each online PPP caller-ID with the learned subscriber MAC addresses and offers a PON/ONU mapping suggestion. Suggestions are never saved automatically; an administrator must review and confirm them.
+Customer-to-ONU bindings store the OLT identity, PON number, ONU ID, and optional ONU MAC. Duplicate locations are rejected within the same OLT, while the same PON/ONU numbers remain valid on a different chassis.
+When an OLT exposes ONU or learned-MAC data, the plugin compares each online PPP caller-ID with the subscriber MAC addresses. Unique exact MAC matches can be linked automatically; description-based suggestions still require administrator review.
 
 ## Development rules
 
@@ -58,4 +58,4 @@ When the OLT exposes its learned-MAC table, the plugin compares each online PPP 
 
 ## Status
 
-Current plugin version: `2.14.8`.
+Current plugin version: `2.14.9`.

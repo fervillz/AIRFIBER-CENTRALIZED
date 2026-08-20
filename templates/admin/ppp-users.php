@@ -141,7 +141,15 @@ defined( 'ABSPATH' ) || exit;
 			</div>
 			<div class="afc-dialog-body">
 				<input id="afc-olt-customer-id" type="hidden" value="">
-				<div class="alert alert-info"><?php esc_html_e( 'Enter the ONU location shown by the OLT. Each PON/ONU can be assigned to only one customer.', 'airfiber-centralized' ); ?></div>
+				<div class="alert alert-info"><?php esc_html_e( 'Choose the OLT and enter its ONU location. The same PON/ONU numbers may exist on another OLT.', 'airfiber-centralized' ); ?></div>
+				<div class="mb-3">
+					<label class="form-label" for="afc-olt-node"><?php esc_html_e( 'OLT', 'airfiber-centralized' ); ?></label>
+					<select class="form-select" id="afc-olt-node" required>
+						<?php foreach ( AFC_OLT::monitoring_nodes() as $olt_reference => $olt_node ) : ?>
+							<option value="<?php echo esc_attr( $olt_reference ); ?>"><?php echo esc_html( $olt_node['name'] . ( ! empty( $olt_node['technology'] ) ? ' · ' . $olt_node['technology'] : '' ) ); ?></option>
+						<?php endforeach; ?>
+					</select>
+				</div>
 				<div class="row">
 					<div class="col-6 mb-3">
 						<label class="form-label" for="afc-olt-pon"><?php esc_html_e( 'PON number', 'airfiber-centralized' ); ?></label>

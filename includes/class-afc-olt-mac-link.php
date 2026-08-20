@@ -57,8 +57,8 @@ class AFC_OLT_MAC_Link {
 		return $ids ? (int) $ids[0] : 0;
 	}
 
-	private static function inventory_row( $inventory, $pon, $onu ) {
-		$key = absint( $pon ) . ':' . absint( $onu );
+	private static function inventory_row( $inventory, $pon, $onu, $olt_id = 'primary' ) {
+		$key = AFC_OLT::entry_key( $olt_id, $pon, $onu );
 		return ! empty( $inventory['entries'][ $key ] ) && is_array( $inventory['entries'][ $key ] ) ? $inventory['entries'][ $key ] : array();
 	}
 
@@ -93,16 +93,18 @@ class AFC_OLT_MAC_Link {
 			}
 			$unique = array();
 			foreach ( $locations as $location ) {
+				$olt_id = AFC_OLT::normalize_olt_id( isset( $location['olt_id'] ) ? $location['olt_id'] : 'primary' );
 				$pon = isset( $location['pon'] ) ? absint( $location['pon'] ) : 0;
 				$onu = isset( $location['onu'] ) ? absint( $location['onu'] ) : 0;
 				if ( $pon > 0 && $onu > 0 ) {
-					$unique[ $pon . ':' . $onu ] = array( 'pon' => $pon, 'onu' => $onu );
+					$unique[ AFC_OLT::entry_key( $olt_id, $pon, $onu ) ] = array( 'olt_id' => $olt_id, 'pon' => $pon, 'onu' => $onu );
 				}
 			}
 			if ( 1 === count( $unique ) ) {
 				$location = reset( $unique );
 				$match    = array_merge(
 					array(
+						'olt_id'      => $location['olt_id'],
 						'pon'         => $location['pon'],
 						'onu'         => $location['onu'],
 						'mac'         => $mac,
@@ -110,7 +112,7 @@ class AFC_OLT_MAC_Link {
 						'online'      => null,
 						'onu_type'    => '',
 					),
-					self::inventory_row( $inventory, $location['pon'], $location['onu'] )
+					self::inventory_row( $inventory, $location['pon'], $location['onu'], $location['olt_id'] )
 				);
 				$match['mac']          = $mac;
 				$match['match_method'] = 'mac';
@@ -122,7 +124,8 @@ class AFC_OLT_MAC_Link {
 		return null;
 	}
 
-	private static function binding_conflict( $customer_id, $pon, $onu ) {
+	private static function binding_conflict( $customer_id, $olt_id, $pon, $onu ) {
+		$olt_id = AFC_OLT::normalize_olt_id( $olt_id );
 		$ids = get_posts(
 			array(
 				'post_type'      => 'afc_customer',
@@ -133,6 +136,7 @@ class AFC_OLT_MAC_Link {
 				'post__not_in'   => array( absint( $customer_id ) ),
 				'meta_query'     => array(
 					'relation' => 'AND',
+					array( 'key' => '_afc_olt_id', 'value' => $olt_id ),
 					array( 'key' => '_afc_olt_pon', 'value' => absint( $pon ) ),
 					array( 'key' => '_afc_olt_onu', 'value' => absint( $onu ) ),
 				),
@@ -143,12 +147,13 @@ class AFC_OLT_MAC_Link {
 
 	private static function save_exact_mac_binding( $customer_id, $match ) {
 		$customer_id = absint( $customer_id );
+		$olt_id      = AFC_OLT::normalize_olt_id( isset( $match['olt_id'] ) ? $match['olt_id'] : 'primary' );
 		$pon         = isset( $match['pon'] ) ? absint( $match['pon'] ) : 0;
 		$onu         = isset( $match['onu'] ) ? absint( $match['onu'] ) : 0;
-		if ( ! $customer_id || $pon < 1 || $onu < 1 || 'mac' !== ( isset( $match['match_method'] ) ? $match['match_method'] : '' ) || self::binding_conflict( $customer_id, $pon, $onu ) ) {
+		if ( ! $customer_id || $pon < 1 || $onu < 1 || 'mac' !== ( isset( $match['match_method'] ) ? $match['match_method'] : '' ) || self::binding_conflict( $customer_id, $olt_id, $pon, $onu ) ) {
 			return false;
 		}
-		update_post_meta( $customer_id, '_afc_olt_id', 'primary' );
+		update_post_meta( $customer_id, '_afc_olt_id', $olt_id );
 		update_post_meta( $customer_id, '_afc_olt_pon', $pon );
 		update_post_meta( $customer_id, '_afc_olt_onu', $onu );
 		if ( ! empty( $match['mac'] ) ) {
@@ -166,7 +171,7 @@ class AFC_OLT_MAC_Link {
 		if ( empty( $signal['pon'] ) || empty( $signal['onu'] ) ) {
 			return $signal;
 		}
-		$onu = self::inventory_row( $inventory, $signal['pon'], $signal['onu'] );
+		$onu = self::inventory_row( $inventory, $signal['pon'], $signal['onu'], isset( $signal['olt_id'] ) ? $signal['olt_id'] : 'primary' );
 		if ( ! $onu ) {
 			return $signal;
 		}
@@ -205,6 +210,8 @@ class AFC_OLT_MAC_Link {
 						$signal['confidence']   = 100;
 					} else {
 						$signal['suggested'] = array(
+							'olt_id'       => isset( $suggestion['olt_id'] ) ? AFC_OLT::normalize_olt_id( $suggestion['olt_id'] ) : 'primary',
+							'olt_name'     => isset( $suggestion['olt_name'] ) ? (string) $suggestion['olt_name'] : '',
 							'pon'          => isset( $suggestion['pon'] ) ? (int) $suggestion['pon'] : 0,
 							'onu'          => isset( $suggestion['onu'] ) ? (int) $suggestion['onu'] : 0,
 							'mac'          => isset( $suggestion['mac'] ) ? $suggestion['mac'] : '',

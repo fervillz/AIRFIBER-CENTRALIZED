@@ -212,7 +212,7 @@
 			const facts = popover ? popover.querySelector( '.afc-search-live-facts' ) : null;
 			if ( ! facts || facts.querySelector( '[data-afc-optical-facts]' ) ) return;
 			const rx = optical.rx_power !== null && optical.rx_power !== undefined && Number( optical.rx_power ) < -1 ? Number( optical.rx_power ).toFixed( 2 ) + ' dBm' : ( optical.status === 'offline' ? 'Offline' : 'No saved RX' );
-			const location = optical.mapped ? 'PON ' + optical.pon + ' / ONU ' + optical.onu : 'Not mapped';
+			const location = optical.mapped ? ( optical.olt_name ? optical.olt_name + ' · ' : '' ) + 'PON ' + optical.pon + ' / ONU ' + optical.onu : 'Not mapped';
 			const age = compactAge( optical.refreshed_ts || 0 );
 			const wrapper = document.createElement( 'div' );
 			wrapper.setAttribute( 'data-afc-optical-facts', '1' );

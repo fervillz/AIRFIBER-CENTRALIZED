@@ -221,18 +221,24 @@ class AFC_OLT_Inventory {
 		);
 	}
 
-	private static function build_inventory( $walk, $root, $rx_column ) {
+	private static function build_inventory( $walk, $root, $rx_column, $node = array() ) {
 		$columns = array();
 		$rows    = array();
+		$olt_id  = AFC_OLT::normalize_olt_id( isset( $node['id'] ) ? $node['id'] : 'primary' );
+		$olt_name = isset( $node['name'] ) ? sanitize_text_field( $node['name'] ) : __( 'OLT', 'airfiber-centralized' );
+		$technology = isset( $node['technology'] ) ? sanitize_text_field( $node['technology'] ) : '';
 
 		foreach ( $walk as $instance_oid => $raw_value ) {
 			$instance = self::parse_instance( $instance_oid, $root );
 			if ( ! $instance || $instance['pon'] < 1 || $instance['onu'] < 1 ) {
 				continue;
 			}
-			$key = $instance['pon'] . ':' . $instance['onu'];
+			$key = AFC_OLT::entry_key( $olt_id, $instance['pon'], $instance['onu'] );
 			if ( ! isset( $rows[ $key ] ) ) {
 				$rows[ $key ] = array(
+					'olt_id'      => $olt_id,
+					'olt_name'    => $olt_name,
+					'technology'  => $technology,
 					'pon'         => $instance['pon'],
 					'onu'         => $instance['onu'],
 					'description' => '',
@@ -322,24 +328,16 @@ class AFC_OLT_Inventory {
 			return self::saved_inventory( __( 'Another ONU inventory refresh is already running.', 'airfiber-centralized' ) );
 		}
 
-		$settings = AFC_OLT::get_settings();
-		$root     = self::table_root( $settings['rx_oid'] );
-		if ( '' === $root ) {
-			return self::saved_inventory( __( 'The RX-power OID could not be used to derive the ONU inventory table.', 'airfiber-centralized' ) );
-		}
-
 		set_transient( self::INVENTORY_LOCK, time(), 45 );
 		try {
-			$walk = self::walk_oid( $settings, $root );
+			$inventory = self::poll_all_nodes();
 		} finally {
 			delete_transient( self::INVENTORY_LOCK );
 		}
 
-		if ( is_wp_error( $walk ) ) {
-			return self::saved_inventory( $walk->get_error_message() );
+		if ( is_wp_error( $inventory ) ) {
+			return self::saved_inventory( $inventory->get_error_message() );
 		}
-
-		$inventory = self::build_inventory( $walk, $root, self::rx_column( $settings['rx_oid'] ) );
 		if ( empty( $inventory['entries'] ) ) {
 			return self::saved_inventory( __( 'The ONU inventory table returned no usable PON/ONU rows.', 'airfiber-centralized' ) );
 		}
@@ -347,6 +345,100 @@ class AFC_OLT_Inventory {
 		set_transient( self::INVENTORY_TRANSIENT, $inventory, self::CACHE_TTL );
 		update_option( self::INVENTORY_OPTION, $inventory, false );
 		return $inventory;
+	}
+
+	private static function poll_all_nodes() {
+		$entries       = array();
+		$node_results  = array();
+		$success_count = 0;
+		$first_columns = array();
+		$first_root    = '';
+
+		foreach ( AFC_OLT::monitoring_nodes() as $olt_id => $node ) {
+			$result = self::poll_node_inventory( $node );
+			if ( is_wp_error( $result ) ) {
+				$node_results[ $olt_id ] = array(
+					'id'         => $olt_id,
+					'name'       => $node['name'],
+					'technology' => $node['technology'],
+					'available'  => false,
+					'count'      => 0,
+					'error'      => $result->get_error_message(),
+				);
+				continue;
+			}
+
+			$success_count++;
+			$entries = array_replace( $entries, $result['entries'] );
+			if ( ! $first_columns ) {
+				$first_columns = $result['columns'];
+				$first_root    = $result['root_oid'];
+			}
+			$node_results[ $olt_id ] = array(
+				'id'         => $olt_id,
+				'name'       => $node['name'],
+				'technology' => $node['technology'],
+				'available'  => true,
+				'count'      => (int) $result['count'],
+				'columns'    => $result['columns'],
+				'root_oid'   => $result['root_oid'],
+				'error'      => '',
+			);
+		}
+
+		if ( 0 === $success_count ) {
+			$messages = array();
+			foreach ( $node_results as $node ) {
+				if ( ! empty( $node['error'] ) ) {
+					$messages[] = $node['name'] . ': ' . $node['error'];
+				}
+			}
+			return new WP_Error( 'afc_olt_all_inventory_walks_failed', implode( ' ', $messages ) );
+		}
+
+		$errors = array();
+		foreach ( $node_results as $node ) {
+			if ( ! empty( $node['error'] ) ) {
+				$errors[] = $node['name'] . ': ' . $node['error'];
+			}
+		}
+
+		return array(
+			'entries'        => $entries,
+			'columns'        => $first_columns,
+			'nodes'          => $node_results,
+			'node_count'     => count( $node_results ),
+			'available_nodes'=> $success_count,
+			'count'          => count( $entries ),
+			'collected_at'   => current_time( 'mysql' ),
+			'collected_ts'   => time(),
+			'root_oid'       => $first_root,
+			'source'         => 'live',
+			'stale'          => false,
+			'partial'        => $success_count < count( $node_results ),
+			'error'          => implode( ' ', $errors ),
+		);
+	}
+
+	public static function poll_node_inventory( $node ) {
+		$settings = isset( $node['config'] ) && is_array( $node['config'] ) ? $node['config'] : array();
+		if ( empty( $settings['version'] ) || ! AFC_OLT::is_snmp_available( $settings['version'] ) ) {
+			return new WP_Error( 'afc_olt_inventory_snmp_missing', __( 'The PHP SNMP extension is not available for this OLT profile.', 'airfiber-centralized' ) );
+		}
+		$root     = self::table_root( isset( $settings['rx_oid'] ) ? $settings['rx_oid'] : '' );
+		if ( '' === $root ) {
+			return new WP_Error( 'afc_olt_inventory_root_missing', __( 'The RX-power OID could not be used to derive the ONU inventory table.', 'airfiber-centralized' ) );
+		}
+
+		$walk = self::walk_oid( $settings, $root );
+		if ( is_wp_error( $walk ) ) {
+			return $walk;
+		}
+
+		$inventory = self::build_inventory( $walk, $root, self::rx_column( $settings['rx_oid'] ), $node );
+		return empty( $inventory['entries'] )
+			? new WP_Error( 'afc_olt_inventory_empty', __( 'The ONU inventory table returned no usable PON/ONU rows.', 'airfiber-centralized' ) )
+			: $inventory;
 	}
 
 	private static function identity_variants( $value ) {
@@ -449,7 +541,7 @@ class AFC_OLT_Inventory {
 		if ( empty( $match['pon'] ) || empty( $match['onu'] ) || 'mac' !== $match['match_method'] ) {
 			return false;
 		}
-		update_post_meta( $customer_id, '_afc_olt_id', 'primary' );
+		update_post_meta( $customer_id, '_afc_olt_id', AFC_OLT::normalize_olt_id( isset( $match['olt_id'] ) ? $match['olt_id'] : 'primary' ) );
 		update_post_meta( $customer_id, '_afc_olt_pon', absint( $match['pon'] ) );
 		update_post_meta( $customer_id, '_afc_olt_onu', absint( $match['onu'] ) );
 		if ( ! empty( $match['mac'] ) ) {
@@ -499,6 +591,8 @@ class AFC_OLT_Inventory {
 					$matched['mac']++;
 				} elseif ( $match ) {
 					$signal['suggested'] = array(
+						'olt_id'       => isset( $match['olt_id'] ) ? AFC_OLT::normalize_olt_id( $match['olt_id'] ) : 'primary',
+						'olt_name'     => isset( $match['olt_name'] ) ? (string) $match['olt_name'] : '',
 						'pon'          => (int) $match['pon'],
 						'onu'          => (int) $match['onu'],
 						'mac'          => isset( $match['mac'] ) ? $match['mac'] : '',
@@ -513,7 +607,9 @@ class AFC_OLT_Inventory {
 				}
 			}
 
-			$key = ! empty( $signal['pon'] ) && ! empty( $signal['onu'] ) ? $signal['pon'] . ':' . $signal['onu'] : '';
+			$key = ! empty( $signal['pon'] ) && ! empty( $signal['onu'] )
+				? AFC_OLT::entry_key( isset( $signal['olt_id'] ) ? $signal['olt_id'] : 'primary', $signal['pon'], $signal['onu'] )
+				: '';
 			if ( $key && ! empty( $inventory['entries'][ $key ] ) ) {
 				$onu = $inventory['entries'][ $key ];
 				$signal['description'] = isset( $onu['description'] ) ? $onu['description'] : '';

@@ -317,7 +317,7 @@
 		if ( credibleOptical( optical ) ) opticalRx = Number( optical.rx_power ).toFixed( 2 ) + ' dBm';
 		else if ( optical.mapped && optical.status === 'offline' ) opticalRx = 'Offline';
 		else if ( optical.mapped && optical.status ) opticalRx = 'Unavailable';
-		const opticalLocation = optical.mapped && optical.pon && optical.onu ? 'PON ' + optical.pon + ' / ONU ' + optical.onu : '';
+		const opticalLocation = optical.mapped && optical.pon && optical.onu ? ( optical.olt_name ? optical.olt_name + ' · ' : '' ) + 'PON ' + optical.pon + ' / ONU ' + optical.onu : '';
 		const matchLabel = optical.auto_matched ? 'Exact MAC match' : ( optical.mapped && optical.match_method === 'mac' ? 'MAC matched' : '' );
 
 		return '<header>' +
