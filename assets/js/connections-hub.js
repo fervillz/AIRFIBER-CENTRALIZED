@@ -21,8 +21,8 @@
 		return $( '[data-afc-panel="integrations"]' );
 	}
 
-	function typeLabel( type ) {
-		if ( type === 'olt' ) return 'OLT';
+	function typeLabel( type, technology ) {
+		if ( type === 'olt' ) return ( technology === 'EPON' ? 'EPON' : 'GPON' ) + ' OLT';
 		if ( type === 'mikrotik' ) return 'MikroTik';
 		return 'Google Sheet';
 	}
@@ -32,14 +32,15 @@
 	}
 
 	function cardHtml( card ) {
-		const title = esc( card.title || typeLabel( card.type ) );
+		const label = typeLabel( card.type, card.technology );
+		const title = esc( card.title || label );
 		const subtitle = esc( card.subtitle || '' );
 		const meta = esc( card.meta || '' );
 		const status = esc( card.status || '' );
 		return '<article class="afc-connection-card is-' + statusClass( card.state ) + '" data-afc-connection-key="' + esc( card.key ) + '" data-afc-connection-type="' + esc( card.type ) + '" data-afc-connection-id="' + esc( card.id ) + '" tabindex="0" role="button" aria-label="Open ' + title + '">' +
 			'<button type="button" class="afc-connection-drag" data-afc-connection-drag data-afc-no-auto-icon aria-label="Drag to reorder" title="Drag to reorder">⠿</button>' +
 			'<span class="afc-connection-dot" aria-hidden="true"></span>' +
-			'<div class="afc-connection-center"><span class="afc-connection-type">' + esc( typeLabel( card.type ) ) + '</span><h3 title="' + title + '">' + title + '</h3><p title="' + subtitle + '">' + subtitle + '</p></div>' +
+			'<div class="afc-connection-center"><span class="afc-connection-type">' + esc( label ) + '</span><h3 title="' + title + '">' + title + '</h3><p title="' + subtitle + '">' + subtitle + '</p></div>' +
 			'<div class="afc-connection-details"><div><span>' + meta + '</span><strong>' + status + '</strong></div><small>' + esc( card.type === 'olt' ? 'Optical monitoring' : ( card.type === 'mikrotik' ? 'RouterOS API connection' : 'Reporting & sync' ) ) + '</small><button type="button" class="afc-connection-open" data-afc-connection-open data-afc-no-auto-icon>Open settings</button></div>' +
 		'</article>';
 	}
@@ -108,7 +109,7 @@
 
 	function openAdd( type ) {
 		if ( type === 'olt' ) {
-			openPanel( 'optical', function () { waitFor( '[data-afc-olt-add]', function ( node ) { node.click(); }, 30 ); } );
+			openPanel( 'olt', function () { waitFor( '[data-afc-olt-add]', function ( node ) { node.click(); }, 30 ); } );
 			return;
 		}
 		if ( type === 'mikrotik' ) {
@@ -123,7 +124,7 @@
 		const type = node.getAttribute( 'data-afc-connection-type' );
 		const id = node.getAttribute( 'data-afc-connection-id' );
 		if ( type === 'olt' ) {
-			openPanel( 'optical', function () { waitFor( '[data-afc-olt-card="' + CSS.escape( id ) + '"]', function ( target ) { target.click(); }, 30 ); } );
+			openPanel( 'olt', function () { waitFor( '[data-afc-olt-card="' + CSS.escape( id ) + '"]', function ( target ) { target.click(); }, 30 ); } );
 			return;
 		}
 		if ( type === 'mikrotik' ) {
@@ -225,7 +226,7 @@
 			const icon = $( ':scope > span', connections ); if ( icon ) icon.textContent = '⌁';
 			const activePanel = $( '[data-afc-panel].is-active:not([hidden])' );
 			const activeKey = activePanel ? activePanel.getAttribute( 'data-afc-panel' ) : '';
-			connections.classList.toggle( 'is-active', [ 'integrations', 'mikrotik', 'optical' ].indexOf( activeKey ) >= 0 );
+			connections.classList.toggle( 'is-active', [ 'integrations', 'mikrotik', 'optical', 'olt' ].indexOf( activeKey ) >= 0 );
 		}
 		const root = panel();
 		if ( root ) {
@@ -249,6 +250,7 @@
 		refreshCards();
 		document.addEventListener( 'afc:admin-mode-change', function () { queue(); refreshCards(); } );
 		document.addEventListener( 'afc:ajaxify-panel-loaded', function () { queue(); refreshCards(); } );
+		document.addEventListener( 'afc:olt-connections-updated', refreshCards );
 		document.addEventListener( 'click', function ( event ) {
 			const menu = event.target.closest( '.afc-workspace-menu-item[data-afc-ws-panel="integrations"]' );
 			if ( menu ) window.setTimeout( refreshCards, 120 );

@@ -125,6 +125,7 @@ class AFC_Connections_Hub {
 				'title'    => $post->post_title,
 				'subtitle' => ! empty( $device['name'] ) ? sanitize_text_field( $device['name'] ) : ( ! empty( $config['host'] ) ? sanitize_text_field( $config['host'] ) : __( 'OLT not configured', 'airfiber-centralized' ) ),
 				'meta'     => ! empty( $config['host'] ) ? sanitize_text_field( $config['host'] ) : '',
+				'technology' => isset( $config['technology'] ) && 'EPON' === strtoupper( $config['technology'] ) ? 'EPON' : 'GPON',
 				'state'    => $state,
 				'status'   => 'online' === $state ? __( 'Connected', 'airfiber-centralized' ) : ( 'offline' === $state ? __( 'Disconnected', 'airfiber-centralized' ) : ( 'draft' === $state ? __( 'Draft', 'airfiber-centralized' ) : __( 'Needs attention', 'airfiber-centralized' ) ) ),
 				'added'    => get_post_time( 'U', true, $post ),

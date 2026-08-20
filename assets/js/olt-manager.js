@@ -180,6 +180,16 @@
 		if ( v3 ) v3.hidden = isV2;
 	}
 
+	function updateTechnologyDefaults() {
+		if ( ! form ) return;
+		const technology = q( '[name="technology"]', form );
+		const oid = q( '[name="rx_oid"]', form );
+		if ( ! technology || ! oid ) return;
+
+		const known = [ '', cfg.gponRxOid, cfg.eponRxOid ].indexOf( oid.value ) >= 0;
+		if ( known ) oid.value = technology.value === 'EPON' ? cfg.eponRxOid : cfg.gponRxOid;
+	}
+
 	function resetForm() {
 		window.clearTimeout( autosaveTimer );
 		autosaveTimer = null;
@@ -196,6 +206,7 @@
 		q( '[name="post_status"]', form ).value = 'draft';
 		q( '[name="port"]', form ).value = '161';
 		q( '[name="version"]', form ).value = '3';
+		q( '[name="technology"]', form ).value = 'GPON';
 		q( '[name="security_name"]', form ).value = 'airfiber-monitor';
 		q( '[name="rx_oid"]', form ).value = cfg.defaultRxOid || '';
 		q( '[name="warning_dbm"]', form ).value = '-24';
@@ -214,7 +225,7 @@
 
 	function formConfig() {
 		const names = [
-			'host', 'port', 'version', 'community', 'security_name', 'auth_passphrase',
+			'host', 'port', 'technology', 'version', 'community', 'security_name', 'auth_passphrase',
 			'privacy_passphrase', 'rx_oid', 'warning_dbm', 'critical_dbm', 'cache_ttl',
 			'timeout_ms', 'retries'
 		];
@@ -235,7 +246,7 @@
 		q( '[name="title"]', form ).value = node.title || '';
 		Object.keys( node.config || {} ).forEach( function ( key ) {
 			const field = q( '[name="' + key + '"]', form );
-			if ( field && ! [ 'has_community', 'has_auth', 'has_privacy', 'technology' ].includes( key ) ) field.value = node.config[ key ] == null ? '' : node.config[ key ];
+			if ( field && ! [ 'has_community', 'has_auth', 'has_privacy' ].includes( key ) ) field.value = node.config[ key ] == null ? '' : node.config[ key ];
 		} );
 		updateVersionFields();
 		const kicker = q( '[data-afc-olt-dialog-kicker]', modal );
@@ -284,6 +295,7 @@
 				const list = q( '[data-afc-olt-list]', root );
 				if ( list ) list.innerHTML = response.data.html;
 				countCards();
+				document.dispatchEvent( new CustomEvent( 'afc:olt-connections-updated' ) );
 			}
 		} );
 	}
@@ -502,6 +514,7 @@
 		form.addEventListener( 'input', scheduleAutosave );
 		form.addEventListener( 'change', function ( event ) {
 			if ( event.target && event.target.name === 'version' ) updateVersionFields();
+			if ( event.target && event.target.name === 'technology' ) updateTechnologyDefaults();
 			scheduleAutosave();
 		} );
 

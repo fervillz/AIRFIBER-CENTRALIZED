@@ -19,9 +19,18 @@ class AFC_OLT_Manager {
 	const SAVED_SECRET_MASK = 'airfiber-saved-secret';
 	const SYS_NAME_OID = '1.3.6.1.2.1.1.5.0';
 	const SYS_DESCR_OID = '1.3.6.1.2.1.1.1.0';
+	const EPON_RX_OID = '1.3.6.1.4.1.37950.1.1.5.12.2.1.8.1.7';
+	const GPON_RX_OID = '1.3.6.1.4.1.37950.1.1.6.1.1.3.1.7';
+	const DEFAULT_EPON_HOST = '10.13.88.5';
+	const DEFAULT_GPON_HOST = '10.13.88.7';
+	const GPON_SEEDED_OPTION = 'afc_olt_seeded_10_13_88_7';
+	const GPON_TESTED_OPTION = 'afc_olt_auto_tested_10_13_88_7';
+	const GPON_TEST_HOOK = 'afc_olt_test_seeded_gpon';
 
 	public static function init() {
 		add_action( 'init', array( __CLASS__, 'register_post_type' ) );
+		add_action( 'init', array( __CLASS__, 'maybe_seed_default_gpon' ), 20 );
+		add_action( self::GPON_TEST_HOOK, array( __CLASS__, 'test_seeded_gpon' ) );
 		add_action( 'wp_enqueue_scripts', array( __CLASS__, 'enqueue_assets' ), 1045 );
 
 		add_action( 'wp_ajax_afc_olt_manager_list', array( __CLASS__, 'ajax_list' ) );
@@ -82,7 +91,9 @@ class AFC_OLT_Manager {
 				'nonce'        => wp_create_nonce( self::NONCE ),
 				'autosaveMs'   => 5000,
 				'secretMask'   => self::SAVED_SECRET_MASK,
-				'defaultRxOid' => class_exists( 'AFC_OLT' ) ? AFC_OLT::RX_POWER_OID : '1.3.6.1.4.1.37950.1.1.5.12.2.1.8.1.7',
+				'defaultRxOid' => self::GPON_RX_OID,
+				'gponRxOid'    => self::GPON_RX_OID,
+				'eponRxOid'    => self::EPON_RX_OID,
 			)
 		);
 	}
@@ -98,7 +109,7 @@ class AFC_OLT_Manager {
 			'auth_passphrase'    => '',
 			'privacy_protocol'   => 'DES',
 			'privacy_passphrase' => '',
-			'rx_oid'             => class_exists( 'AFC_OLT' ) ? AFC_OLT::RX_POWER_OID : '1.3.6.1.4.1.37950.1.1.5.12.2.1.8.1.7',
+			'rx_oid'             => self::GPON_RX_OID,
 			'warning_dbm'        => -24,
 			'critical_dbm'       => -27,
 			'cache_ttl'          => 300,
@@ -106,6 +117,172 @@ class AFC_OLT_Manager {
 			'retries'            => 1,
 			'technology'         => 'GPON',
 		);
+	}
+
+	private static function normalize_technology( $technology ) {
+		return 'EPON' === strtoupper( sanitize_text_field( $technology ) ) ? 'EPON' : 'GPON';
+	}
+
+	private static function credentials_are_configured( $config ) {
+		if ( '2c' === $config['version'] ) {
+			return ! empty( $config['community'] );
+		}
+
+		return ! empty( $config['security_name'] ) && ! empty( $config['auth_passphrase'] ) && ! empty( $config['privacy_passphrase'] );
+	}
+
+	/**
+	 * Add the known GPON peer once, using the already-encrypted primary OLT
+	 * credentials as a starting profile. The background test records its real
+	 * online/error state after the plugin update is loaded on WordPress.
+	 */
+	public static function maybe_seed_default_gpon() {
+		$seeded_id = absint( get_option( self::GPON_SEEDED_OPTION, 0 ) );
+		if ( $seeded_id && self::POST_TYPE === get_post_type( $seeded_id ) ) {
+			$config = self::get_config( $seeded_id );
+			$config_changed = false;
+			if ( 'GPON' !== $config['technology'] ) {
+				$config['technology'] = 'GPON';
+				$config_changed        = true;
+			}
+			if ( self::EPON_RX_OID === $config['rx_oid'] ) {
+				$config['rx_oid']     = self::GPON_RX_OID;
+				$config_changed       = true;
+			}
+			if ( $config_changed ) {
+				update_post_meta( $seeded_id, self::CONFIG_META, $config );
+			}
+			$device = self::get_device( $seeded_id );
+			if (
+				'publish' === get_post_status( $seeded_id ) &&
+				'success' !== $device['test_status'] &&
+				! get_option( self::GPON_TESTED_OPTION, false ) &&
+				self::credentials_are_configured( $config ) &&
+				! wp_next_scheduled( self::GPON_TEST_HOOK, array( $seeded_id ) )
+			) {
+				wp_schedule_single_event( time() + 30, self::GPON_TEST_HOOK, array( $seeded_id ) );
+			}
+			return;
+		}
+
+		self::maybe_import_legacy();
+		$nodes         = get_posts(
+			array(
+				'post_type'      => self::POST_TYPE,
+				'post_status'    => array( 'draft', 'publish' ),
+				'posts_per_page' => -1,
+				'no_found_rows'  => true,
+			)
+		);
+		$template_id   = 0;
+		$existing_gpon = 0;
+
+		foreach ( $nodes as $node ) {
+			$config = self::get_config( $node->ID );
+			if ( self::DEFAULT_EPON_HOST === $config['host'] ) {
+				$template_id = (int) $node->ID;
+				$config_changed = false;
+				if ( 'EPON' !== $config['technology'] ) {
+					$config['technology'] = 'EPON';
+					$config_changed        = true;
+				}
+				if ( self::GPON_RX_OID === $config['rx_oid'] ) {
+					$config['rx_oid']     = self::EPON_RX_OID;
+					$config_changed       = true;
+				}
+				if ( $config_changed ) {
+					update_post_meta( $node->ID, self::CONFIG_META, $config );
+				}
+			}
+			if ( self::DEFAULT_GPON_HOST === $config['host'] ) {
+				$existing_gpon = (int) $node->ID;
+				$config_changed = false;
+				if ( 'GPON' !== $config['technology'] ) {
+					$config['technology'] = 'GPON';
+					$config_changed        = true;
+				}
+				if ( self::EPON_RX_OID === $config['rx_oid'] ) {
+					$config['rx_oid']     = self::GPON_RX_OID;
+					$config_changed       = true;
+				}
+				if ( $config_changed ) {
+					update_post_meta( $node->ID, self::CONFIG_META, $config );
+				}
+			}
+		}
+
+		if ( $existing_gpon ) {
+			update_option( self::GPON_SEEDED_OPTION, $existing_gpon, false );
+			$config = self::get_config( $existing_gpon );
+			$device = self::get_device( $existing_gpon );
+			if (
+				'publish' === get_post_status( $existing_gpon ) &&
+				'success' !== $device['test_status'] &&
+				! get_option( self::GPON_TESTED_OPTION, false ) &&
+				self::credentials_are_configured( $config ) &&
+				! wp_next_scheduled( self::GPON_TEST_HOOK, array( $existing_gpon ) )
+			) {
+				wp_schedule_single_event( time() + 30, self::GPON_TEST_HOOK, array( $existing_gpon ) );
+			}
+			return;
+		}
+
+		if ( ! $template_id ) {
+			$template_id = self::primary_id();
+		}
+
+		$config               = $template_id ? self::get_config( $template_id ) : self::defaults();
+		$config['host']       = self::DEFAULT_GPON_HOST;
+		$config['technology'] = 'GPON';
+		$config['rx_oid']     = self::GPON_RX_OID;
+		$ready                = self::credentials_are_configured( $config );
+		$post_id              = wp_insert_post(
+			array(
+				'post_type'   => self::POST_TYPE,
+				'post_status' => $ready ? 'publish' : 'draft',
+				'post_title'  => __( 'GPON OLT', 'airfiber-centralized' ),
+			),
+			true
+		);
+
+		if ( is_wp_error( $post_id ) ) {
+			return;
+		}
+
+		update_post_meta( $post_id, self::CONFIG_META, $config );
+		update_post_meta(
+			$post_id,
+			self::DEVICE_META,
+			array(
+				'name'        => '',
+				'description' => '',
+				'test_status' => $ready ? 'error' : '',
+				'message'     => $ready
+					? __( 'The GPON profile was added and is waiting for its first connection test.', 'airfiber-centralized' )
+					: __( 'The GPON OLT was added as a draft. Add its SNMP credentials, then test the connection.', 'airfiber-centralized' ),
+				'tested_at'   => '',
+				'onu_count'   => 0,
+				'valid_count' => 0,
+			)
+		);
+		update_option( self::GPON_SEEDED_OPTION, (int) $post_id, false );
+
+		if ( $ready && ! get_option( self::GPON_TESTED_OPTION, false ) && ! wp_next_scheduled( self::GPON_TEST_HOOK, array( (int) $post_id ) ) ) {
+			wp_schedule_single_event( time() + 30, self::GPON_TEST_HOOK, array( (int) $post_id ) );
+		}
+	}
+
+	public static function test_seeded_gpon( $post_id ) {
+		$post_id = absint( $post_id );
+		if ( ! $post_id || self::POST_TYPE !== get_post_type( $post_id ) || 'publish' !== get_post_status( $post_id ) ) {
+			return;
+		}
+
+		update_option( self::GPON_TESTED_OPTION, current_time( 'mysql' ), false );
+		$result = self::run_test( $post_id );
+		if ( is_wp_error( $result ) ) {
+			self::record_test_error( $post_id, $result );
+		}
 	}
 
 	private static function authorize() {
@@ -145,7 +322,7 @@ class AFC_OLT_Manager {
 		if ( ! is_array( $legacy ) || empty( $legacy['host'] ) ) return;
 
 		$config = wp_parse_args( $legacy, self::defaults() );
-		$config['technology'] = 'GPON';
+		$config['technology'] = 'EPON';
 		$post_id = wp_insert_post(
 			array(
 				'post_type'   => self::POST_TYPE,
@@ -265,6 +442,8 @@ class AFC_OLT_Manager {
 		$port = isset( $input['port'] ) ? absint( $input['port'] ) : (int) $current['port'];
 		if ( $port < 1 || $port > 65535 ) $port = 161;
 
+		$technology = isset( $input['technology'] ) ? self::normalize_technology( $input['technology'] ) : self::normalize_technology( $current['technology'] );
+
 		return array(
 			'host'               => isset( $input['host'] ) ? self::sanitize_host( $input['host'] ) : $current['host'],
 			'port'               => $port,
@@ -281,7 +460,7 @@ class AFC_OLT_Manager {
 			'cache_ttl'          => min( 900, max( 60, isset( $input['cache_ttl'] ) ? absint( $input['cache_ttl'] ) : (int) $current['cache_ttl'] ) ),
 			'timeout_ms'         => min( 10000, max( 500, isset( $input['timeout_ms'] ) ? absint( $input['timeout_ms'] ) : (int) $current['timeout_ms'] ) ),
 			'retries'            => min( 2, isset( $input['retries'] ) ? absint( $input['retries'] ) : (int) $current['retries'] ),
-			'technology'         => 'GPON',
+			'technology'         => $technology,
 		);
 	}
 
@@ -370,7 +549,7 @@ class AFC_OLT_Manager {
 				'cache_ttl'          => (int) $config['cache_ttl'],
 				'timeout_ms'         => (int) $config['timeout_ms'],
 				'retries'            => (int) $config['retries'],
-				'technology'         => 'GPON',
+				'technology'         => self::normalize_technology( $config['technology'] ),
 			),
 			'device'      => $device,
 			'primary'     => (bool) get_post_meta( $post_id, self::PRIMARY_META, true ),
@@ -487,7 +666,7 @@ class AFC_OLT_Manager {
 			<span class="afc-olt-card-status" aria-hidden="true"></span>
 			<div class="afc-olt-card-center">
 				<h3><?php echo esc_html( $node['title'] ); ?></h3>
-				<p><span>GPON</span><b><?php echo esc_html( $device_name ); ?></b></p>
+				<p><span><?php echo esc_html( $config['technology'] ); ?></span><b><?php echo esc_html( $device_name ); ?></b></p>
 			</div>
 			<div class="afc-olt-card-details">
 				<div><span><?php echo esc_html( $config['host'] ? $config['host'] : __( 'No host yet', 'airfiber-centralized' ) ); ?></span><span><?php echo esc_html( $version_label ); ?></span></div>

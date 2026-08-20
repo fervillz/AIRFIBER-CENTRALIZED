@@ -549,6 +549,11 @@ class AFC_OLT_Smart_RX {
 
 		$old_oid          = isset( $config['rx_oid'] ) ? $config['rx_oid'] : '';
 		$config['rx_oid'] = $match['oid'];
+		if ( self::EPON_RX_OID === $match['oid'] || false !== stripos( $match['label'], 'EPON' ) ) {
+			$config['technology'] = 'EPON';
+		} elseif ( self::GPON_RX_OID === $match['oid'] || false !== stripos( $match['label'], 'GPON' ) ) {
+			$config['technology'] = 'GPON';
+		}
 		$oid_changed      = $old_oid !== $match['oid'];
 		update_post_meta( $post_id, AFC_OLT_Manager::CONFIG_META, $config );
 		self::sync_primary_legacy( $post_id, $config );

@@ -104,7 +104,7 @@
 	}
 
 	function openOltSettings( id ) {
-		openPanel( 'optical', function () {
+		openPanel( 'olt', function () {
 			waitFor( '[data-afc-olt-card="' + CSS.escape( id ) + '"]', function ( target ) {
 				target.click();
 				waitFor( '[data-afc-olt-modal]', returnAfterOltClose, 25 );

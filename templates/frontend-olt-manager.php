@@ -50,6 +50,13 @@ defined( 'ABSPATH' ) || exit;
 						<label for="afc-manager-olt-host"><?php esc_html_e( 'OLT IP address', 'airfiber-centralized' ); ?></label>
 						<input id="afc-manager-olt-host" name="host" type="text" placeholder="10.13.88.5">
 					</div>
+					<div class="afc-olt-field is-technology">
+						<label for="afc-manager-olt-technology"><?php esc_html_e( 'OLT technology', 'airfiber-centralized' ); ?></label>
+						<select id="afc-manager-olt-technology" name="technology">
+							<option value="GPON"><?php esc_html_e( 'GPON', 'airfiber-centralized' ); ?></option>
+							<option value="EPON"><?php esc_html_e( 'EPON', 'airfiber-centralized' ); ?></option>
+						</select>
+					</div>
 					<div class="afc-olt-field is-port">
 						<label class="afc-olt-label-with-help" for="afc-manager-olt-port">
 							<span><?php esc_html_e( 'SNMP port', 'airfiber-centralized' ); ?></span>
@@ -107,7 +114,7 @@ defined( 'ABSPATH' ) || exit;
 							<span><?php esc_html_e( 'RX signal data path', 'airfiber-centralized' ); ?></span>
 							<span class="afc-olt-term-help" tabindex="0" role="button" aria-label="<?php esc_attr_e( 'RX OID help', 'airfiber-centralized' ); ?>" data-help="<?php esc_attr_e( 'The technical name is OID. It is the numeric address where this OLT stores ONU RX signal readings. Normally leave the default value unchanged.', 'airfiber-centralized' ); ?>">?</span>
 						</label>
-						<input id="afc-manager-olt-rx-oid" name="rx_oid" class="is-mono" type="text" value="<?php echo esc_attr( AFC_OLT::RX_POWER_OID ); ?>">
+						<input id="afc-manager-olt-rx-oid" name="rx_oid" class="is-mono" type="text" value="<?php echo esc_attr( AFC_OLT_Manager::GPON_RX_OID ); ?>">
 						<small><?php esc_html_e( 'Usually leave this unchanged. Airfiber uses it to find the ONU RX signal readings.', 'airfiber-centralized' ); ?></small>
 					</div>
 

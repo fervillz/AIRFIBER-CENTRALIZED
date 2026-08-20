@@ -2,14 +2,14 @@
 /**
  * Plugin Name: Airfiber - Centralized
  * Description: Customer, billing, payment, installation, notification, and MikroTik management for Airfiber.
- * Version: 2.14.7
+ * Version: 2.14.8
  * Author: Airfiber
  * Text Domain: airfiber-centralized
  */
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'AFC_VERSION', '2.14.7' );
+define( 'AFC_VERSION', '2.14.8' );
 define( 'AFC_FILE', __FILE__ );
 define( 'AFC_PATH', plugin_dir_path( __FILE__ ) );
 define( 'AFC_URL', plugin_dir_url( __FILE__ ) );
@@ -214,6 +214,7 @@ function afc_deactivate_plugin() {
 	AFC_PPP_Manager::unschedule();
 	AFC_Google_Sheets_Sync::deactivate();
 	AFC_OLT_Refresh_Manager::clear_schedule();
+	wp_clear_scheduled_hook( AFC_OLT_Manager::GPON_TEST_HOOK );
 	wp_clear_scheduled_hook( AFC_Google_Sheets_Paid_History::CRON_REFRESH );
 	wp_clear_scheduled_hook( AFC_Google_Sheets_Targeted_Payment_Sync::CRON_TARGETED );
 	flush_rewrite_rules();
