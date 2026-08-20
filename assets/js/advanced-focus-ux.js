@@ -13,31 +13,20 @@
 	}
 
 	function ensureAttention( panel ) {
-		const head = panel.querySelector( ':scope > .afc-workspace-pagehead' );
-		if ( ! head ) return;
-
-		let stack = panel.querySelector( ':scope > .afc-focus-attention' );
-		if ( ! stack ) {
-			stack = document.createElement( 'div' );
-			stack.className = 'afc-focus-attention';
-			head.insertAdjacentElement( 'afterend', stack );
-		}
-
-		const selectors = [
-			'.afc-ux-notice-stack',
-			'.afc-dashboard-router-alert',
-			'.afc-scheduler-notice',
-			'#afc-ppp-notice',
-			'#afc-optical-status',
-			'.afc-sms-notice',
-			'.afc-network-alert',
-			'[data-afc-alert]'
-		];
-
-		panel.querySelectorAll( selectors.join( ',' ) ).forEach( function ( node ) {
-			if ( node === stack || node.closest( 'dialog' ) || node.closest( '.afc-ui-modal' ) ) return;
-			if ( node.closest( '.afc-focus-attention' ) ) return;
-			stack.appendChild( node );
+		/*
+		 * Existing feature modules already own the exact placement and lifecycle of
+		 * their live notices. In Advanced their original headers are hidden, so those
+		 * notice stacks naturally become the first live content below our workspace
+		 * header. Do not physically re-parent them here: PPP/billing and scheduler
+		 * observers also maintain those nodes and competing moves can create UI churn.
+		 *
+		 * We only tag top-level alert containers so CSS can keep their spacing and
+		 * visual priority consistent without changing where another module expects
+		 * to find them.
+		 */
+		panel.querySelectorAll( '.afc-ux-notice-stack, .afc-dashboard-router-alert, .afc-scheduler-notice, .afc-sms-notice, .afc-network-alert' ).forEach( function ( node ) {
+			if ( node.closest( 'dialog, .afc-ui-modal' ) ) return;
+			node.classList.add( 'afc-focus-priority-alert' );
 		} );
 	}
 
