@@ -1,0 +1,337 @@
+/* Advanced workspace focus mode.
+ * Keep daily actions and live status visible; move supporting copy and technical
+ * columns behind deliberate interaction without removing any functionality.
+ */
+
+body.afc-workspace-active .afc-frontend-shell {
+	grid-template-columns: 232px minmax(0, 1fr);
+}
+
+body.afc-workspace-active.afc-workspace-sidebar-collapsed .afc-frontend-shell {
+	grid-template-columns: 74px minmax(0, 1fr);
+}
+
+body.afc-workspace-active .afc-workspace-sidebar {
+	width: 232px;
+	padding: 12px 10px 10px;
+}
+
+body.afc-workspace-active .afc-workspace-sidebar > header {
+	padding: 0 4px 9px;
+}
+
+body.afc-workspace-active .afc-workspace-sidebar > header small,
+body.afc-workspace-active .afc-workspace-menu-item b small,
+body.afc-workspace-active .afc-workspace-sidebar > nav > section > header button {
+	display: none !important;
+}
+
+body.afc-workspace-active .afc-workspace-search {
+	min-height: 38px;
+	margin-bottom: 9px;
+	border-radius: 11px;
+}
+
+body.afc-workspace-active .afc-workspace-sidebar > nav > section {
+	margin-bottom: 10px;
+}
+
+body.afc-workspace-active .afc-workspace-sidebar > nav > section > header {
+	padding: 0 7px 3px;
+}
+
+body.afc-workspace-active .afc-workspace-menu-item {
+	grid-template-columns: 32px minmax(0, 1fr) auto;
+	min-height: 44px;
+	gap: 8px;
+	margin: 1px 0;
+	padding: 5px 7px;
+	border-radius: 11px;
+}
+
+body.afc-workspace-active .afc-workspace-menu-item > span {
+	width: 32px;
+	height: 32px;
+	border-radius: 10px;
+	font-size: 14px;
+}
+
+body.afc-workspace-active .afc-workspace-menu-item b strong {
+	font-size: 12px;
+}
+
+body.afc-workspace-active .afc-workspace-menu-item em {
+	max-width: 48px;
+	padding: 2px 6px;
+	font-size: 9px;
+}
+
+/* One consistent compact page header. */
+body.afc-workspace-active .afc-workspace-pagehead {
+	gap: 8px 12px;
+	margin-bottom: 10px;
+	padding: 10px 12px;
+	border-radius: 14px;
+	box-shadow: 0 2px 10px rgba(24, 36, 51, .035);
+}
+
+body.afc-workspace-active .afc-workspace-title {
+	gap: 9px;
+}
+
+body.afc-workspace-active .afc-workspace-title > span {
+	width: 34px;
+	height: 34px;
+	flex-basis: 34px;
+	border-radius: 10px;
+	font-size: 14px;
+}
+
+body.afc-workspace-active .afc-workspace-title small {
+	display: none;
+}
+
+body.afc-workspace-active .afc-workspace-title h1 {
+	margin: 0;
+	font-size: 19px;
+	font-weight: 720;
+}
+
+body.afc-workspace-active .afc-workspace-title [data-afc-ws-about] {
+	width: 24px;
+	height: 24px;
+	flex-basis: 24px;
+	font-size: 11px;
+}
+
+body.afc-workspace-active .afc-workspace-actions {
+	gap: 6px;
+}
+
+body.afc-workspace-active .afc-workspace-actions .btn,
+body.afc-workspace-active .afc-workspace-actions button,
+body.afc-workspace-active .afc-workspace-actions summary {
+	min-height: 34px;
+	border-radius: 9px;
+	font-size: 11px;
+}
+
+body.afc-workspace-active .afc-workspace-head-bottom {
+	gap: 8px;
+	padding-top: 7px;
+}
+
+body.afc-workspace-active .afc-workspace-stats span {
+	min-height: 24px;
+	padding: 3px 7px;
+}
+
+body.afc-workspace-active .afc-workspace-stats small,
+body.afc-workspace-active .afc-workspace-stats strong {
+	font-size: 9px;
+}
+
+body.afc-workspace-active .afc-workspace-subnav {
+	padding: 2px;
+	border-radius: 10px;
+}
+
+body.afc-workspace-active .afc-workspace-subnav button {
+	min-height: 28px;
+	padding: 4px 9px;
+	font-size: 10px;
+}
+
+/* Alerts are collected immediately below the page header. */
+.afc-focus-attention {
+	display: grid;
+	gap: 7px;
+	margin: -2px 0 10px;
+}
+
+.afc-focus-attention:empty {
+	display: none;
+}
+
+body.afc-workspace-active .afc-focus-attention > * {
+	margin: 0 !important;
+}
+
+body.afc-workspace-active .afc-focus-attention [role="status"]:empty,
+body.afc-workspace-active .afc-focus-attention [role="alert"]:empty,
+body.afc-workspace-active .afc-focus-attention #afc-ppp-notice:empty,
+body.afc-workspace-active .afc-focus-attention #afc-optical-status:empty {
+	display: none !important;
+}
+
+/* Supporting copy is available through About/help instead of permanently
+ * competing with live operational information. */
+body.afc-workspace-active .afc-focus-static-copy,
+body.afc-workspace-active .afc-workspace-panel .card-subtitle,
+body.afc-workspace-active .afc-scheduler-insights-head p,
+body.afc-workspace-active .afc-scheduler-kicker,
+body.afc-workspace-active .afc-olt-manager-heading p,
+body.afc-workspace-active .afc-olt-manager-eyebrow,
+body.afc-workspace-active .afc-integrations-header p,
+body.afc-workspace-active .afc-sms-page-header p {
+	display: none !important;
+}
+
+/* The workspace header already repeats these PPP summary numbers. */
+body.afc-workspace-active [data-afc-panel="operations"] #afc-ppp-summary.afc-focus-duplicate-summary {
+	display: none !important;
+}
+
+/* Keep tables focused. Secondary columns are never deleted; the Details
+ * button simply toggles them back into the same table. */
+body.afc-workspace-active .afc-workspace-panel:not(.afc-focus-show-details) .afc-focus-secondary-column {
+	display: none !important;
+}
+
+.afc-focus-details-toggle {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: 5px;
+	min-height: 34px;
+	padding: 5px 10px;
+	border: 1px solid #d8e0e9;
+	border-radius: 9px;
+	background: #fff;
+	color: #657386;
+	font: inherit;
+	font-size: 10px;
+	font-weight: 700;
+	cursor: pointer;
+}
+
+.afc-focus-details-toggle:hover,
+.afc-focus-details-toggle:focus-visible,
+.afc-focus-details-toggle[aria-pressed="true"] {
+	outline: 0;
+	border-color: #a9c8e8;
+	background: #eef5fc;
+	color: #1f67aa;
+}
+
+body.afc-workspace-active .afc-workspace-panel .card-header,
+body.afc-workspace-active .afc-workspace-panel .afc-scheduler-section-head,
+body.afc-workspace-active .afc-workspace-panel .afc-scheduler-insights-head {
+	padding-top: 10px;
+	padding-bottom: 10px;
+}
+
+body.afc-workspace-active .afc-workspace-panel .card-title,
+body.afc-workspace-active .afc-workspace-panel .afc-scheduler-section-head h2,
+body.afc-workspace-active .afc-workspace-panel .afc-scheduler-section-head h3,
+body.afc-workspace-active .afc-workspace-panel .afc-scheduler-insights-head h3 {
+	margin-bottom: 0;
+}
+
+body.afc-workspace-active .afc-workspace-panel .table > :not(caption) > * > * {
+	padding-top: 8px;
+	padding-bottom: 8px;
+}
+
+/* Advanced PPP editor: daily identity fields remain visible, lower-frequency
+ * billing/network/raw fields stay in the existing disclosure sections. */
+body.afc-admin-mode-advanced #afc-ppp-manage-dialog .afc-ux-settings-section:not([open]) > *:not(summary) {
+	display: none;
+}
+
+body.afc-admin-mode-advanced #afc-ppp-manage-dialog .afc-ux-settings-section summary,
+body.afc-workspace-active .afc-ux-scheduler-details > summary,
+body.afc-workspace-active .afc-ux-collapsible > summary {
+	padding: 9px 11px;
+	font-size: 11px;
+	font-weight: 750;
+}
+
+/* Scheduler activity is an inbox, not a documentation block. */
+body.afc-workspace-active .afc-scheduler-insights {
+	margin: 10px 0;
+	padding: 11px;
+	box-shadow: none;
+}
+
+body.afc-workspace-active .afc-scheduler-insights-head {
+	margin-bottom: 7px;
+}
+
+body.afc-workspace-active .afc-scheduler-insights-tabs {
+	margin-bottom: 7px;
+}
+
+body.afc-workspace-active .afc-scheduler-insight-row {
+	padding: 8px 9px;
+}
+
+/* Integration cards behave like service settings: status first, explanation last. */
+body.afc-workspace-active .afc-integration-card,
+body.afc-workspace-active .afc-messenger-card,
+body.afc-workspace-active .afc-google-card {
+	box-shadow: none;
+}
+
+body.afc-workspace-active .afc-integration-card header p,
+body.afc-workspace-active .afc-messenger-section header p {
+	display: none !important;
+}
+
+/* Dialogs: remove repeated eyebrow copy and keep the task title/action obvious. */
+body.afc-admin-mode-advanced .afc-dialog-header .text-secondary.small {
+	display: none !important;
+}
+
+body.afc-admin-mode-advanced .afc-dialog-header {
+	padding-top: 14px;
+	padding-bottom: 12px;
+}
+
+body.afc-admin-mode-advanced .afc-dialog-body > .alert-info {
+	font-size: 11px;
+	line-height: 1.4;
+}
+
+@media (max-width: 980px) {
+	body.afc-workspace-active .afc-frontend-shell,
+	body.afc-workspace-active.afc-workspace-sidebar-collapsed .afc-frontend-shell {
+		grid-template-columns: minmax(0, 1fr);
+	}
+
+	body.afc-workspace-active .afc-workspace-sidebar {
+		width: min(290px, 88vw);
+	}
+
+	body.afc-workspace-active .afc-workspace-pagehead {
+		grid-template-columns: minmax(0, 1fr);
+	}
+
+	body.afc-workspace-active .afc-workspace-actions {
+		justify-content: flex-start;
+		flex-wrap: wrap;
+	}
+
+	body.afc-workspace-active .afc-workspace-head-bottom {
+		align-items: flex-start;
+		flex-direction: column;
+	}
+}
+
+@media (max-width: 640px) {
+	body.afc-workspace-active .afc-frontend-content {
+		padding: 10px 10px 32px;
+	}
+
+	body.afc-workspace-active .afc-workspace-pagehead {
+		padding: 9px;
+	}
+
+	body.afc-workspace-active .afc-workspace-title > span {
+		display: none;
+	}
+
+	body.afc-workspace-active .afc-workspace-title h1 {
+		font-size: 17px;
+	}
+}
