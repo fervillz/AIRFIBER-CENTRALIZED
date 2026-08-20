@@ -28,18 +28,18 @@ class AFC_Advanced_Workspace {
 			),
 			array(
 				'id'          => 'customers',
-				'label'       => __( 'Customers & Billing', 'airfiber-centralized' ),
+				'label'       => __( 'Customers', 'airfiber-centralized' ),
 				'description' => __( 'Payments, PPP accounts, collection and cutoff automation.', 'airfiber-centralized' ),
 			),
 			array(
 				'id'          => 'communication',
-				'label'       => __( 'Communication', 'airfiber-centralized' ),
+				'label'       => __( 'Messages', 'airfiber-centralized' ),
 				'description' => __( 'Customer messages and delivery tools.', 'airfiber-centralized' ),
 			),
 			array(
 				'id'          => 'system',
-				'label'       => __( 'System & Connections', 'airfiber-centralized' ),
-				'description' => __( 'Router access, external services and technical settings.', 'airfiber-centralized' ),
+				'label'       => __( 'Network', 'airfiber-centralized' ),
+				'description' => __( 'Router access, OLT monitoring, external services and technical settings.', 'airfiber-centralized' ),
 			),
 		);
 	}
@@ -56,15 +56,15 @@ class AFC_Advanced_Workspace {
 			),
 			'operations' => array(
 				'group'       => 'customers',
-				'title'       => __( 'Customers & Billing', 'airfiber-centralized' ),
-				'short'       => __( 'Payments and PPP', 'airfiber-centralized' ),
+				'title'       => __( 'PPP & Billing', 'airfiber-centralized' ),
+				'short'       => __( 'Customers and payments', 'airfiber-centralized' ),
 				'description' => __( 'Record payments, create or edit PPP accounts, review customer service state and prepare collection lists.', 'airfiber-centralized' ),
 				'icon'        => '₱',
 				'order'       => 20,
 			),
 			'schedulers' => array(
 				'group'       => 'customers',
-				'title'       => __( 'Billing Automation', 'airfiber-centralized' ),
+				'title'       => __( 'Schedulers', 'airfiber-centralized' ),
 				'short'       => __( 'Due dates and cutoffs', 'airfiber-centralized' ),
 				'description' => __( 'Review due accounts and safely synchronize one MikroTik cutoff scheduler per PPP username.', 'airfiber-centralized' ),
 				'icon'        => '↻',
@@ -88,17 +88,17 @@ class AFC_Advanced_Workspace {
 			),
 			'optical' => array(
 				'group'       => 'system',
-				'title'       => __( 'Optical Network', 'airfiber-centralized' ),
-				'short'       => __( 'OLT RX power', 'airfiber-centralized' ),
-				'description' => __( 'Test the read-only OLT connection, tune signal thresholds and open subscriber ONU readings.', 'airfiber-centralized' ),
+				'title'       => __( 'Optical / OLT', 'airfiber-centralized' ),
+				'short'       => __( 'OLT and RX power', 'airfiber-centralized' ),
+				'description' => __( 'Test OLT connections, tune signal thresholds and open subscriber ONU readings.', 'airfiber-centralized' ),
 				'icon'        => 'RX',
 				'order'       => 55,
 			),
 			'integrations' => array(
 				'group'       => 'system',
 				'title'       => __( 'Integrations', 'airfiber-centralized' ),
-				'short'       => __( 'Sheets, messaging and API', 'airfiber-centralized' ),
-				'description' => __( 'Connect external services one at a time. Each integration has its own focused submenu, status and setup area.', 'airfiber-centralized' ),
+				'short'       => __( 'Connected services', 'airfiber-centralized' ),
+				'description' => __( 'Connect and manage external services one at a time.', 'airfiber-centralized' ),
 				'icon'        => '◇',
 				'order'       => 60,
 			),
@@ -140,7 +140,7 @@ class AFC_Advanced_Workspace {
 				'version'     => AFC_VERSION,
 				'apiEndpoint' => rest_url( self::REST_NAMESPACE . self::REST_ROUTE ),
 				'labels'      => array(
-					'advanced'     => __( 'Advanced workspace', 'airfiber-centralized' ),
+					'advanced'     => __( 'Advanced', 'airfiber-centralized' ),
 					'findTool'     => __( 'Find a tool…', 'airfiber-centralized' ),
 					'about'        => __( 'About this page', 'airfiber-centralized' ),
 					'sections'     => __( 'Page sections', 'airfiber-centralized' ),
@@ -150,6 +150,24 @@ class AFC_Advanced_Workspace {
 					'collapseMenu' => __( 'Collapse menu', 'airfiber-centralized' ),
 				),
 			)
+		);
+
+		$focus_css = AFC_PATH . 'assets/css/advanced-focus-ux.css';
+		$focus_js  = AFC_PATH . 'assets/js/advanced-focus-ux.js';
+
+		wp_enqueue_style(
+			'afc-advanced-focus-ux',
+			AFC_URL . 'assets/css/advanced-focus-ux.css',
+			array( 'afc-advanced-workspace' ),
+			file_exists( $focus_css ) ? (string) filemtime( $focus_css ) : AFC_VERSION
+		);
+
+		wp_enqueue_script(
+			'afc-advanced-focus-ux',
+			AFC_URL . 'assets/js/advanced-focus-ux.js',
+			array( 'afc-advanced-workspace' ),
+			file_exists( $focus_js ) ? (string) filemtime( $focus_js ) : AFC_VERSION,
+			true
 		);
 	}
 
