@@ -16,6 +16,13 @@
 
 .afc-olt-console-body [data-afc-olt-test-log]{display:block!important;margin:0!important;border:0!important;border-radius:0!important;background:transparent!important;color:inherit!important}.afc-olt-console-body [data-afc-olt-test-log]>summary{display:none}.afc-olt-console-body [data-afc-olt-test-log-body]{max-height:none!important;overflow:visible!important;padding:0!important;font:inherit!important}.afc-olt-console-body [data-afc-olt-test-log-body]>div{padding:1px 0;border-bottom:1px solid rgba(255,255,255,.035)}
 
+/* OLT registry state feedback: healthy online cards keep the blue hover.
+ * Draft, offline, and failed/error cards use a neutral gray hover so they do not
+ * visually imply a healthy/active connection. The status dot keeps the real state. */
+.afc-olt-card.is-error:hover,.afc-olt-card.is-error:focus-visible,.afc-olt-card.is-error.is-working,
+.afc-olt-card.is-draft:hover,.afc-olt-card.is-draft:focus-visible,.afc-olt-card.is-draft.is-working,
+.afc-olt-card.is-offline:hover,.afc-olt-card.is-offline:focus-visible,.afc-olt-card.is-offline.is-working{border-color:#8f9aa6;background:#717b86;color:#fff;box-shadow:0 18px 38px rgba(55,65,76,.18)}
+
 @media(min-width:781px){.afc-olt-dialog.is-help-open{grid-template-columns:minmax(0,1fr) 380px;width:min(1140px,calc(100vw - 36px))}.afc-olt-help-inner{width:380px!important}}
 @media(max-width:780px){.afc-olt-devtools-toolbar{position:relative;top:auto;z-index:20}.afc-olt-console-pane{min-height:180px}.afc-olt-help.is-guide-hidden.is-console-open .afc-olt-console-pane{height:calc(100% - 43px)}.afc-olt-help.is-guide-hidden.is-console-open{--afc-olt-console-height:calc(100% - 43px)}}
 
