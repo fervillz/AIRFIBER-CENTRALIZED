@@ -1,0 +1,351 @@
+/* Advanced PPP row actions: frequent actions stay visible, everything else is
+ * one state-aware menu. This layer does not change PPP business logic. */
+
+body.afc-workspace-active #afc-find-edit-ppp.afc-advanced-manage-ppp {
+	display: inline-flex !important;
+	align-items: center;
+	justify-content: center;
+	gap: 6px;
+	min-height: 34px;
+	font-size: 0 !important;
+	white-space: nowrap;
+}
+
+body.afc-workspace-active #afc-find-edit-ppp.afc-advanced-manage-ppp::after {
+	content: "Manage PPP";
+	font-size: 11px;
+	font-weight: 700;
+}
+
+body.afc-workspace-active #afc-ppp-table .afc-row-actions {
+	display: inline-flex;
+	align-items: center;
+	justify-content: flex-end;
+	gap: 5px;
+	white-space: nowrap;
+}
+
+body.afc-workspace-active #afc-ppp-table .afc-ppp-row-pay,
+body.afc-workspace-active #afc-ppp-table .afc-ppp-row-edit,
+body.afc-workspace-active #afc-ppp-table .afc-ppp-row-more {
+	display: inline-flex !important;
+	align-items: center;
+	justify-content: center;
+	gap: 5px;
+	height: 32px;
+	min-height: 32px;
+	margin: 0;
+	padding: 0 9px;
+	border-radius: 9px;
+	font-size: 10px;
+	font-weight: 750;
+	line-height: 1;
+	box-shadow: none;
+	transition: border-color .16s ease, background .16s ease, color .16s ease, transform .16s ease;
+}
+
+body.afc-workspace-active #afc-ppp-table .afc-ppp-row-pay {
+	border-color: #2fb344;
+	background: #2fb344;
+	color: #fff;
+}
+
+body.afc-workspace-active #afc-ppp-table .afc-ppp-row-pay:hover,
+body.afc-workspace-active #afc-ppp-table .afc-ppp-row-pay:focus-visible {
+	border-color: #279b3b;
+	background: #279b3b;
+	color: #fff;
+	transform: translateY(-1px);
+}
+
+body.afc-workspace-active #afc-ppp-table .afc-ppp-row-edit {
+	border: 1px solid #cbd9e8;
+	background: #fff;
+	color: #1769b0;
+}
+
+body.afc-workspace-active #afc-ppp-table .afc-ppp-row-edit:hover,
+body.afc-workspace-active #afc-ppp-table .afc-ppp-row-edit:focus-visible {
+	border-color: #8eb9e2;
+	background: #eef6fd;
+	color: #125891;
+	transform: translateY(-1px);
+}
+
+body.afc-workspace-active #afc-ppp-table .afc-ppp-row-more {
+	width: 32px;
+	min-width: 32px;
+	padding: 0;
+	border: 1px solid #d5dde7;
+	background: #fff;
+	color: #657386;
+}
+
+body.afc-workspace-active #afc-ppp-table .afc-ppp-row-more:hover,
+body.afc-workspace-active #afc-ppp-table .afc-ppp-row-more:focus-visible,
+body.afc-workspace-active #afc-ppp-table .afc-ppp-row-more[aria-expanded="true"] {
+	outline: 0;
+	border-color: #a8b8c9;
+	background: #f3f6f9;
+	color: #25364a;
+}
+
+.afc-ppp-action-icon {
+	width: 14px;
+	height: 14px;
+	flex: 0 0 14px;
+}
+
+body.afc-workspace-active #afc-ppp-table .afc-ppp-name-link {
+	width: fit-content;
+	max-width: 100%;
+	border-radius: 5px;
+	color: #182433;
+	cursor: pointer;
+	transition: color .14s ease, background .14s ease;
+}
+
+body.afc-workspace-active #afc-ppp-table .afc-ppp-name-link:hover,
+body.afc-workspace-active #afc-ppp-table .afc-ppp-name-link:focus-visible {
+	outline: 0;
+	color: #1769b0;
+	text-decoration: underline;
+	text-decoration-thickness: 1px;
+	text-underline-offset: 2px;
+}
+
+.afc-ppp-more-popover {
+	position: fixed;
+	z-index: 10060;
+	width: min(250px, calc(100vw - 24px));
+	padding: 6px;
+	border: 1px solid rgba( 40, 55, 75, .13 );
+	border-radius: 13px;
+	background: rgba( 255, 255, 255, .985 );
+	box-shadow: 0 18px 50px rgba( 21, 35, 52, .18 ), 0 2px 8px rgba( 21, 35, 52, .07 );
+	backdrop-filter: blur(18px);
+	transform-origin: top right;
+	animation: afcPppMenuIn .17s cubic-bezier(.2,.8,.2,1);
+}
+
+.afc-ppp-more-popover[hidden] {
+	display: none !important;
+}
+
+@keyframes afcPppMenuIn {
+	from { opacity: 0; transform: translateY(-4px) scale(.985); }
+	to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.afc-ppp-more-head {
+	display: grid;
+	gap: 1px;
+	padding: 7px 9px 8px;
+	border-bottom: 1px solid #edf0f4;
+	margin-bottom: 4px;
+}
+
+.afc-ppp-more-head strong {
+	overflow: hidden;
+	color: #182433;
+	font-size: 11px;
+	font-weight: 750;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.afc-ppp-more-head span {
+	overflow: hidden;
+	color: #8390a1;
+	font-size: 9px;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.afc-ppp-more-popover > button {
+	display: flex;
+	width: 100%;
+	min-height: 38px;
+	align-items: center;
+	gap: 9px;
+	padding: 7px 9px;
+	border: 0;
+	border-radius: 9px;
+	background: transparent;
+	color: #2d3b4d;
+	font: inherit;
+	font-size: 11px;
+	font-weight: 650;
+	text-align: left;
+	cursor: pointer;
+}
+
+.afc-ppp-more-popover > button:hover,
+.afc-ppp-more-popover > button:focus-visible {
+	outline: 0;
+	background: #f1f5f9;
+	color: #1769b0;
+}
+
+.afc-ppp-more-popover > button:disabled {
+	color: #a4aebb;
+	cursor: default;
+}
+
+.afc-ppp-more-popover > button:disabled:hover {
+	background: transparent;
+}
+
+.afc-ppp-more-popover > button.is-danger {
+	color: #c0343d;
+}
+
+.afc-ppp-more-popover > button.is-danger:hover,
+.afc-ppp-more-popover > button.is-danger:focus-visible {
+	background: #fff1f2;
+	color: #a92730;
+}
+
+.afc-ppp-more-popover .afc-ppp-action-icon {
+	width: 15px;
+	height: 15px;
+	flex-basis: 15px;
+}
+
+.afc-ppp-more-divider {
+	height: 1px;
+	margin: 4px 5px;
+	background: #edf0f4;
+}
+
+.afc-ppp-delete-confirm {
+	width: min(460px, calc(100vw - 28px));
+	padding: 0;
+	border: 0;
+	border-radius: 18px;
+	background: #fff;
+	box-shadow: 0 26px 80px rgba( 15, 23, 42, .28 );
+	overflow: hidden;
+}
+
+.afc-ppp-delete-confirm::backdrop {
+	background: rgba( 18, 27, 38, .48 );
+	backdrop-filter: blur(4px);
+}
+
+.afc-ppp-delete-confirm > form {
+	margin: 0;
+}
+
+.afc-ppp-delete-confirm header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 12px;
+	padding: 16px 18px 13px;
+	border-bottom: 1px solid #eef1f4;
+}
+
+.afc-ppp-delete-confirm header small {
+	display: block;
+	margin-bottom: 2px;
+	color: #98a3b2;
+	font-size: 9px;
+	font-weight: 800;
+	letter-spacing: .08em;
+}
+
+.afc-ppp-delete-confirm h2 {
+	margin: 0;
+	font-size: 17px;
+}
+
+.afc-ppp-delete-confirm header > button {
+	width: 32px;
+	height: 32px;
+	border: 0;
+	border-radius: 50%;
+	background: #f4f6f8;
+	color: #667382;
+	font-size: 20px;
+	line-height: 1;
+	cursor: pointer;
+}
+
+.afc-ppp-delete-confirm main {
+	display: grid;
+	gap: 12px;
+	padding: 17px 18px 18px;
+}
+
+.afc-ppp-delete-confirm main > p {
+	margin: 0;
+	color: #667382;
+	font-size: 12px;
+	line-height: 1.45;
+}
+
+.afc-ppp-delete-confirm .afc-ppp-delete-name {
+	display: grid;
+	gap: 2px;
+	padding: 10px 11px;
+	border-radius: 10px;
+	background: #f7f9fb;
+}
+
+.afc-ppp-delete-confirm .afc-ppp-delete-name strong {
+	color: #182433;
+	font-size: 13px;
+}
+
+.afc-ppp-delete-confirm .afc-ppp-delete-name span {
+	color: #8491a1;
+	font-size: 10px;
+}
+
+.afc-ppp-delete-confirm label {
+	display: grid;
+	gap: 6px;
+	color: #344054;
+	font-size: 11px;
+	font-weight: 700;
+}
+
+.afc-ppp-delete-confirm input {
+	width: 100%;
+	height: 40px;
+	padding: 0 11px;
+	border: 1px solid #d8dee7;
+	border-radius: 9px;
+	font: inherit;
+	font-weight: 500;
+}
+
+.afc-ppp-delete-confirm input:focus {
+	outline: 3px solid rgba( 32, 107, 196, .12 );
+	border-color: #7db2e6;
+}
+
+.afc-ppp-delete-confirm footer {
+	display: flex;
+	align-items: center;
+	justify-content: flex-end;
+	gap: 8px;
+	padding: 12px 18px;
+	border-top: 1px solid #eef1f4;
+	background: #fafbfc;
+}
+
+@media (max-width: 850px) {
+	body.afc-workspace-active #afc-ppp-table .afc-ppp-row-pay,
+	body.afc-workspace-active #afc-ppp-table .afc-ppp-row-edit {
+		padding-inline: 8px;
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.afc-ppp-more-popover { animation: none; }
+	body.afc-workspace-active #afc-ppp-table .afc-ppp-row-pay,
+	body.afc-workspace-active #afc-ppp-table .afc-ppp-row-edit,
+	body.afc-workspace-active #afc-ppp-table .afc-ppp-row-more { transition: none; }
+}
