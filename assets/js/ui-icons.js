@@ -61,7 +61,7 @@
 
 	function isStructuredRowButton( button ) {
 		return Boolean( button && button.matches && button.matches(
-			'.afc-scheduler-insight-row, .afc-dashboard-list-item, .afc-dashboard-payment-result, .afc-basic-customer-result'
+			'.afc-scheduler-insight-row, .afc-dashboard-list-item, .afc-dashboard-payment-result, .afc-basic-customer-result, .afc-workspace-menu-item'
 		) );
 	}
 
@@ -80,9 +80,9 @@
 			removeInjectedIcon( button );
 			return false;
 		}
-		/* Structured customer rows already have their own avatar/status layout.
-		 * Injecting another SVG becomes an extra grid child and pushes the actual
-		 * customer columns to the right. Keep those rows untouched and left aligned. */
+		/* Structured rows and workspace menu items already own their icon/layout.
+		 * Injecting another SVG becomes an extra grid child and shifts the normal
+		 * columns to the right. Keep those controls untouched and aligned. */
 		if ( isStructuredRowButton( button ) ) {
 			removeInjectedIcon( button );
 			return false;
