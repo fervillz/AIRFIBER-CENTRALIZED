@@ -187,6 +187,14 @@ class AFC_Advanced_Workspace {
 			file_exists( $ppp_actions_js ) ? (string) filemtime( $ppp_actions_js ) : AFC_VERSION,
 			true
 		);
+
+		$ppp_scale_css = AFC_PATH . 'assets/css/advanced-ppp-standard-scale.css';
+		wp_enqueue_style(
+			'afc-advanced-ppp-standard-scale',
+			AFC_URL . 'assets/css/advanced-ppp-standard-scale.css',
+			array( 'afc-advanced-ppp-actions' ),
+			file_exists( $ppp_scale_css ) ? (string) filemtime( $ppp_scale_css ) : AFC_VERSION
+		);
 	}
 
 	public static function register_rest_routes() {
