@@ -227,6 +227,7 @@ class AFC_Connections_Hub {
 				$ordered[] = $card;
 				unset( $map[ $card['key'] ] );
 			}
+		}
 		return $ordered;
 	}
 
