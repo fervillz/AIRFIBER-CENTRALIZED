@@ -1,0 +1,163 @@
+/* Standard-size typography and controls for the Advanced PPP quick view.
+ * Keeps the compact layout but uses the same readable scale as the rest of the app. */
+
+.afc-ppp-quick-card {
+	font-size: 14px;
+}
+
+.afc-ppp-quick-card > header {
+	padding: 18px 20px 16px;
+}
+
+.afc-ppp-quick-card > header small {
+	margin-bottom: 4px;
+	font-size: 11px;
+	line-height: 1.2;
+}
+
+.afc-ppp-quick-card > header h2 {
+	font-size: 20px;
+	font-weight: 700;
+	line-height: 1.25;
+}
+
+.afc-ppp-quick-card > header p {
+	margin-top: 4px;
+	font-size: 13px;
+	line-height: 1.35;
+}
+
+.afc-ppp-quick-card > header > button {
+	width: 36px;
+	height: 36px;
+	flex-basis: 36px;
+	font-size: 21px;
+}
+
+.afc-ppp-quick-card > main {
+	gap: 15px;
+	padding: 17px 20px 19px;
+}
+
+.afc-ppp-quick-pill {
+	min-height: 28px;
+	padding: 5px 10px;
+	font-size: 12px;
+	line-height: 1;
+}
+
+.afc-ppp-quick-grid {
+	gap: 10px;
+}
+
+.afc-ppp-quick-grid > div {
+	gap: 5px;
+	min-height: 70px;
+	padding: 12px 13px;
+	border-radius: 12px;
+}
+
+.afc-ppp-quick-grid span {
+	font-size: 12px;
+	font-weight: 600;
+	line-height: 1.25;
+}
+
+.afc-ppp-quick-grid strong {
+	font-size: 14px;
+	font-weight: 700;
+	line-height: 1.3;
+}
+
+.afc-ppp-quick-warning {
+	gap: 6px;
+	font-size: 12px;
+	line-height: 1.3;
+}
+
+.afc-ppp-quick-warning .afc-ppp-action-icon {
+	width: 15px;
+	height: 15px;
+}
+
+.afc-ppp-quick-contact {
+	gap: 5px;
+	font-size: 13px;
+	line-height: 1.45;
+}
+
+.afc-ppp-quick-card > footer {
+	gap: 8px;
+	padding: 13px 20px;
+}
+
+.afc-ppp-quick-pay,
+.afc-ppp-quick-edit,
+.afc-ppp-quick-more {
+	height: 40px;
+	min-height: 40px;
+	gap: 7px;
+	padding: 0 13px;
+	border-radius: 10px;
+	font-size: 13px;
+	font-weight: 700;
+	line-height: 1;
+}
+
+.afc-ppp-quick-pay .afc-ppp-action-icon,
+.afc-ppp-quick-edit .afc-ppp-action-icon,
+.afc-ppp-quick-more .afc-ppp-action-icon {
+	width: 16px;
+	height: 16px;
+	flex-basis: 16px;
+}
+
+.afc-ppp-quick-more {
+	width: 40px;
+	min-width: 40px;
+	padding: 0 !important;
+}
+
+/* The More menu should use the same readable control scale as the popup. */
+.afc-ppp-more-popover {
+	width: min(270px, calc(100vw - 24px));
+	padding: 7px;
+}
+
+.afc-ppp-more-head {
+	padding: 9px 10px 10px;
+}
+
+.afc-ppp-more-head strong {
+	font-size: 13px;
+	line-height: 1.3;
+}
+
+.afc-ppp-more-head span {
+	font-size: 11px;
+	line-height: 1.3;
+}
+
+.afc-ppp-more-popover > button {
+	min-height: 42px;
+	gap: 10px;
+	padding: 9px 10px;
+	font-size: 13px;
+	font-weight: 650;
+	line-height: 1.25;
+}
+
+.afc-ppp-more-popover .afc-ppp-action-icon {
+	width: 16px;
+	height: 16px;
+	flex-basis: 16px;
+}
+
+@media (max-width: 560px) {
+	.afc-ppp-quick-card > header,
+	.afc-ppp-quick-card > main,
+	.afc-ppp-quick-card > footer {
+		padding-left: 16px;
+		padding-right: 16px;
+	}
+}
