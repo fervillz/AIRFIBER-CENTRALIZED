@@ -223,40 +223,9 @@ class AFC_OLT_Smart_RX {
 	}
 
 	private static function snmp_walk( $config, $oid ) {
-		$target  = self::snmp_target( $config );
-		$timeout = max( 500, (int) $config['timeout_ms'] ) * 1000;
-		$retries = max( 0, (int) $config['retries'] );
-		$warning = '';
-		$oid     = ltrim( $oid, '.' );
-
-		if ( function_exists( 'snmp_set_oid_output_format' ) && defined( 'SNMP_OID_OUTPUT_NUMERIC' ) ) {
-			snmp_set_oid_output_format( SNMP_OID_OUTPUT_NUMERIC );
-		}
-
-		if ( '2c' === $config['version'] ) {
-			if ( ! function_exists( 'snmp2_real_walk' ) ) return new WP_Error( 'snmp_missing', __( 'PHP SNMPv2 support is not available on this server.', 'airfiber-centralized' ) );
-			$community = self::decrypt_secret( $config['community'] );
-			if ( '' === $community ) return new WP_Error( 'community_missing', __( 'Save the read-only SNMP community first.', 'airfiber-centralized' ) );
-			$rows = self::capture_snmp_call(
-				function () use ( $target, $community, $oid, $timeout, $retries ) {
-					return snmp2_real_walk( $target, $community, $oid, $timeout, $retries );
-				},
-				$warning
-			);
-		} else {
-			if ( ! function_exists( 'snmp3_real_walk' ) ) return new WP_Error( 'snmp_missing', __( 'PHP SNMPv3 support is not available on this server.', 'airfiber-centralized' ) );
-			$auth    = self::decrypt_secret( $config['auth_passphrase'] );
-			$privacy = self::decrypt_secret( $config['privacy_passphrase'] );
-			if ( '' === $config['security_name'] || '' === $auth || '' === $privacy ) return new WP_Error( 'credentials_missing', __( 'Save the SNMPv3 monitoring username, login password and encryption password first.', 'airfiber-centralized' ) );
-			$rows = self::capture_snmp_call(
-				function () use ( $target, $config, $auth, $privacy, $oid, $timeout, $retries ) {
-					return snmp3_real_walk( $target, $config['security_name'], 'authPriv', 'SHA', $auth, 'DES', $privacy, $oid, $timeout, $retries );
-				},
-				$warning
-			);
-		}
-
-		if ( false === $rows || ! is_array( $rows ) || empty( $rows ) ) {
+		$rows = AFC_OLT::walk_configured_oid( $config, $oid );
+		if ( is_wp_error( $rows ) || empty( $rows ) ) {
+			$warning = is_wp_error( $rows ) ? $rows->get_error_message() : '';
 			return new WP_Error(
 				'snmp_walk_failed',
 				__( 'No rows were returned from this SNMP table.', 'airfiber-centralized' ),

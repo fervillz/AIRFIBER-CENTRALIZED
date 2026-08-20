@@ -24,7 +24,7 @@ class AFC_OLT_Manager {
 	const DEFAULT_EPON_HOST = '10.13.88.5';
 	const DEFAULT_GPON_HOST = '10.13.88.7';
 	const GPON_SEEDED_OPTION = 'afc_olt_seeded_10_13_88_7';
-	const GPON_TESTED_OPTION = 'afc_olt_auto_tested_10_13_88_7_v2';
+	const GPON_TESTED_OPTION = 'afc_olt_auto_tested_10_13_88_7_v3';
 	const GPON_TEST_HOOK = 'afc_olt_test_seeded_gpon';
 
 	public static function init() {
@@ -684,22 +684,10 @@ class AFC_OLT_Manager {
 	}
 
 	private static function snmp_walk( $config, $oid ) {
-		$target = self::snmp_target( $config );
-		$timeout = (int) $config['timeout_ms'] * 1000;
-		$retries = (int) $config['retries'];
-		if ( '2c' === $config['version'] ) {
-			if ( ! function_exists( 'snmp2_real_walk' ) ) return new WP_Error( 'snmp_missing', __( 'PHP SNMPv2 support is not available on this server.', 'airfiber-centralized' ) );
-			$community = self::decrypt_secret( $config['community'] );
-			if ( '' === $community ) return new WP_Error( 'community_missing', __( 'Enter and save the read-only SNMP community first.', 'airfiber-centralized' ) );
-			$rows = @snmp2_real_walk( $target, $community, ltrim( $oid, '.' ), $timeout, $retries );
-		} else {
-			if ( ! function_exists( 'snmp3_real_walk' ) ) return new WP_Error( 'snmp_missing', __( 'PHP SNMPv3 support is not available on this server.', 'airfiber-centralized' ) );
-			$auth = self::decrypt_secret( $config['auth_passphrase'] );
-			$privacy = self::decrypt_secret( $config['privacy_passphrase'] );
-			if ( '' === $config['security_name'] || '' === $auth || '' === $privacy ) return new WP_Error( 'credentials_missing', __( 'Enter and save the SNMPv3 username, SHA passphrase, and DES passphrase first.', 'airfiber-centralized' ) );
-			$rows = @snmp3_real_walk( $target, $config['security_name'], 'authPriv', 'SHA', $auth, 'DES', $privacy, ltrim( $oid, '.' ), $timeout, $retries );
-		}
-		return false === $rows || ! is_array( $rows ) ? new WP_Error( 'snmp_walk_failed', __( 'The OLT answered, but the configured RX OID could not be read.', 'airfiber-centralized' ) ) : $rows;
+		$rows = AFC_OLT::walk_configured_oid( $config, $oid );
+		return is_wp_error( $rows )
+			? new WP_Error( 'snmp_walk_failed', __( 'The OLT answered, but the configured RX OID could not be read.', 'airfiber-centralized' ) )
+			: $rows;
 	}
 
 	private static function run_test( $post_id ) {
@@ -713,7 +701,10 @@ class AFC_OLT_Manager {
 
 		$valid = 0;
 		foreach ( $walk as $value ) {
-			if ( preg_match( '/-?\d+(?:\.\d+)?\s*dBm\b/i', (string) $value ) ) $valid++;
+			if ( preg_match( '/(-?\d+(?:\.\d+)?)\s*(?:dBm)?\b/i', (string) $value, $match ) ) {
+				$power = (float) $match[1];
+				if ( $power >= -60 && $power < -1 ) $valid++;
+			}
 		}
 		$device_name = is_wp_error( $name_result ) ? '' : self::clean_snmp_string( $name_result );
 		$description = is_wp_error( $description_result ) ? '' : self::clean_snmp_string( $description_result );

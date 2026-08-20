@@ -42,7 +42,12 @@ EPON: 1.3.6.1.4.1.37950.1.1.5.12.2.1.8.1.7
 GPON: 1.3.6.1.4.1.37950.1.1.6.1.1.3.1.7
 ```
 
-The plugin performs one bulk SNMP walk per active OLT, combines the results into an OLT-aware snapshot, caches it for five minutes, and reuses the last successful snapshot if monitoring is temporarily unavailable. It never performs a separate SNMP request for every customer. OLT secrets are encrypted at rest with AES-256-GCM using the WordPress authentication key and are deleted when the plugin is uninstalled.
+V1600G1B firmware may time out on SNMP bulk walks even when the configured
+column is correct. Airfiber automatically retries the same read with a bounded
+GETNEXT walk, so the primary EPON and secondary GPON OLT can be monitored
+together without changing the OLT's read-only SNMP settings.
+
+The plugin performs one cached SNMP table poll per active OLT, combines the results into an OLT-aware snapshot, and caches it for five minutes. Each OLT also retains its own last successful snapshot, so a transient failure on one chassis does not remove readings from the other. It never performs a separate SNMP poll for every customer. OLT secrets are encrypted at rest with AES-256-GCM using the WordPress authentication key and are deleted when the plugin is uninstalled.
 
 Customer-to-ONU bindings store the OLT identity, PON number, ONU ID, and optional ONU MAC. Duplicate locations are rejected within the same OLT, while the same PON/ONU numbers remain valid on a different chassis.
 When an OLT exposes ONU or learned-MAC data, the plugin compares each online PPP caller-ID with the subscriber MAC addresses. Unique exact MAC matches can be linked automatically; description-based suggestions still require administrator review.

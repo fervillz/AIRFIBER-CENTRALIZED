@@ -3,7 +3,7 @@
 defined( 'ABSPATH' ) || exit;
 
 /**
- * Read-only optical monitoring for the primary EPON OLT.
+ * Read-only optical monitoring for all configured OLTs.
  */
 class AFC_OLT {
 
@@ -11,10 +11,14 @@ class AFC_OLT {
 	const LAST_STATUS_KEY      = 'afc_olt_last_status';
 	const LAST_SNAPSHOT_KEY    = 'afc_olt_last_snapshot';
 	const SNAPSHOT_TRANSIENT   = 'afc_olt_rx_snapshot';
+	const NODE_SNAPSHOT_TRANSIENT = 'afc_olt_node_snapshot';
+	const NODE_SNAPSHOT_OPTION = 'afc_olt_node_snapshot_last';
 	const MAC_TRANSIENT        = 'afc_olt_learned_macs';
 	const POLL_LOCK_TRANSIENT  = 'afc_olt_poll_lock';
 	const SNAPSHOT_FORMAT      = 2;
 	const MAC_CACHE_TTL        = 900;
+	const GETNEXT_ROW_LIMIT    = 4096;
+	const GETNEXT_FAILURE_LIMIT = 5;
 	const RX_POWER_OID         = '1.3.6.1.4.1.37950.1.1.5.12.2.1.8.1.7';
 	const LEARNED_MAC_OID      = '1.3.6.1.4.1.37950.1.1.5.10.3.2.1.3';
 	const LEARNED_MAC_PORT_OID = '1.3.6.1.4.1.37950.1.1.5.10.3.2.1.5';
@@ -388,12 +392,32 @@ class AFC_OLT {
 		foreach ( $nodes as $olt_id => $node ) {
 			$result = self::poll_node_rx_power( $node );
 			if ( is_wp_error( $result ) ) {
+				$last_node = self::last_node_snapshot( $olt_id );
+				if ( $last_node ) {
+					foreach ( $last_node['entries'] as $key => $entry ) {
+						$entry['stale'] = true;
+						$entries[ $key ] = $entry;
+					}
+					$valid_count   += (int) $last_node['valid_count'];
+					$invalid_count += (int) $last_node['invalid_count'];
+					foreach ( $last_node['learned_macs'] as $mac => $locations ) {
+						if ( ! isset( $learned_macs[ $mac ] ) ) {
+							$learned_macs[ $mac ] = array();
+						}
+						foreach ( (array) $locations as $location ) {
+							if ( ! in_array( $location, $learned_macs[ $mac ], true ) ) {
+								$learned_macs[ $mac ][] = $location;
+							}
+						}
+					}
+				}
 				$node_results[ $olt_id ] = array(
 					'id'         => $olt_id,
 					'name'       => $node['name'],
 					'technology' => $node['technology'],
 					'available'  => false,
-					'count'      => 0,
+					'stale'      => (bool) $last_node,
+					'count'      => $last_node ? (int) $last_node['count'] : 0,
 					'error'      => $result->get_error_message(),
 				);
 				continue;
@@ -418,6 +442,7 @@ class AFC_OLT {
 				'name'       => $node['name'],
 				'technology' => $node['technology'],
 				'available'  => true,
+				'stale'      => false,
 				'count'      => (int) $result['count'],
 				'valid_count'=> (int) $result['valid_count'],
 				'rx_oid'     => $result['rx_oid'],
@@ -490,6 +515,7 @@ class AFC_OLT {
 		$entries       = array();
 		$valid_count   = 0;
 		$invalid_count = 0;
+		$collected_at  = current_time( 'mysql' );
 		foreach ( $walk as $instance_oid => $raw_value ) {
 			$indexes = self::extract_indexes( $instance_oid, $oid );
 			$reading = self::parse_rx_power_reading( $raw_value );
@@ -512,6 +538,8 @@ class AFC_OLT {
 				'rx_scale'     => $reading['scale'],
 				'signal_valid' => $is_valid,
 				'status'       => $status,
+				'stale'        => false,
+				'collected_at' => $collected_at,
 			);
 
 			if ( $is_valid ) {
@@ -527,7 +555,7 @@ class AFC_OLT {
 
 		$learned_macs = 'EPON' === strtoupper( $technology ) ? self::get_learned_macs( $settings, $olt_id ) : array();
 
-		return array(
+		$snapshot = array(
 			'format'        => self::SNAPSHOT_FORMAT,
 			'entries'       => $entries,
 			'learned_macs'  => $learned_macs,
@@ -535,17 +563,41 @@ class AFC_OLT {
 			'valid_count'   => $valid_count,
 			'invalid_count' => $invalid_count,
 			'rx_oid'        => $oid,
-			'collected_at'  => current_time( 'mysql' ),
+			'collected_at'  => $collected_at,
 			'collected_ts'  => time(),
 			'source'        => 'live',
 			'stale'         => false,
 			'error'         => '',
 		);
+		self::save_node_snapshot( $olt_id, $snapshot, isset( $settings['cache_ttl'] ) ? (int) $settings['cache_ttl'] : 300 );
+		return $snapshot;
 	}
 
 	private static function node_transient_key( $base, $olt_id ) {
 		$olt_id = self::normalize_olt_id( $olt_id );
 		return 'primary' === $olt_id ? $base : $base . '_' . md5( $olt_id );
+	}
+
+	private static function save_node_snapshot( $olt_id, $snapshot, $ttl ) {
+		if ( empty( $snapshot['entries'] ) ) {
+			return;
+		}
+		$olt_id = self::normalize_olt_id( $olt_id );
+		set_transient( self::node_transient_key( self::NODE_SNAPSHOT_TRANSIENT, $olt_id ), $snapshot, min( 900, max( 60, $ttl ) ) );
+		$saved            = get_option( self::NODE_SNAPSHOT_OPTION, array() );
+		$saved            = is_array( $saved ) ? $saved : array();
+		$saved[ $olt_id ] = $snapshot;
+		update_option( self::NODE_SNAPSHOT_OPTION, $saved, false );
+	}
+
+	private static function last_node_snapshot( $olt_id ) {
+		$olt_id = self::normalize_olt_id( $olt_id );
+		$cached = get_transient( self::node_transient_key( self::NODE_SNAPSHOT_TRANSIENT, $olt_id ) );
+		if ( is_array( $cached ) && ! empty( $cached['entries'] ) ) {
+			return $cached;
+		}
+		$saved = get_option( self::NODE_SNAPSHOT_OPTION, array() );
+		return is_array( $saved ) && ! empty( $saved[ $olt_id ]['entries'] ) ? $saved[ $olt_id ] : null;
 	}
 
 	private static function get_learned_macs( $settings, $olt_id = 'primary' ) {
@@ -611,6 +663,14 @@ class AFC_OLT {
 		return $learned_macs;
 	}
 
+	/**
+	 * Walk a configured OID with a bounded GETNEXT fallback for OLT firmware
+	 * whose SNMP agent answers GET/GETNEXT but times out on GETBULK walks.
+	 */
+	public static function walk_configured_oid( $settings, $oid ) {
+		return self::walk_oid( $settings, ltrim( (string) $oid, '.' ) );
+	}
+
 	private static function walk_oid( $settings, $oid ) {
 		$target  = 161 === (int) $settings['port'] ? $settings['host'] : 'udp:' . $settings['host'] . ':' . (int) $settings['port'];
 		$timeout = (int) $settings['timeout_ms'] * 1000;
@@ -642,9 +702,84 @@ class AFC_OLT {
 			);
 		}
 
-		return false === $walk || ! is_array( $walk )
-			? new WP_Error( 'afc_olt_snmp_walk_failed', __( 'The SNMP walk failed.', 'airfiber-centralized' ) )
-			: $walk;
+		if ( false !== $walk && is_array( $walk ) && $walk ) {
+			return $walk;
+		}
+
+		return self::walk_oid_getnext( $settings, $oid );
+	}
+
+	private static function walk_oid_getnext( $settings, $oid ) {
+		if ( ! class_exists( 'SNMP' ) ) {
+			return new WP_Error( 'afc_olt_snmp_walk_failed', __( 'The SNMP walk failed.', 'airfiber-centralized' ) );
+		}
+
+		$host       = isset( $settings['host'] ) ? (string) $settings['host'] : '';
+		$port       = isset( $settings['port'] ) ? (int) $settings['port'] : 161;
+		$timeout_us = min( 10000000, max( 500000, (int) $settings['timeout_ms'] * 1000 ) );
+		$session    = null;
+
+		try {
+			if ( '2c' === $settings['version'] ) {
+				$community = self::decrypt_secret( $settings['community'] );
+				if ( '' === $community ) {
+					return new WP_Error( 'afc_olt_community_missing', __( 'Save the read-only SNMP community first.', 'airfiber-centralized' ) );
+				}
+				$session = new SNMP( SNMP::VERSION_2c, $host . ':' . $port, $community, $timeout_us, 0 );
+			} else {
+				$auth_passphrase    = self::decrypt_secret( $settings['auth_passphrase'] );
+				$privacy_passphrase = self::decrypt_secret( $settings['privacy_passphrase'] );
+				if ( empty( $settings['security_name'] ) || '' === $auth_passphrase || '' === $privacy_passphrase ) {
+					return new WP_Error( 'afc_olt_v3_credentials_missing', __( 'Save the SNMPv3 credentials first.', 'airfiber-centralized' ) );
+				}
+				$session = new SNMP( SNMP::VERSION_3, $host . ':' . $port, $settings['security_name'], $timeout_us, 0 );
+				$session->setSecurity( 'authPriv', 'SHA', $auth_passphrase, 'DES', $privacy_passphrase );
+			}
+
+			$session->oid_output_format = SNMP_OID_OUTPUT_NUMERIC;
+			$root                       = trim( preg_replace( '/[^0-9.]/', '', (string) $oid ), '.' );
+			$current                    = $root;
+			$rows                       = array();
+			$consecutive_failures       = 0;
+
+			for ( $iteration = 0; $iteration < self::GETNEXT_ROW_LIMIT; $iteration++ ) {
+				set_error_handler( function () { return true; } );
+				try {
+					$result = $session->getnext( array( $current ) );
+				} catch ( Throwable $error ) {
+					$result = false;
+				}
+				restore_error_handler();
+
+				if ( ! is_array( $result ) || ! $result ) {
+					$consecutive_failures++;
+					if ( $consecutive_failures < self::GETNEXT_FAILURE_LIMIT ) {
+						continue;
+					}
+					return new WP_Error( 'afc_olt_snmp_getnext_failed', __( 'The OLT stopped responding before the SNMP table was complete.', 'airfiber-centralized' ) );
+				}
+
+				$next_oid = trim( preg_replace( '/[^0-9.]/', '', (string) array_key_first( $result ) ), '.' );
+				if ( '' === $next_oid || $next_oid === $current ) {
+					return new WP_Error( 'afc_olt_snmp_getnext_stalled', __( 'The OLT returned an invalid SNMP table cursor.', 'airfiber-centralized' ) );
+				}
+				if ( 0 !== strpos( $next_oid, $root . '.' ) ) {
+					return $rows;
+				}
+
+				$rows[ $next_oid ]    = reset( $result );
+				$current               = $next_oid;
+				$consecutive_failures  = 0;
+			}
+
+			return new WP_Error( 'afc_olt_snmp_getnext_limit', __( 'The SNMP table exceeded the safe polling limit.', 'airfiber-centralized' ) );
+		} catch ( Throwable $error ) {
+			return new WP_Error( 'afc_olt_snmp_getnext_failed', __( 'The SNMP GETNEXT fallback failed.', 'airfiber-centralized' ) );
+		} finally {
+			if ( $session instanceof SNMP ) {
+				$session->close();
+			}
+		}
 	}
 
 	private static function extract_indexes( $instance_oid, $base_oid ) {
@@ -818,6 +953,12 @@ class AFC_OLT {
 		}
 
 		$entry = $snapshot['entries'][ $key ];
+		if ( ! empty( $entry['stale'] ) ) {
+			$result['stale'] = true;
+			if ( ! empty( $entry['collected_at'] ) ) {
+				$result['collected_at'] = $entry['collected_at'];
+			}
+		}
 		if ( empty( $entry['signal_valid'] ) || ! isset( $entry['rx_power'] ) || null === $entry['rx_power'] ) {
 			$result['status'] = $result['stale'] ? 'stale' : 'invalid';
 			return $result;
