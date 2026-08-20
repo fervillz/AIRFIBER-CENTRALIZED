@@ -1,0 +1,130 @@
+/* Connections polish: one obvious place for network/service connections. */
+
+/* Basic mode is intentionally payment-first. OLT setup now lives in Advanced > Connections. */
+body:not(.afc-admin-mode-advanced) .afc-frontend-nav [data-afc-app-panel="optical"] {
+	display: none !important;
+}
+
+/* Brand language is secondary to health. Healthy cards may use their brand;
+ * draft/error/offline cards remain neutral gray so color never implies success. */
+.afc-connection-card[data-afc-connection-type="olt"] {
+	--afc-connection-brand: #6657c8;
+	--afc-connection-brand-soft: #f1effc;
+	--afc-connection-brand-border: #d5cff2;
+	--afc-connection-brand-text: #5648b6;
+	--afc-connection-brand-hover: #6657c8;
+	--afc-connection-brand-hover-text: #fff;
+}
+
+.afc-connection-card[data-afc-connection-type="mikrotik"] {
+	--afc-connection-brand: #87d3db;
+	--afc-connection-brand-soft: #edf9fb;
+	--afc-connection-brand-border: #bde7ec;
+	--afc-connection-brand-text: #315f72;
+	--afc-connection-brand-hover: #dff4f7;
+	--afc-connection-brand-hover-text: #263d49;
+}
+
+.afc-connection-card[data-afc-connection-type="sheet"] {
+	--afc-connection-brand: #188038;
+	--afc-connection-brand-soft: #edf8f0;
+	--afc-connection-brand-border: #bfe2c8;
+	--afc-connection-brand-text: #137333;
+	--afc-connection-brand-hover: #188038;
+	--afc-connection-brand-hover-text: #fff;
+}
+
+.afc-connection-card::before {
+	content: "";
+	position: absolute;
+	top: 0;
+	left: 22px;
+	right: 22px;
+	height: 3px;
+	border-radius: 0 0 3px 3px;
+	background: var(--afc-connection-brand, #8ea0b4);
+	opacity: .72;
+	transition: opacity .2s ease, left .2s ease, right .2s ease;
+}
+
+.afc-connection-card .afc-connection-type {
+	border-color: var(--afc-connection-brand-border, #d9e3ed);
+	background: var(--afc-connection-brand-soft, #f7f9fb);
+	color: var(--afc-connection-brand-text, #718094);
+}
+
+/* Preserve the established UX rule: only a healthy connection earns color. */
+body.afc-workspace-active .afc-connection-card.is-online:hover,
+body.afc-workspace-active .afc-connection-card.is-online:focus-visible {
+	border-color: var(--afc-connection-brand, #1b73cd);
+	background: var(--afc-connection-brand-hover, #1f76ce);
+	color: var(--afc-connection-brand-hover-text, #fff);
+	box-shadow: 0 18px 38px color-mix(in srgb, var(--afc-connection-brand, #1f76ce) 23%, transparent);
+}
+
+body.afc-workspace-active .afc-connection-card.is-online:hover::before,
+body.afc-workspace-active .afc-connection-card.is-online:focus-visible::before {
+	left: 0;
+	right: 0;
+	opacity: 1;
+}
+
+body.afc-workspace-active .afc-connection-card.is-online:hover .afc-connection-type,
+body.afc-workspace-active .afc-connection-card.is-online:focus-visible .afc-connection-type {
+	border-color: color-mix(in srgb, var(--afc-connection-brand-text, #fff) 28%, transparent);
+	background: color-mix(in srgb, #fff 16%, transparent);
+	color: inherit;
+}
+
+body.afc-workspace-active .afc-connection-card.is-online:hover .afc-connection-center p,
+body.afc-workspace-active .afc-connection-card.is-online:focus-visible .afc-connection-center p,
+body.afc-workspace-active .afc-connection-card.is-online:hover .afc-connection-details,
+body.afc-workspace-active .afc-connection-card.is-online:focus-visible .afc-connection-details,
+body.afc-workspace-active .afc-connection-card.is-online:hover .afc-connection-details small,
+body.afc-workspace-active .afc-connection-card.is-online:focus-visible .afc-connection-details small {
+	color: inherit;
+	opacity: .82;
+}
+
+body.afc-workspace-active .afc-connection-card.is-online:hover .afc-connection-open,
+body.afc-workspace-active .afc-connection-card.is-online:focus-visible .afc-connection-open {
+	border-color: color-mix(in srgb, currentColor 30%, transparent);
+	background: color-mix(in srgb, #fff 18%, transparent);
+	color: inherit;
+}
+
+/* Error, offline and draft always stay neutral, even though the small type badge
+ * still tells the user whether it is OLT, MikroTik or Sheets. */
+body.afc-workspace-active .afc-connection-card.is-error:hover,
+body.afc-workspace-active .afc-connection-card.is-error:focus-visible,
+body.afc-workspace-active .afc-connection-card.is-offline:hover,
+body.afc-workspace-active .afc-connection-card.is-offline:focus-visible,
+body.afc-workspace-active .afc-connection-card.is-draft:hover,
+body.afc-workspace-active .afc-connection-card.is-draft:focus-visible {
+	border-color: #cbd2da;
+	background: #f1f3f5;
+	color: #344152;
+	box-shadow: 0 14px 30px rgba(60,70,82,.09);
+}
+
+.afc-connection-card.is-opening {
+	transform: translateY(-2px) scale(.985) !important;
+	transition-duration: .12s !important;
+}
+
+/* Make the whole card clearly interactive, while keeping drag restricted to the handle. */
+.afc-connection-card {
+	user-select: none;
+}
+
+.afc-connection-card:focus-visible {
+	outline: 3px solid rgba(31,118,206,.16);
+	outline-offset: 3px;
+}
+
+@supports not (color: color-mix(in srgb, #000 50%, #fff)) {
+	body.afc-workspace-active .afc-connection-card.is-online:hover,
+	body.afc-workspace-active .afc-connection-card.is-online:focus-visible {
+		box-shadow: 0 18px 38px rgba(40,72,110,.18);
+	}
+}
