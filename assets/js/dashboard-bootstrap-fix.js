@@ -54,41 +54,13 @@
 		}
 	}
 
-	function pluginBase() {
-		const source = document.querySelector( 'script[src*="/assets/js/dashboard-bootstrap-fix.js"]' );
-		if ( source && source.src ) {
-			const marker = '/assets/js/dashboard-bootstrap-fix.js';
-			const index = source.src.indexOf( marker );
-			if ( index >= 0 ) return source.src.slice( 0, index );
-		}
-		const admin = document.querySelector( 'script[src*="/assets/js/admin-mode.js"]' );
-		if ( admin && admin.src ) {
-			const marker = '/assets/js/admin-mode.js';
-			const index = admin.src.indexOf( marker );
-			if ( index >= 0 ) return admin.src.slice( 0, index );
-		}
-		return '';
-	}
-
-	function loadThemePillAssets() {
-		const base = pluginBase();
-		if ( ! base ) return;
-
-		if ( ! document.getElementById( 'afc-dashboard-theme-pill-css' ) ) {
-			const link = document.createElement( 'link' );
-			link.id = 'afc-dashboard-theme-pill-css';
-			link.rel = 'stylesheet';
-			link.href = base + '/assets/css/dashboard-theme-pill.css?v=2.7.15';
-			document.head.appendChild( link );
-		}
-
-		if ( ! document.getElementById( 'afc-dashboard-theme-pill-js' ) ) {
-			const script = document.createElement( 'script' );
-			script.id = 'afc-dashboard-theme-pill-js';
-			script.src = base + '/assets/js/dashboard-theme-pill.js?v=2.7.15';
-			script.async = false;
-			document.body.appendChild( script );
-		}
+	function enforceLightTheme() {
+		document.documentElement.setAttribute( 'data-afc-theme', 'light' );
+		if ( document.body ) document.body.setAttribute( 'data-afc-theme', 'light' );
+		try { localStorage.setItem( 'afcDashboardTheme', 'light' ); } catch ( error ) {}
+		document.querySelectorAll( '[data-afc-dashboard-theme-toggle]' ).forEach( function ( button ) {
+			button.remove();
+		} );
 	}
 
 	function ajaxConfig() {
@@ -201,7 +173,7 @@
 	}
 
 	function ensureAdvancedDashboard() {
-		loadThemePillAssets();
+		enforceLightTheme();
 		const ajaxify = window.AFCAjaxify;
 		if ( ajaxify && typeof ajaxify.loadPanel === 'function' ) {
 			Promise.resolve( ajaxify.loadPanel( 'dashboard' ) ).then( function () {
@@ -250,11 +222,12 @@
 
 	function boot() {
 		forceBasicAtStartup();
-		loadThemePillAssets();
+		enforceLightTheme();
 		bind();
 	}
 
 	forceBasicAtStartup();
+	enforceLightTheme();
 	if ( document.readyState === 'loading' ) document.addEventListener( 'DOMContentLoaded', boot );
 	else boot();
 }() );

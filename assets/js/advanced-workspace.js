@@ -181,11 +181,11 @@
 				return item.group === group.id && ( ! query || [ item.title, item.short, item.description, key ].join( ' ' ).toLowerCase().includes( query ) );
 			} );
 			if ( ! keys.length ) return;
-			html += '<section><header><strong>' + esc( group.label ) + '</strong><button type="button" data-afc-ws-help="' + esc( group.description || '' ) + '">?</button></header>';
+			html += '<section><header><strong>' + esc( group.label ) + '</strong><button type="button" data-afc-ws-help="' + esc( group.description || '' ) + '" aria-label="About ' + esc( group.label ) + '">?</button></header>';
 			keys.forEach( function ( key ) {
 				const item = meta( key );
 				const label = item.title || key;
-				html += '<button type="button" class="afc-workspace-menu-item' + ( key === active ? ' is-active' : '' ) + '" data-afc-ws-panel="' + esc( key ) + '" data-afc-ws-label="' + esc( label ) + '" aria-label="' + esc( label ) + '"><span>' + esc( item.icon || '•' ) + '</span><b><strong>' + esc( item.title ) + '</strong><small>' + esc( item.short || '' ) + '</small></b><em>' + esc( summary( key ) ) + '</em></button>';
+				html += '<button type="button" class="afc-workspace-menu-item' + ( key === active ? ' is-active' : '' ) + '" data-afc-ws-panel="' + esc( key ) + '" data-afc-ws-label="' + esc( label ) + '" data-afc-ws-description="' + esc( item.description || '' ) + '" title="' + esc( [ label, item.short, item.description ].filter( Boolean ).join( ' — ' ) ) + '" aria-label="' + esc( label ) + '"><span>' + esc( item.icon || '•' ) + '</span><b><strong>' + esc( item.title ) + '</strong></b><em>' + esc( summary( key ) ) + '</em></button>';
 			} );
 			html += '</section>';
 		} );
@@ -226,7 +226,7 @@
 		if ( ! head ) {
 			head = document.createElement( 'header' );
 			head.className = 'afc-workspace-pagehead';
-			head.innerHTML = '<div class="afc-workspace-title"><span></span><div><small></small><h1></h1></div><button type="button" data-afc-ws-about>?</button></div><div class="afc-workspace-actions"></div><div class="afc-workspace-head-bottom"><div class="afc-workspace-stats"></div><nav class="afc-workspace-subnav"></nav></div>';
+			head.innerHTML = '<div class="afc-workspace-title"><span></span><div><small></small><h1></h1></div><button type="button" data-afc-ws-about aria-label="About this page">?</button></div><div class="afc-workspace-actions"></div><div class="afc-workspace-head-bottom"><div class="afc-workspace-stats"></div><nav class="afc-workspace-subnav"></nav></div>';
 			node.insertBefore( head, node.firstChild );
 			head.addEventListener( 'click', function ( event ) {
 				const about = event.target.closest( '[data-afc-ws-about]' );
@@ -349,7 +349,7 @@
 			help.setAttribute( 'data-afc-ws-ready', '1' );
 			help.classList.add( 'afc-workspace-help-source' );
 			const button = document.createElement( 'button' );
-			button.type = 'button'; button.className = 'afc-workspace-help'; button.textContent = '?';
+			button.type = 'button'; button.className = 'afc-workspace-help'; button.textContent = '?'; button.setAttribute( 'aria-label', 'More information' ); button.setAttribute( 'data-afc-ws-help', message );
 			button.addEventListener( 'click', function () { showTip( button, message ); } );
 			help.parentNode.insertBefore( button, help );
 		} );
@@ -424,8 +424,22 @@
 		sync();
 		document.addEventListener( 'afc:admin-mode-change', sync );
 		document.addEventListener( 'pointerdown', function ( event ) {
-			if ( popover && ! popover.hidden && ! popover.contains( event.target ) && ! event.target.closest( '.afc-workspace-help, [data-afc-ws-help]' ) ) popover.hidden = true;
+			if ( popover && ! popover.hidden && ! popover.contains( event.target ) && ! event.target.closest( '.afc-workspace-help, [data-afc-ws-help], [data-afc-ws-about]' ) ) popover.hidden = true;
 			if ( ! desktopSidebar() && document.body.classList.contains( 'afc-workspace-menu-open' ) && side && ! side.contains( event.target ) && ! event.target.closest( '.afc-workspace-mobile-toggle' ) ) closeMobileMenu( true );
+		} );
+		document.addEventListener( 'pointerover', function ( event ) {
+			const help = event.target.closest && event.target.closest( '[data-afc-ws-help], [data-afc-ws-about]' );
+			if ( help ) showTip( help, help.getAttribute( 'data-afc-ws-help' ) || help.getAttribute( 'data-description' ) || '' );
+		} );
+		document.addEventListener( 'pointerout', function ( event ) {
+			if ( popover && event.target.closest && event.target.closest( '[data-afc-ws-help], [data-afc-ws-about]' ) ) popover.hidden = true;
+		} );
+		document.addEventListener( 'focusin', function ( event ) {
+			const help = event.target.closest && event.target.closest( '[data-afc-ws-help], [data-afc-ws-about]' );
+			if ( help ) showTip( help, help.getAttribute( 'data-afc-ws-help' ) || help.getAttribute( 'data-description' ) || '' );
+		} );
+		document.addEventListener( 'focusout', function ( event ) {
+			if ( popover && event.target.closest && event.target.closest( '[data-afc-ws-help], [data-afc-ws-about]' ) ) popover.hidden = true;
 		} );
 		document.addEventListener( 'keydown', function ( event ) {
 			if ( event.key === 'Escape' && document.body.classList.contains( 'afc-workspace-menu-open' ) ) {

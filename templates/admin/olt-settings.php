@@ -15,9 +15,9 @@ defined( 'ABSPATH' ) || exit;
 		<?php settings_errors( AFC_OLT::OPTION_KEY ); ?>
 
 		<?php if ( ! empty( $afc_olt_frontend_url ) ) : ?>
-			<div class="alert alert-info d-flex flex-wrap align-items-center justify-content-between gap-2">
-				<span><?php esc_html_e( 'Connection settings are here. Subscriber RX readings and ONU mapping are available in Operations.', 'airfiber-centralized' ); ?></span>
-				<a class="btn btn-sm btn-outline-primary" href="#operations"><?php esc_html_e( 'Open Subscriber Readings', 'airfiber-centralized' ); ?></a>
+			<div class="d-flex justify-content-end align-items-center gap-2 mb-3">
+				<span data-afc-help-source><?php esc_html_e( 'Subscriber RX readings and ONU mapping are available in Operations.', 'airfiber-centralized' ); ?></span>
+				<a class="btn btn-sm btn-outline-primary" href="#operations"><?php esc_html_e( 'Subscriber Readings', 'airfiber-centralized' ); ?></a>
 			</div>
 		<?php endif; ?>
 
@@ -130,15 +130,16 @@ defined( 'ABSPATH' ) || exit;
 
 			<div class="col-lg-4">
 				<div class="card">
-					<div class="card-header"><h3 class="card-title"><?php esc_html_e( 'Server readiness', 'airfiber-centralized' ); ?></h3></div>
+					<div class="card-header">
+						<h3 class="card-title"><?php esc_html_e( 'Server readiness', 'airfiber-centralized' ); ?></h3>
+						<span data-afc-help-source><?php esc_html_e( 'Allow UDP/161 to the OLT only from this server or its private VPN address; never expose it publicly. The dashboard uses one cached bulk OID walk and never polls once per customer.', 'airfiber-centralized' ); ?></span>
+					</div>
 					<div class="card-body">
 						<?php if ( AFC_OLT::is_snmp_available( $settings['version'] ) ) : ?>
 							<div class="d-flex align-items-center gap-2 mb-2"><span class="status status-green"></span><strong><?php esc_html_e( 'PHP SNMP is available', 'airfiber-centralized' ); ?></strong></div>
 						<?php else : ?>
 							<div class="alert alert-warning"><?php esc_html_e( 'Install and enable the PHP SNMP extension on this WordPress server before testing.', 'airfiber-centralized' ); ?></div>
 						<?php endif; ?>
-						<p><?php esc_html_e( 'Allow UDP/161 to the OLT only from this server or its private VPN address. Never expose SNMP publicly.', 'airfiber-centralized' ); ?></p>
-						<p class="text-secondary mb-0"><?php esc_html_e( 'The dashboard uses one bulk OID walk and caches the complete result. It never polls once per customer.', 'airfiber-centralized' ); ?></p>
 					</div>
 				</div>
 

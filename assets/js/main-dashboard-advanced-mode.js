@@ -76,13 +76,13 @@
 
 	function syncMode() {
 		revealShell();
+		forceLightTheme();
 		markDashboardAdvancedOnly();
 		restoreBasicPaymentApp();
 		if ( currentMode() === 'basic' ) {
 			const dashboard = document.querySelector( '[data-afc-panel="dashboard"].is-active' );
 			if ( dashboard ) setActivePanel( 'operations' );
 		} else {
-			forceLightTheme();
 			loadPremiumSafe();
 		}
 	}

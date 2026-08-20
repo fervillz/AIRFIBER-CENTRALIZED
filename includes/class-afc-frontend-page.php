@@ -210,6 +210,21 @@ class AFC_Frontend_Page {
 			true
 		);
 
+		wp_enqueue_style(
+			'afc-frontend-ux-cleanup',
+			AFC_URL . 'assets/css/frontend-ux-cleanup.css',
+			array( 'afc-frontend-app', 'afc-tooltip' ),
+			AFC_VERSION
+		);
+
+		wp_enqueue_script(
+			'afc-frontend-ux-cleanup',
+			AFC_URL . 'assets/js/frontend-ux-cleanup.js',
+			array( 'afc-frontend-app', 'afc-tooltip' ),
+			AFC_VERSION,
+			true
+		);
+
 		$current_user = wp_get_current_user();
 		$initial_mode = class_exists( 'AFC_Ajaxify' ) ? AFC_Ajaxify::initial_mode() : 'basic';
 		wp_localize_script(

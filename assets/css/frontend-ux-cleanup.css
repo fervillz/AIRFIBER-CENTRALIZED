@@ -1,0 +1,71 @@
+/* Progressive disclosure for static helper copy in the frontend app. */
+.afc-context-help-source {
+	display: none !important;
+}
+
+.afc-context-help {
+	display: inline-grid;
+	width: 20px;
+	height: 20px;
+	margin-left: 7px;
+	padding: 0;
+	place-items: center;
+	vertical-align: middle;
+	border: 1px solid #d7dee8;
+	border-radius: 50%;
+	background: #fff;
+	color: #66758a;
+	font: 800 12px/1 Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif !important;
+	cursor: help;
+	transition: border-color .15s ease, background-color .15s ease, color .15s ease, transform .15s ease;
+}
+
+.afc-context-help:hover,
+.afc-context-help:focus-visible {
+	outline: 0;
+	border-color: #9fc2ee;
+	background: #eef5fd;
+	color: #1769aa;
+	transform: translateY(-1px);
+}
+
+.afc-context-help[data-afc-help-location="standalone"] {
+	margin: 2px 0 0;
+}
+
+.afc-tooltip.afc-context-tooltip {
+	max-width: min(360px, calc(100vw - 24px));
+	padding: 10px 12px;
+	border-radius: 10px;
+	font-size: 13px;
+	line-height: 1.45;
+}
+
+/* The shared tooltip normally hides on phones. Help must remain usable by tap. */
+@media (max-width: 782px) {
+	.afc-tooltip.afc-context-tooltip.is-visible {
+		display: block !important;
+	}
+}
+
+/* Advanced navigation shows one clear name; detail remains in its hover title. */
+body.afc-workspace-active .afc-workspace-menu-item b small {
+	display: none;
+}
+
+body.afc-workspace-active .afc-workspace-menu-item {
+	min-height: 50px;
+}
+
+/* Keep Advanced permanently on the same bright canvas as Basic. */
+html[data-afc-theme="light"] body.afc-workspace-active,
+body.afc-workspace-active {
+	background: #f5f6f8;
+	color-scheme: light;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.afc-context-help {
+		transition: none;
+	}
+}
