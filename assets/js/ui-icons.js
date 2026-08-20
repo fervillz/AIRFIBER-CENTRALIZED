@@ -75,6 +75,11 @@
 
 	function shouldDecorate( button ) {
 		if ( ! button || button.hasAttribute( 'data-afc-no-auto-icon' ) ) return false;
+		/* The Add OLT card already contains its own large plus control. */
+		if ( button.matches && button.matches( '.afc-olt-add-card, [data-afc-olt-add]' ) ) {
+			removeInjectedIcon( button );
+			return false;
+		}
 		/* Structured customer rows already have their own avatar/status layout.
 		 * Injecting another SVG becomes an extra grid child and pushes the actual
 		 * customer columns to the right. Keep those rows untouched and left aligned. */
