@@ -145,7 +145,11 @@ class AFC_OLT_OID_Explorer {
 	}
 
 	private static function numeric_oid( $oid ) {
-		return trim( preg_replace( '/[^0-9.]/', '', (string) $oid ), '.' );
+		$oid = trim( (string) $oid );
+		if ( preg_match( '/(\d+(?:\.\d+)+)$/', $oid, $matches ) ) {
+			return trim( $matches[1], '.' );
+		}
+		return trim( preg_replace( '/[^0-9.]/', '', $oid ), '.' );
 	}
 
 	private static function clean_value( $value ) {
@@ -154,13 +158,8 @@ class AFC_OLT_OID_Explorer {
 	}
 
 	private static function power_value( $value ) {
-		$text = (string) $value;
-		if ( preg_match( '/(?:no such|not available|unknown|invalid|inf)/i', $text ) ) return null;
-		if ( ! preg_match( '/-?\d+(?:\.\d+)?/', $text, $match ) ) return null;
-		$number = (float) $match[0];
-		if ( $number <= -500 && $number >= -6000 ) $number /= 100;
-		elseif ( $number < -50 && $number > -500 ) $number /= 10;
-		return ( $number >= -50 && $number <= -5 ) ? $number : null;
+		$reading = AFC_OLT::parse_rx_power_reading( $value );
+		return is_array( $reading ) && ! empty( $reading['valid'] ) ? (float) $reading['power'] : null;
 	}
 
 	private static function known_label( $oid ) {
@@ -271,12 +270,21 @@ class AFC_OLT_OID_Explorer {
 		}
 
 		$children = self::group_rows( $root, $rows );
+		$samples  = array();
+		foreach ( $rows as $sample_oid => $sample_value ) {
+			$samples[] = array(
+				'oid'   => self::numeric_oid( $sample_oid ),
+				'value' => self::clean_value( $sample_value ),
+			);
+			if ( count( $samples ) >= 12 ) break;
+		}
 		wp_send_json_success(
 			array(
 				'root'         => $root,
 				'label'        => self::known_label( $root ),
 				'rows'         => count( $rows ),
 				'children'     => $children,
+				'samples'      => $samples,
 				'warning'      => $warning,
 				'elapsed_ms'   => (int) round( ( microtime( true ) - $started ) * 1000 ),
 				'version'      => '2c' === $config['version'] ? 'SNMPv2c' : 'SNMPv3',

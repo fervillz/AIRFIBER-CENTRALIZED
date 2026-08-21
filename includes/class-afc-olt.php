@@ -779,6 +779,15 @@ class AFC_OLT {
 		$technology = isset( $settings['technology'] ) ? strtoupper( (string) $settings['technology'] ) : '';
 
 		/*
+		 * real_walk() otherwise inherits the process-wide Net-SNMP display mode.
+		 * Textual keys such as "SNMPv2-SMI::enterprises..." cannot be matched
+		 * safely against a configured numeric OID and broke smart RX discovery.
+		 */
+		if ( function_exists( 'snmp_set_oid_output_format' ) && defined( 'SNMP_OID_OUTPUT_NUMERIC' ) ) {
+			@snmp_set_oid_output_format( SNMP_OID_OUTPUT_NUMERIC );
+		}
+
+		/*
 		 * V1600G-family GPON agents answer GET/GETNEXT reliably but can leave
 		 * Net-SNMP's bulk walk waiting until the web request times out. Use the
 		 * existing bounded walker first for their v2c optical tables, then retain
@@ -971,9 +980,9 @@ class AFC_OLT {
 	 * be mistaken for dBm. Firmware that returns a plain scaled integer is kept
 	 * as a fallback for compatibility.
 	 */
-	private static function parse_rx_power_reading( $raw_value ) {
+	public static function parse_rx_power_reading( $raw_value ) {
 		$value = trim( (string) $raw_value );
-		if ( '' === $value || false !== stripos( $value, 'no such' ) ) {
+		if ( '' === $value || preg_match( '/(?:no such|not available|unknown|invalid|infinity|\binf\b)/i', $value ) ) {
 			return null;
 		}
 
@@ -990,19 +999,42 @@ class AFC_OLT {
 			);
 		}
 
+		/*
+		 * Remove the Net-SNMP type prefix before looking for a number. Without
+		 * this, values such as "Counter32: 4294965208" are parsed as 32.
+		 */
+		$numeric_text = preg_replace(
+			'/^\s*(?:(?:OCTET\s+STRING|STRING|INTEGER(?:32)?|COUNTER(?:32|64)?|GAUGE(?:32)?|UNSIGNED(?:32)?|OPAQUE|BITS|TIMETICKS|IPADDRESS)\s*:\s*)+/i',
+			'',
+			$value
+		);
+		$numeric_text = trim( (string) $numeric_text, "\"' \t\r\n" );
+
 		/* Fallback for firmware that returns only a numeric/scaled numeric value. */
-		if ( ! preg_match( '/-?\d+(?:\.\d+)?/', $value, $matches ) ) {
+		if ( ! preg_match( '/-?\d+(?:\.\d+)?/', $numeric_text, $matches ) ) {
 			return null;
 		}
 
-		$raw   = (float) $matches[0];
-		$power = $raw;
+		$raw    = (float) $matches[0];
+		$signed = $raw;
+
+		/*
+		 * Some VSOL firmware exposes a negative scaled dBm integer through an
+		 * unsigned SNMP type. Decode both common 32-bit and 16-bit wraps.
+		 */
+		if ( $raw >= 4294957296 && $raw <= 4294967295 ) {
+			$signed = $raw - 4294967296;
+		} elseif ( $raw >= 55536 && $raw <= 65535 ) {
+			$signed = $raw - 65536;
+		}
+
+		$power = $signed;
 		$scale = 1;
-		if ( $raw <= -100 && $raw >= -600 ) {
-			$power = $raw / 10;
+		if ( $signed <= -100 && $signed >= -600 ) {
+			$power = $signed / 10;
 			$scale = 10;
-		} elseif ( $raw < -600 && $raw >= -6000 ) {
-			$power = $raw / 100;
+		} elseif ( $signed < -600 && $signed >= -6000 ) {
+			$power = $signed / 100;
 			$scale = 100;
 		}
 

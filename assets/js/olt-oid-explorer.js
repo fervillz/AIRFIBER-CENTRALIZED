@@ -124,8 +124,25 @@
 		if ( ! children.length ) {
 			const empty = document.createElement( 'div' );
 			empty.className = 'afc-oid-explorer-empty';
-			empty.textContent = 'This branch returned data, but no child OIDs could be grouped beneath it.';
+			const samples = data && Array.isArray( data.samples ) ? data.samples : [];
+			empty.textContent = samples.length
+				? 'This is a leaf table. Raw samples are shown below for diagnosis.'
+				: 'This branch returned data, but no child OIDs could be grouped beneath it.';
 			resultList.appendChild( empty );
+			samples.forEach( function ( sample ) {
+				const row = document.createElement( 'article' );
+				row.className = 'afc-oid-node';
+				const body = document.createElement( 'div' );
+				body.className = 'afc-oid-node-main';
+				const oid = document.createElement( 'code' );
+				oid.textContent = sample.oid || '';
+				body.appendChild( oid );
+				const value = document.createElement( 'small' );
+				value.textContent = sample.value || '';
+				body.appendChild( value );
+				row.appendChild( body );
+				resultList.appendChild( row );
+			} );
 			return;
 		}
 

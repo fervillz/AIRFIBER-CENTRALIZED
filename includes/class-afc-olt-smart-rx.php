@@ -243,15 +243,8 @@ class AFC_OLT_Smart_RX {
 	}
 
 	private static function numeric_power( $value ) {
-		$text = trim( (string) $value );
-		if ( preg_match( '/(?:no such|not available|unknown|invalid|inf)/i', $text ) ) return null;
-		if ( ! preg_match( '/-?\d+(?:\.\d+)?/', $text, $matches ) ) return null;
-
-		$number = (float) $matches[0];
-		if ( $number <= -500 && $number >= -6000 ) $number /= 100;
-		elseif ( $number < -50 && $number > -500 ) $number /= 10;
-
-		return $number;
+		$reading = AFC_OLT::parse_rx_power_reading( $value );
+		return is_array( $reading ) && ! empty( $reading['valid'] ) ? (float) $reading['power'] : null;
 	}
 
 	private static function analyse_rx_rows( $rows ) {
