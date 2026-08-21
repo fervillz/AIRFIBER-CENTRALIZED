@@ -369,6 +369,10 @@
 
 			const config = formConfig();
 			const version = config.version === '2c' ? 'SNMPv2c' : 'SNMPv3';
+			const isGpon = String( config.technology || '' ).toUpperCase() === 'GPON';
+			const testTimeoutMs = isGpon
+				? Number( cfg.gponTestClientTimeoutMs || 75000 )
+				: Number( cfg.testClientTimeoutMs || 30000 );
 			testLog( 'Settings saved. Starting ' + version + ' test to ' + ( config.host || '(no host)' ) + ':' + ( config.port || '161' ) + '.' );
 			testLog( 'Server will read the OLT identity, description, then RX OID ' + ( config.rx_oid || cfg.defaultRxOid || '' ) + '.' );
 			setInfo( 'Testing SNMP connection… 0s', 'saving' );
@@ -379,11 +383,15 @@
 				setInfo( 'Testing SNMP connection… ' + seconds + 's', 'saving' );
 				if ( seconds >= 5 && lastMilestone < 5 ) {
 					lastMilestone = 5;
-					testLog( 'Still waiting for the OLT. This can happen when UDP port 161 is filtered or the OLT does not accept this SNMP login.', 'warning' );
+					testLog( isGpon ? 'OLT identity and optical-table checks are running. Large GPON tables can take up to a minute.' : 'Still waiting for the OLT. This can happen when UDP port 161 is filtered or the OLT does not accept this SNMP login.', 'warning' );
 				}
 				if ( seconds >= 15 && lastMilestone < 15 ) {
 					lastMilestone = 15;
-					testLog( 'No response yet. Check routing to the OLT, Remote Server/manager restrictions, SNMPv3 username/passwords, and UDP 161.', 'warning' );
+					testLog( isGpon ? 'Still reading ONU RX rows. Some GPON firmware returns this table slowly; keep this window open.' : 'No response yet. Check routing to the OLT, Remote Server/manager restrictions, SNMPv3 username/passwords, and UDP 161.', 'warning' );
+				}
+				if ( isGpon && seconds >= 35 && lastMilestone < 35 ) {
+					lastMilestone = 35;
+					testLog( 'The OLT is processing a large RX table. Airfiber will wait safely for the complete result.', 'warning' );
 				}
 			}, 1000 );
 
@@ -391,7 +399,7 @@
 				url: cfg.ajaxUrl,
 				type: 'POST',
 				dataType: 'json',
-				timeout: Number( cfg.testClientTimeoutMs || 30000 ),
+				timeout: testTimeoutMs,
 				data: {
 					action: 'afc_olt_manager_test',
 					nonce: cfg.nonce,
@@ -426,9 +434,9 @@
 			} ).fail( function ( xhr, textStatus, errorThrown ) {
 				let message = xhr.responseJSON && xhr.responseJSON.data && xhr.responseJSON.data.message ? xhr.responseJSON.data.message : '';
 				if ( textStatus === 'timeout' ) {
-					message = 'Connection test timed out after ' + Math.round( Number( cfg.testClientTimeoutMs || 30000 ) / 1000 ) + ' seconds.';
+					message = 'Connection test timed out after ' + Math.round( testTimeoutMs / 1000 ) + ' seconds.';
 					testLog( message, 'error' );
-					testLog( 'Most likely: the OLT is unreachable from this server, UDP/161 is blocked, or the OLT Remote Server/manager rule does not allow this server.', 'error' );
+					testLog( isGpon ? 'The OLT may be reachable, but its RX table did not finish within the extended GPON window. Check OLT load, then retry.' : 'Most likely: the OLT is unreachable from this server, UDP/161 is blocked, or the OLT Remote Server/manager rule does not allow this server.', 'error' );
 				} else if ( textStatus === 'abort' ) {
 					message = 'Connection test was cancelled.';
 					testLog( message, 'warning' );

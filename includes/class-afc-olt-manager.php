@@ -94,6 +94,8 @@ class AFC_OLT_Manager {
 				'defaultRxOid' => self::GPON_RX_OID,
 				'gponRxOid'    => self::GPON_RX_OID,
 				'eponRxOid'    => self::EPON_RX_OID,
+				'testClientTimeoutMs'     => 30000,
+				'gponTestClientTimeoutMs' => 75000,
 			)
 		);
 	}
@@ -822,6 +824,8 @@ class AFC_OLT_Manager {
 
 	public static function ajax_test() {
 		self::authorize();
+		/* Large GPON optical tables can legitimately take longer than PHP's default limit. */
+		if ( function_exists( 'set_time_limit' ) ) @set_time_limit( 90 );
 		$post_id = isset( $_POST['id'] ) ? absint( $_POST['id'] ) : 0;
 		if ( ! $post_id || self::POST_TYPE !== get_post_type( $post_id ) ) wp_send_json_error( array( 'message' => __( 'Save the OLT draft before testing.', 'airfiber-centralized' ) ), 400 );
 		$result = self::run_test( $post_id );

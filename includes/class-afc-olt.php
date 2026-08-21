@@ -675,6 +675,20 @@ class AFC_OLT {
 		$target  = 161 === (int) $settings['port'] ? $settings['host'] : 'udp:' . $settings['host'] . ':' . (int) $settings['port'];
 		$timeout = (int) $settings['timeout_ms'] * 1000;
 		$retries = (int) $settings['retries'];
+		$technology = isset( $settings['technology'] ) ? strtoupper( (string) $settings['technology'] ) : '';
+
+		/*
+		 * V1600G-family GPON agents answer GET/GETNEXT reliably but can leave
+		 * Net-SNMP's bulk walk waiting until the web request times out. Use the
+		 * existing bounded walker first for their v2c optical tables, then retain
+		 * the normal walk as a fallback for unusual firmware.
+		 */
+		if ( '2c' === $settings['version'] && 'GPON' === $technology ) {
+			$getnext_walk = self::walk_oid_getnext( $settings, $oid );
+			if ( ! is_wp_error( $getnext_walk ) && $getnext_walk ) {
+				return $getnext_walk;
+			}
+		}
 
 		if ( '2c' === $settings['version'] ) {
 			$community = self::decrypt_secret( $settings['community'] );
