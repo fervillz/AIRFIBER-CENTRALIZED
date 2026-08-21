@@ -106,11 +106,25 @@
 
 	function openEditor( selector, details ) {
 		debug( 'connections-editor-request', details );
-		waitFor( selector, function ( target ) {
+		const openTarget = function () { waitFor( selector, function ( target ) {
 			debug( 'connections-editor-target', Object.assign( { found: true }, details ) );
 			target.click();
 		}, 30, function () {
 			debug( 'connections-editor-target', Object.assign( { found: false }, details ) );
+		} ); };
+
+		if ( $( selector ) || details.type !== 'mikrotik' || ! window.AFCAjaxify || typeof window.AFCAjaxify.loadPanel !== 'function' ) {
+			openTarget();
+			return;
+		}
+
+		debug( 'connections-editor-preload', Object.assign( { panel: 'mikrotik', started: true }, details ) );
+		window.AFCAjaxify.loadPanel( 'mikrotik' ).then( function () {
+			debug( 'connections-editor-preload', Object.assign( { panel: 'mikrotik', loaded: true }, details ) );
+			openTarget();
+		} ).catch( function ( error ) {
+			debug( 'connections-editor-preload', Object.assign( { panel: 'mikrotik', loaded: false, message: error && error.message ? error.message : '' }, details ) );
+			openTarget();
 		} );
 	}
 
