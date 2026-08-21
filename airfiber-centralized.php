@@ -2,14 +2,14 @@
 /**
  * Plugin Name: Airfiber - Centralized
  * Description: Customer, billing, payment, installation, notification, and MikroTik management for Airfiber.
- * Version: 2.14.11
+ * Version: 2.14.13
  * Author: Airfiber
  * Text Domain: airfiber-centralized
  */
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'AFC_VERSION', '2.14.11' );
+define( 'AFC_VERSION', '2.14.13' );
 define( 'AFC_FILE', __FILE__ );
 define( 'AFC_PATH', plugin_dir_path( __FILE__ ) );
 define( 'AFC_URL', plugin_dir_url( __FILE__ ) );
@@ -64,6 +64,7 @@ require_once AFC_PATH . 'includes/class-afc-integrations.php';
 require_once AFC_PATH . 'includes/class-afc-messenger-settings.php';
 require_once AFC_PATH . 'includes/class-afc-advanced-workspace.php';
 require_once AFC_PATH . 'includes/class-afc-connections-hub.php';
+require_once AFC_PATH . 'includes/class-afc-plugin-debug.php';
 require_once AFC_PATH . 'includes/class-afc-google-sheets-sync.php';
 require_once AFC_PATH . 'includes/class-afc-google-sheets-table-compat.php';
 require_once AFC_PATH . 'includes/class-afc-google-sheets-overview-compat.php';
@@ -128,6 +129,7 @@ function afc_boot_plugin() {
 	AFC_Messenger_Settings::init();
 	AFC_Advanced_Workspace::init();
 	AFC_Connections_Hub::init();
+	AFC_Plugin_Debug::init();
 	AFC_Google_Sheets_Table_Compat::init();
 	AFC_Google_Sheets_Overview_Compat::init();
 	AFC_Google_Sheets_Paid_History::init();
@@ -204,6 +206,7 @@ function afc_activate_plugin() {
 	AFC_OLT_PPP_Signals::ensure_schema();
 	AFC_Google_Sheets_Sync::ensure_schedule();
 	AFC_OLT_Refresh_Manager::ensure_schedule();
+	AFC_Plugin_Debug::ensure_schedule();
 	flush_rewrite_rules();
 }
 register_activation_hook( __FILE__, 'afc_activate_plugin' );
@@ -214,6 +217,7 @@ function afc_deactivate_plugin() {
 	AFC_PPP_Manager::unschedule();
 	AFC_Google_Sheets_Sync::deactivate();
 	AFC_OLT_Refresh_Manager::clear_schedule();
+	AFC_Plugin_Debug::deactivate();
 	wp_clear_scheduled_hook( AFC_OLT_Manager::GPON_TEST_HOOK );
 	wp_clear_scheduled_hook( AFC_Google_Sheets_Paid_History::CRON_REFRESH );
 	wp_clear_scheduled_hook( AFC_Google_Sheets_Targeted_Payment_Sync::CRON_TARGETED );

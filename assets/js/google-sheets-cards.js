@@ -143,7 +143,7 @@
 		settingsDialog = document.createElement( 'dialog' );
 		settingsDialog.className = 'afc-google-sheet-settings-dialog';
 		settingsDialog.innerHTML = '<div class="afc-google-sheet-settings-shell"><header><div><small>GOOGLE SHEETS</small><h2>Connection & sync settings</h2></div><button type="button" data-afc-sheet-settings-close aria-label="Close settings">×</button></header><div class="afc-google-sheet-settings-content"></div></div>';
-		root.appendChild( settingsDialog );
+		document.body.appendChild( settingsDialog );
 		settingsDialog.querySelector( '.afc-google-sheet-settings-content' ).appendChild( googleCard );
 		googleCard.classList.add( 'is-sheet-settings-card' );
 		watchGoogleCard( googleCard );

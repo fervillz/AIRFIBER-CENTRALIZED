@@ -12,6 +12,9 @@
 	const $ = function ( selector, scope ) { return ( scope || document ).querySelector( selector ); };
 	const $$ = function ( selector, scope ) { return Array.from( ( scope || document ).querySelectorAll( selector ) ); };
 	const esc = function ( value ) { const node = document.createElement( 'div' ); node.textContent = value == null ? '' : String( value ); return node.innerHTML; };
+	const debug = function ( event, data ) {
+		if ( window.AFCDebug && typeof window.AFCDebug.record === 'function' ) window.AFCDebug.record( event, data || {} );
+	};
 
 	function advanced() {
 		return document.body.classList.contains( 'afc-admin-mode-advanced' );
@@ -68,6 +71,7 @@
 			( cards.length ? '' : '<p class="afc-connection-empty">No connections have been added yet.</p>' );
 		bindHub();
 		polishWorkspace();
+		debug( 'connections-hub-rendered', { cards: cards.length } );
 	}
 
 	function ensureDialog() {
@@ -90,48 +94,52 @@
 		} );
 	}
 
-	function waitFor( selector, callback, attempts ) {
+	function waitFor( selector, callback, attempts, missing ) {
 		const node = $( selector );
 		if ( node ) return callback( node );
-		if ( attempts <= 0 ) return;
-		window.setTimeout( function () { waitFor( selector, callback, attempts - 1 ); }, 100 );
+		if ( attempts <= 0 ) {
+			if ( missing ) missing();
+			return;
+		}
+		window.setTimeout( function () { waitFor( selector, callback, attempts - 1, missing ); }, 100 );
 	}
 
-	function openPanel( key, after ) {
-		if ( window.AFCUI && typeof window.AFCUI.openPanel === 'function' ) {
-			window.AFCUI.openPanel( key );
-		} else {
-			const trigger = $( '[data-afc-app-panel="' + key + '"]' );
-			if ( trigger ) trigger.click();
-		}
-		if ( after ) window.setTimeout( after, 80 );
+	function openEditor( selector, details ) {
+		debug( 'connections-editor-request', details );
+		waitFor( selector, function ( target ) {
+			debug( 'connections-editor-target', Object.assign( { found: true }, details ) );
+			target.click();
+		}, 30, function () {
+			debug( 'connections-editor-target', Object.assign( { found: false }, details ) );
+		} );
 	}
 
 	function openAdd( type ) {
 		if ( type === 'olt' ) {
-			openPanel( 'olt', function () { waitFor( '[data-afc-olt-add]', function ( node ) { node.click(); }, 30 ); } );
+			openEditor( '[data-afc-olt-add]', { type: 'olt', action: 'add' } );
 			return;
 		}
 		if ( type === 'mikrotik' ) {
-			openPanel( 'mikrotik', function () { waitFor( '[data-afc-mikrotik-add]', function ( node ) { node.click(); }, 30 ); } );
+			openEditor( '[data-afc-mikrotik-add]', { type: 'mikrotik', action: 'add' } );
 			return;
 		}
-		openPanel( 'integrations', function () { waitFor( '[data-afc-sheet-add]', function ( node ) { node.click(); }, 30 ); } );
+		openEditor( '[data-afc-sheet-add]', { type: 'sheet', action: 'add' } );
 	}
 
 	function openCard( node ) {
 		if ( ! node ) return;
 		const type = node.getAttribute( 'data-afc-connection-type' );
 		const id = node.getAttribute( 'data-afc-connection-id' );
+		debug( 'connections-card-route', { type: type || '', id: id || '', connected: node.isConnected } );
 		if ( type === 'olt' ) {
-			openPanel( 'olt', function () { waitFor( '[data-afc-olt-card="' + CSS.escape( id ) + '"]', function ( target ) { target.click(); }, 30 ); } );
+			openEditor( '[data-afc-olt-card="' + CSS.escape( id ) + '"]', { type: 'olt', action: 'edit', id: id || '' } );
 			return;
 		}
 		if ( type === 'mikrotik' ) {
-			openPanel( 'mikrotik', function () { waitFor( '[data-afc-mikrotik-card]', function ( target ) { target.click(); }, 30 ); } );
+			openEditor( '[data-afc-mikrotik-card]', { type: 'mikrotik', action: 'edit', id: id || '' } );
 			return;
 		}
-		openPanel( 'integrations', function () { waitFor( '[data-afc-sheet-settings]', function ( target ) { target.click(); }, 30 ); } );
+		openEditor( '[data-afc-sheet-settings]', { type: 'sheet', action: 'edit', id: id || '' } );
 	}
 
 	function bindHub() {
@@ -147,7 +155,10 @@
 				return;
 			}
 			const card = event.target.closest( '[data-afc-connection-key]' );
-			if ( card ) openCard( card );
+			if ( card ) {
+				debug( 'connections-grid-click', { key: card.getAttribute( 'data-afc-connection-key' ) || '' } );
+				openCard( card );
+			}
 		} );
 		grid.addEventListener( 'keydown', function ( event ) {
 			if ( event.key !== 'Enter' && event.key !== ' ' ) return;
@@ -216,14 +227,18 @@
 		const connections = $( '.afc-workspace-menu-item[data-afc-ws-panel="integrations"]' );
 		const mikrotik = $( '.afc-workspace-menu-item[data-afc-ws-panel="mikrotik"]' );
 		const optical = $( '.afc-workspace-menu-item[data-afc-ws-panel="optical"]' );
+		const olt = $( '.afc-workspace-menu-item[data-afc-ws-panel="olt"]' );
 		if ( mikrotik ) mikrotik.hidden = true;
 		if ( optical ) optical.hidden = true;
+		if ( olt ) olt.hidden = true;
 		if ( connections ) {
 			connections.hidden = false;
 			connections.classList.add( 'afc-connections-menu-item' );
-			const title = $( 'b strong', connections ); if ( title ) title.textContent = cfg.labels && cfg.labels.title ? cfg.labels.title : 'Connections';
-			const small = $( 'b small', connections ); if ( small ) small.textContent = cfg.labels && cfg.labels.subtitle ? cfg.labels.subtitle : 'Devices & integrations';
-			const icon = $( ':scope > span', connections ); if ( icon ) icon.textContent = '⌁';
+			const expectedTitle = cfg.labels && cfg.labels.title ? cfg.labels.title : 'Connections';
+			const expectedSubtitle = cfg.labels && cfg.labels.subtitle ? cfg.labels.subtitle : 'Devices & integrations';
+			const title = $( 'b strong', connections ); if ( title && title.textContent !== expectedTitle ) title.textContent = expectedTitle;
+			const small = $( 'b small', connections ); if ( small && small.textContent !== expectedSubtitle ) small.textContent = expectedSubtitle;
+			const icon = $( ':scope > span', connections ); if ( icon && icon.textContent !== '⌁' ) icon.textContent = '⌁';
 			const activePanel = $( '[data-afc-panel].is-active:not([hidden])' );
 			const activeKey = activePanel ? activePanel.getAttribute( 'data-afc-panel' ) : '';
 			connections.classList.toggle( 'is-active', [ 'integrations', 'mikrotik', 'optical', 'olt' ].indexOf( activeKey ) >= 0 );
@@ -232,8 +247,8 @@
 		if ( root ) {
 			const head = $( ':scope > .afc-workspace-pagehead', root );
 			if ( head ) {
-				const title = $( '.afc-workspace-title h1', head ); if ( title ) title.textContent = 'Connections';
-				const icon = $( '.afc-workspace-title > span', head ); if ( icon ) icon.textContent = '⌁';
+				const title = $( '.afc-workspace-title h1', head ); if ( title && title.textContent !== 'Connections' ) title.textContent = 'Connections';
+				const icon = $( '.afc-workspace-title > span', head ); if ( icon && icon.textContent !== '⌁' ) icon.textContent = '⌁';
 				const subnav = $( '.afc-workspace-subnav', head ); if ( subnav ) subnav.hidden = true;
 				const stats = $( '.afc-workspace-stats', head ); if ( stats ) stats.hidden = true;
 			}
@@ -245,23 +260,35 @@
 		frame = window.requestAnimationFrame( function () { frame = 0; if ( advanced() ) { buildHub(); polishWorkspace(); } } );
 	}
 
+	function enforceConnectionsSource() {
+		if ( ! advanced() ) return;
+		const legacy = [ '#olt', '#mikrotik', '#optical' ];
+		if ( legacy.indexOf( window.location.hash.toLowerCase() ) < 0 ) return;
+		debug( 'connections-legacy-route', { from: window.location.hash } );
+		if ( window.AFCUI && typeof window.AFCUI.openPanel === 'function' ) {
+			window.AFCUI.openPanel( 'integrations' );
+			return;
+		}
+		const trigger = $( '[data-afc-app-panel="integrations"]' );
+		if ( trigger ) trigger.click();
+	}
+
 	function boot() {
+		enforceConnectionsSource();
 		queue();
 		refreshCards();
-		document.addEventListener( 'afc:admin-mode-change', function () { queue(); refreshCards(); } );
+		document.addEventListener( 'afc:admin-mode-change', function () { enforceConnectionsSource(); queue(); refreshCards(); } );
 		document.addEventListener( 'afc:ajaxify-panel-loaded', function () { queue(); refreshCards(); } );
 		document.addEventListener( 'afc:olt-connections-updated', refreshCards );
+		window.addEventListener( 'hashchange', enforceConnectionsSource );
 		document.addEventListener( 'click', function ( event ) {
 			const menu = event.target.closest( '.afc-workspace-menu-item[data-afc-ws-panel="integrations"]' );
 			if ( menu ) window.setTimeout( refreshCards, 120 );
 		} );
-		const observer = new MutationObserver( function ( mutations ) {
-			/* Rebuilding the hub mutates its own descendants. Ignore those changes
-			 * so the observer cannot replace every card again on the next frame. */
-			const externalChange = mutations.some( function ( mutation ) {
-				return ! hub || ! hub.contains( mutation.target );
-			} );
-			if ( externalChange ) queue();
+		const observer = new MutationObserver( function () {
+			/* Other app panels update constantly. Rebuild only when the hub itself
+			 * was removed; explicit status/events already refresh its card data. */
+			if ( ! hub || ! hub.isConnected ) queue();
 		} );
 		observer.observe( document.body, { childList: true, subtree: true } );
 	}

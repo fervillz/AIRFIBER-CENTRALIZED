@@ -136,7 +136,7 @@
 		dialog = document.createElement( 'dialog' );
 		dialog.className = 'afc-mikrotik-settings-dialog';
 		dialog.innerHTML = '<div class="afc-mikrotik-settings-shell"><header><div><small>MIKROTIK</small><h2>Connection settings</h2></div><button type="button" class="afc-mikrotik-settings-close" data-afc-mikrotik-close data-afc-no-auto-icon aria-label="Close settings">×</button></header><div class="afc-mikrotik-settings-content"></div></div>';
-		root.appendChild( dialog );
+		document.body.appendChild( dialog );
 		dialog.querySelector( '.afc-mikrotik-settings-content' ).appendChild( row );
 
 		library.addEventListener( 'click', function ( event ) {

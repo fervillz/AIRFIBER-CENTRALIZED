@@ -43,8 +43,10 @@
 
 		const mikrotik = workspaceButton( 'mikrotik' );
 		const optical = workspaceButton( 'optical' );
+		const olt = workspaceButton( 'olt' );
 		if ( mikrotik ) mikrotik.hidden = true;
 		if ( optical ) optical.hidden = true;
+		if ( olt ) olt.hidden = true;
 
 		$$( '.afc-connection-open' ).forEach( function ( button ) {
 			if ( button.textContent !== 'Settings' ) button.textContent = 'Settings';
