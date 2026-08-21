@@ -138,7 +138,7 @@
 		if ( optical.status === 'offline' ) return '<span class="afc-olt-result-chip is-offline">Offline</span>';
 		if ( optical.rx_power !== null && optical.rx_power !== undefined && Number( optical.rx_power ) < -1 ) {
 			const tone = optical.status === 'critical' ? ' is-critical' : ( optical.status === 'warning' ? ' is-warning' : ' is-good' );
-			return '<span class="afc-olt-result-chip' + tone + '">' + esc( Number( optical.rx_power ).toFixed( 2 ) ) + '</span>';
+			return '<span class="afc-olt-result-chip' + tone + '">RX ' + esc( Number( optical.rx_power ).toFixed( 2 ) ) + ' dBm</span>';
 		}
 		return '<span class="afc-olt-result-chip is-empty">—</span>';
 	}

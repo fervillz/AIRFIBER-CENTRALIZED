@@ -50,6 +50,7 @@ class AFC_Comment_Aliases {
 	public static function ajax_get_users() {
 		self::authorize_ajax();
 		$force_optical = ! empty( $_POST['refresh_optical'] );
+		if ( $force_optical && function_exists( 'set_time_limit' ) ) @set_time_limit( 210 );
 
 		$secrets = AFC_MikroTik::run_command(
 			array(
@@ -84,8 +85,13 @@ class AFC_Comment_Aliases {
 			}
 		}
 
-		$imported          = self::get_imported_usernames();
-		$optical_snapshot = AFC_OLT::get_snapshot( $force_optical );
+		$imported = self::get_imported_usernames();
+		if ( $force_optical && class_exists( 'AFC_OLT_Refresh_Manager' ) ) {
+			$refresh_bundle   = AFC_OLT_Refresh_Manager::refresh_full( 'ppp-billing-manual' );
+			$optical_snapshot = $refresh_bundle['snapshot'];
+		} else {
+			$optical_snapshot = AFC_OLT::get_snapshot( false );
+		}
 		$optical_summary  = AFC_OLT::snapshot_summary( $optical_snapshot );
 		$users            = array();
 		foreach ( $secrets as $secret ) {
@@ -112,6 +118,9 @@ class AFC_Comment_Aliases {
 					'stale'        => false,
 					'message'      => '',
 				);
+			if ( $customer_id > 0 && class_exists( 'AFC_OLT_PPP_Auto_Link' ) ) {
+				$optical = AFC_OLT_PPP_Auto_Link::resolve( $name, $caller_id, $optical );
+			}
 			if ( $customer_id > 0 && empty( $optical['mapped'] ) ) {
 				$suggestion = AFC_OLT::suggest_binding( $caller_id, $optical_snapshot );
 				if ( $suggestion ) {

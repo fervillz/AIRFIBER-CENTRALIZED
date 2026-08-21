@@ -520,6 +520,14 @@
 				updateActionButtons();
 				showConnectionState();
 				refreshList();
+				document.dispatchEvent( new CustomEvent( 'afc:optical-snapshot-updated', { detail: { id: currentId, device: device } } ) );
+				if ( device.inventory_refresh === 'scheduled' ) {
+					[ 15000, 45000, 75000 ].forEach( function ( delay ) {
+						window.setTimeout( function () {
+							document.dispatchEvent( new CustomEvent( 'afc:optical-snapshot-updated', { detail: { id: currentId, inventory: true } } ) );
+						}, delay );
+					} );
+				}
 			} ).fail( function ( xhr, textStatus, errorThrown ) {
 				let message = xhr.responseJSON && xhr.responseJSON.data && xhr.responseJSON.data.message ? xhr.responseJSON.data.message : '';
 				if ( textStatus === 'timeout' ) {
@@ -591,7 +599,9 @@
 	}
 
 	function primaryAction() {
-		save( currentStatus === 'publish' ? 'keep' : 'publish' );
+		/* Updating a live OLT must also prove the connection and publish fresh RX. */
+		if ( currentStatus === 'publish' ) testConnection();
+		else save( 'publish' );
 	}
 
 	function stateAction( id ) {

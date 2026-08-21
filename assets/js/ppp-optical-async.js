@@ -106,37 +106,31 @@
 		const stale = summary.stale ? ' · cached/stale' : ' · current';
 		const valid = Number( summary.valid_count || 0 );
 		const invalid = Number( summary.invalid_count || 0 );
+		const nodeCount = Number( summary.node_count || 1 );
+		const availableNodes = Number( summary.available_nodes || ( summary.available ? 1 : 0 ) );
+		const nodeLabel = ' · ' + availableNodes + '/' + nodeCount + ' OLT' + ( nodeCount === 1 ? '' : 's' );
 		status.innerHTML = '<div class="alert alert-secondary py-2 mb-0">' +
 			escapeHtml( summary.count || 0 ) + ' ONU rows · ' + valid + ' valid RX' + ( invalid ? ' · ' + invalid + ' invalid RX' : '' ) +
-			' · ' + escapeHtml( summary.collected_at || 'time unavailable' ) + escapeHtml( stale ) + '</div>';
+			escapeHtml( nodeLabel ) + ' · ' + escapeHtml( summary.collected_at || 'time unavailable' ) + escapeHtml( stale ) + '</div>';
 	}
 
 	function currentRows() {
 		return Array.from( document.querySelectorAll( '#afc-ppp-table tbody tr[data-user]' ) );
 	}
 
-	function sameMapping( user, signal ) {
-		const current = user && user.optical ? user.optical : {};
-		if ( ! current.mapped || ! signal || ! signal.mapped ) return true;
-		return String( current.olt_id || 'primary' ) === String( signal.olt_id || 'primary' ) && Number( current.pon || 0 ) === Number( signal.pon || 0 ) && Number( current.onu || 0 ) === Number( signal.onu || 0 );
-	}
-
 	function applyCachedSignals() {
-		let mismatch = false;
 		currentRows().forEach( function ( row ) {
 			const user = parseUser( row );
 			if ( ! user || ! user.customer_id ) return;
 			const signal = signalCache[ String( user.customer_id ) ];
 			if ( ! signal ) return;
-			if ( ! sameMapping( user, signal ) ) {
-				mismatch = true;
-				return;
-			}
+			/* The server result is authoritative and may intentionally move an old
+			 * primary-OLT mapping to a newly published GPON OLT. */
 			user.optical = signal;
 			writeUser( row, user );
 			if ( row.children[5] ) row.children[5].innerHTML = opticalHtml( user );
 		} );
-		return mismatch;
+		return false;
 	}
 
 	function targets() {
@@ -232,6 +226,7 @@
 		} );
 		observer.observe( tableBody, { childList: true } );
 		scheduleAutoLoad( true );
+		document.addEventListener( 'afc:optical-snapshot-updated', function () { scheduleAutoLoad( true ); } );
 	}
 
 	if ( document.readyState === 'loading' ) document.addEventListener( 'DOMContentLoaded', boot );

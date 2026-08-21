@@ -12,6 +12,7 @@ class AFC_OLT_Inventory {
 	const INVENTORY_OPTION    = 'afc_olt_onu_inventory_last_v1';
 	const INVENTORY_LOCK      = 'afc_olt_onu_inventory_lock_v1';
 	const CACHE_TTL           = 300;
+	const IF_DESCR_OID        = '1.3.6.1.2.1.2.2.1.2';
 
 	public static function init() {
 		/* Replace the original optical-customer endpoint with the inventory-aware bulk endpoint. */
@@ -50,39 +51,12 @@ class AFC_OLT_Inventory {
 	}
 
 	private static function walk_oid( $settings, $oid ) {
-		$target  = 161 === (int) $settings['port'] ? $settings['host'] : 'udp:' . $settings['host'] . ':' . (int) $settings['port'];
-		$timeout = (int) $settings['timeout_ms'] * 1000;
-		$retries = (int) $settings['retries'];
-
-		if ( '2c' === $settings['version'] ) {
-			$community = self::decrypt_secret( $settings['community'] );
-			if ( '' === $community ) {
-				return new WP_Error( 'afc_olt_community_missing', __( 'Save the read-only SNMP community first.', 'airfiber-centralized' ) );
-			}
-			$walk = @snmp2_real_walk( $target, $community, $oid, $timeout, $retries );
-		} else {
-			$auth_passphrase    = self::decrypt_secret( $settings['auth_passphrase'] );
-			$privacy_passphrase = self::decrypt_secret( $settings['privacy_passphrase'] );
-			if ( empty( $settings['security_name'] ) || '' === $auth_passphrase || '' === $privacy_passphrase ) {
-				return new WP_Error( 'afc_olt_v3_credentials_missing', __( 'Save the SNMPv3 credentials first.', 'airfiber-centralized' ) );
-			}
-			$walk = @snmp3_real_walk(
-				$target,
-				$settings['security_name'],
-				'authPriv',
-				'SHA',
-				$auth_passphrase,
-				'DES',
-				$privacy_passphrase,
-				$oid,
-				$timeout,
-				$retries
-			);
-		}
-
-		return false === $walk || ! is_array( $walk )
-			? new WP_Error( 'afc_olt_inventory_walk_failed', __( 'The ONU inventory SNMP walk failed.', 'airfiber-centralized' ) )
-			: $walk;
+		/*
+		 * Keep inventory collection on the same transport path as RX polling.
+		 * V1600G-family GPON firmware commonly times out on GETBULK but answers
+		 * the bounded GETNEXT walker implemented by AFC_OLT reliably.
+		 */
+		return AFC_OLT::walk_configured_oid( $settings, $oid );
 	}
 
 	private static function table_root( $rx_oid ) {
@@ -289,6 +263,93 @@ class AFC_OLT_Inventory {
 		);
 	}
 
+	/** Build an identity inventory from the RX snapshot that was just polled. */
+	private static function inventory_from_snapshot( $snapshot, $node ) {
+		$rows       = array();
+		$olt_id     = AFC_OLT::normalize_olt_id( isset( $node['id'] ) ? $node['id'] : 'primary' );
+		$olt_name   = isset( $node['name'] ) ? sanitize_text_field( $node['name'] ) : __( 'OLT', 'airfiber-centralized' );
+		$technology = isset( $node['technology'] ) ? sanitize_text_field( $node['technology'] ) : '';
+
+		foreach ( isset( $snapshot['entries'] ) ? (array) $snapshot['entries'] : array() as $key => $entry ) {
+			$location = AFC_OLT::entry_location( $key, is_array( $entry ) ? $entry : array() );
+			if ( $olt_id !== $location['olt_id'] || $location['pon'] < 1 || $location['onu'] < 1 ) continue;
+			$entry_key = AFC_OLT::entry_key( $olt_id, $location['pon'], $location['onu'] );
+			$rows[ $entry_key ] = array(
+				'olt_id'      => $olt_id,
+				'olt_name'    => $olt_name,
+				'technology'  => $technology,
+				'pon'         => $location['pon'],
+				'onu'         => $location['onu'],
+				'description' => '',
+				'mac'         => '',
+				'online'      => null,
+				'onu_type'    => '',
+			);
+		}
+
+		return array(
+			'entries'        => $rows,
+			'columns'        => array(),
+			'profiles'       => array(),
+			'count'          => count( $rows ),
+			'identity_count' => 0,
+			'collected_at'   => current_time( 'mysql' ),
+			'collected_ts'   => time(),
+			'root_oid'       => isset( $node['config']['rx_oid'] ) ? ltrim( (string) $node['config']['rx_oid'], '.' ) : '',
+			'source'         => 'rx-snapshot',
+			'stale'          => false,
+		);
+	}
+
+	/** Parse VSOL IF-MIB labels such as "GPON01ONU14 BenchCasas_3_1000". */
+	private static function parse_pon_interface_description( $raw_value, $technology = '' ) {
+		$value      = self::clean_value( $raw_value );
+		$technology = strtoupper( trim( (string) $technology ) );
+		$prefix     = in_array( $technology, array( 'GPON', 'EPON' ), true ) ? $technology : '(?:GPON|EPON)';
+		if ( ! preg_match( '/^' . $prefix . '\s*0*(\d+)\s*ONU\s*0*(\d+)(?:\s+(.+))?$/i', $value, $matches ) ) {
+			return null;
+		}
+		$pon = absint( $matches[1] );
+		$onu = absint( $matches[2] );
+		if ( $pon < 1 || $onu < 1 ) return null;
+		return array(
+			'pon'         => $pon,
+			'onu'         => $onu,
+			'description' => isset( $matches[3] ) ? trim( $matches[3] ) : '',
+		);
+	}
+
+	/** Merge each OLT's authoritative PON/ONU names into its current RX rows. */
+	private static function enrich_interface_descriptions( $inventory, $settings, $node ) {
+		$walk = self::walk_oid( $settings, self::IF_DESCR_OID );
+		if ( is_wp_error( $walk ) ) {
+			$inventory['identity_error'] = $walk->get_error_message();
+			return $inventory;
+		}
+
+		$olt_id         = AFC_OLT::normalize_olt_id( isset( $node['id'] ) ? $node['id'] : 'primary' );
+		$technology     = isset( $node['technology'] ) ? (string) $node['technology'] : '';
+		$identity_count = 0;
+		foreach ( $walk as $instance_oid => $raw_value ) {
+			$identity = self::parse_pon_interface_description( $raw_value, $technology );
+			if ( ! $identity ) continue;
+			$key = AFC_OLT::entry_key( $olt_id, $identity['pon'], $identity['onu'] );
+			if ( empty( $inventory['entries'][ $key ] ) ) continue;
+			if ( '' !== $identity['description'] ) {
+				$inventory['entries'][ $key ]['description'] = sanitize_text_field( $identity['description'] );
+				$identity_count++;
+			}
+			$parts = explode( '.', trim( preg_replace( '/[^0-9.]/', '', (string) $instance_oid ), '.' ) );
+			$inventory['entries'][ $key ]['if_index']        = $parts ? absint( end( $parts ) ) : 0;
+			$inventory['entries'][ $key ]['identity_source'] = 'ifDescr';
+		}
+
+		$inventory['identity_count'] = $identity_count;
+		$inventory['identity_oid']   = self::IF_DESCR_OID;
+		$inventory['columns']['description'] = self::IF_DESCR_OID;
+		return $inventory;
+	}
+
 	private static function saved_inventory( $message = '' ) {
 		$cached = get_transient( self::INVENTORY_TRANSIENT );
 		if ( is_array( $cached ) && ! empty( $cached['entries'] ) ) {
@@ -328,7 +389,7 @@ class AFC_OLT_Inventory {
 			return self::saved_inventory( __( 'Another ONU inventory refresh is already running.', 'airfiber-centralized' ) );
 		}
 
-		set_transient( self::INVENTORY_LOCK, time(), 45 );
+		set_transient( self::INVENTORY_LOCK, time(), 210 );
 		try {
 			$inventory = self::poll_all_nodes();
 		} finally {
@@ -425,20 +486,56 @@ class AFC_OLT_Inventory {
 		if ( empty( $settings['version'] ) || ! AFC_OLT::is_snmp_available( $settings['version'] ) ) {
 			return new WP_Error( 'afc_olt_inventory_snmp_missing', __( 'The PHP SNMP extension is not available for this OLT profile.', 'airfiber-centralized' ) );
 		}
-		$root     = self::table_root( isset( $settings['rx_oid'] ) ? $settings['rx_oid'] : '' );
-		if ( '' === $root ) {
-			return new WP_Error( 'afc_olt_inventory_root_missing', __( 'The RX-power OID could not be used to derive the ONU inventory table.', 'airfiber-centralized' ) );
+		/* Reuse the fresh RX snapshot instead of walking every diagnostic column a
+		 * second time. This keeps a two-OLT refresh fast and avoids treating
+		 * temperature/model fields as customer names. */
+		$snapshot  = AFC_OLT::get_snapshot( false );
+		$inventory = is_wp_error( $snapshot ) ? array() : self::inventory_from_snapshot( $snapshot, $node );
+		if ( empty( $inventory['entries'] ) ) {
+			$snapshot = AFC_OLT::poll_node_rx_power( $node );
+			if ( is_wp_error( $snapshot ) ) return $snapshot;
+			$inventory = self::inventory_from_snapshot( $snapshot, $node );
 		}
-
-		$walk = self::walk_oid( $settings, $root );
-		if ( is_wp_error( $walk ) ) {
-			return $walk;
-		}
-
-		$inventory = self::build_inventory( $walk, $root, self::rx_column( $settings['rx_oid'] ), $node );
+		$inventory = self::enrich_interface_descriptions( $inventory, $settings, $node );
 		return empty( $inventory['entries'] )
 			? new WP_Error( 'afc_olt_inventory_empty', __( 'The ONU inventory table returned no usable PON/ONU rows.', 'airfiber-centralized' ) )
 			: $inventory;
+	}
+
+	/** Refresh one OLT inventory without discarding the saved rows of its peers. */
+	public static function refresh_node_inventory( $node ) {
+		$result = self::poll_node_inventory( $node );
+		if ( is_wp_error( $result ) ) return $result;
+
+		$olt_id = AFC_OLT::normalize_olt_id( isset( $node['id'] ) ? $node['id'] : 'primary' );
+		$saved  = get_option( self::INVENTORY_OPTION, array() );
+		$saved  = is_array( $saved ) ? $saved : array();
+		$entries = isset( $saved['entries'] ) && is_array( $saved['entries'] ) ? $saved['entries'] : array();
+		foreach ( $entries as $key => $entry ) {
+			$location = AFC_OLT::entry_location( $key, is_array( $entry ) ? $entry : array() );
+			if ( $olt_id === $location['olt_id'] ) unset( $entries[ $key ] );
+		}
+		$entries = array_replace( $entries, $result['entries'] );
+		$nodes   = isset( $saved['nodes'] ) && is_array( $saved['nodes'] ) ? $saved['nodes'] : array();
+		$nodes[ $olt_id ] = array(
+			'id' => $olt_id, 'name' => isset( $node['name'] ) ? $node['name'] : '',
+			'technology' => isset( $node['technology'] ) ? $node['technology'] : '',
+			'available' => true, 'count' => (int) $result['count'],
+			'columns' => $result['columns'], 'root_oid' => $result['root_oid'], 'error' => '',
+		);
+		$available = count( array_filter( $nodes, function ( $item ) { return ! empty( $item['available'] ); } ) );
+		$inventory = array_merge(
+			$saved,
+			array(
+				'entries' => $entries, 'nodes' => $nodes, 'node_count' => count( AFC_OLT::monitoring_nodes() ),
+				'available_nodes' => $available, 'count' => count( $entries ),
+				'collected_at' => current_time( 'mysql' ), 'collected_ts' => time(),
+				'source' => 'node-refresh', 'stale' => false,
+			)
+		);
+		set_transient( self::INVENTORY_TRANSIENT, $inventory, self::CACHE_TTL );
+		update_option( self::INVENTORY_OPTION, $inventory, false );
+		return $inventory;
 	}
 
 	private static function identity_variants( $value ) {

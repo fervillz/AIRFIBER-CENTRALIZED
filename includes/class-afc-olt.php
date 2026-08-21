@@ -353,7 +353,7 @@ class AFC_OLT {
 			return $saved ? $saved : new WP_Error( 'afc_olt_refresh_busy', __( 'Another optical refresh is already running. Try again in a few seconds.', 'airfiber-centralized' ) );
 		}
 
-		set_transient( self::POLL_LOCK_TRANSIENT, time(), 90 );
+		set_transient( self::POLL_LOCK_TRANSIENT, time(), 210 );
 		try {
 			$snapshot = self::poll_rx_power();
 		} finally {
@@ -489,9 +489,6 @@ class AFC_OLT {
 
 	public static function poll_node_rx_power( $node ) {
 		$settings   = isset( $node['config'] ) && is_array( $node['config'] ) ? $node['config'] : array();
-		$olt_id     = self::normalize_olt_id( isset( $node['id'] ) ? $node['id'] : 'primary' );
-		$olt_name   = isset( $node['name'] ) ? sanitize_text_field( $node['name'] ) : __( 'OLT', 'airfiber-centralized' );
-		$technology = isset( $node['technology'] ) ? sanitize_text_field( $node['technology'] ) : '';
 
 		if ( ! self::is_snmp_available( $settings['version'] ) ) {
 			return new WP_Error(
@@ -511,6 +508,35 @@ class AFC_OLT {
 			}
 			return new WP_Error( 'afc_olt_walk_failed', __( 'The OLT did not return an SNMP RX-power table. Check routing, UDP/161, credentials, and the configured OID.', 'airfiber-centralized' ) );
 		}
+		return self::build_node_snapshot( $node, $walk, $oid );
+	}
+
+	/**
+	 * Parse an RX walk already completed by the connection manager and promote it
+	 * into the shared multi-OLT snapshot. This avoids walking a slow GPON table a
+	 * second time after Retry Connection / Update OLT.
+	 */
+	public static function refresh_node_from_walk( $node, $walk, $oid = '' ) {
+		if ( ! is_array( $walk ) || empty( $walk ) ) {
+			return new WP_Error( 'afc_olt_empty_walk', __( 'The OLT returned no ONU RX rows.', 'airfiber-centralized' ) );
+		}
+		$node_snapshot = self::build_node_snapshot( $node, $walk, $oid );
+		if ( is_wp_error( $node_snapshot ) ) {
+			return $node_snapshot;
+		}
+		$combined = self::combine_saved_node_snapshots();
+		if ( is_wp_error( $combined ) ) {
+			return $combined;
+		}
+		return self::store_snapshot( $combined );
+	}
+
+	private static function build_node_snapshot( $node, $walk, $oid = '' ) {
+		$settings   = isset( $node['config'] ) && is_array( $node['config'] ) ? $node['config'] : array();
+		$olt_id     = self::normalize_olt_id( isset( $node['id'] ) ? $node['id'] : 'primary' );
+		$olt_name   = isset( $node['name'] ) ? sanitize_text_field( $node['name'] ) : __( 'OLT', 'airfiber-centralized' );
+		$technology = isset( $node['technology'] ) ? sanitize_text_field( $node['technology'] ) : '';
+		$oid        = ltrim( $oid ? $oid : ( isset( $settings['rx_oid'] ) ? $settings['rx_oid'] : '' ), '.' );
 
 		$entries       = array();
 		$valid_count   = 0;
@@ -570,6 +596,81 @@ class AFC_OLT {
 			'error'         => '',
 		);
 		self::save_node_snapshot( $olt_id, $snapshot, isset( $settings['cache_ttl'] ) ? (int) $settings['cache_ttl'] : 300 );
+		return $snapshot;
+	}
+
+	/**
+	 * Rebuild one collision-safe snapshot from the latest saved result of every
+	 * active OLT. Secondary OLT keys retain their OLT ID, so PON 1 / ONU 1 on two
+	 * chassis can never overwrite one another.
+	 */
+	private static function combine_saved_node_snapshots() {
+		$nodes          = self::monitoring_nodes();
+		$entries        = array();
+		$learned_macs   = array();
+		$node_results   = array();
+		$valid_count    = 0;
+		$invalid_count  = 0;
+		$available      = 0;
+		$collected_ts   = 0;
+		$collected_at   = '';
+		$errors         = array();
+
+		foreach ( $nodes as $olt_id => $node ) {
+			$result = self::last_node_snapshot( $olt_id );
+			if ( ! $result ) {
+				$message = __( 'No saved RX snapshot is available for this OLT yet.', 'airfiber-centralized' );
+				$errors[] = $node['name'] . ': ' . $message;
+				$node_results[ $olt_id ] = array(
+					'id' => $olt_id, 'name' => $node['name'], 'technology' => $node['technology'],
+					'available' => false, 'stale' => false, 'count' => 0, 'valid_count' => 0,
+					'rx_oid' => '', 'error' => $message,
+				);
+				continue;
+			}
+
+			$available++;
+			$entries = array_replace( $entries, (array) $result['entries'] );
+			$valid_count += isset( $result['valid_count'] ) ? (int) $result['valid_count'] : 0;
+			$invalid_count += isset( $result['invalid_count'] ) ? (int) $result['invalid_count'] : 0;
+			foreach ( isset( $result['learned_macs'] ) ? (array) $result['learned_macs'] : array() as $mac => $locations ) {
+				if ( ! isset( $learned_macs[ $mac ] ) ) $learned_macs[ $mac ] = array();
+				foreach ( (array) $locations as $location ) {
+					if ( ! in_array( $location, $learned_macs[ $mac ], true ) ) $learned_macs[ $mac ][] = $location;
+				}
+			}
+			$node_ts = isset( $result['collected_ts'] ) ? (int) $result['collected_ts'] : 0;
+			if ( $node_ts >= $collected_ts ) {
+				$collected_ts = $node_ts;
+				$collected_at = isset( $result['collected_at'] ) ? (string) $result['collected_at'] : $collected_at;
+			}
+			$node_results[ $olt_id ] = array(
+				'id' => $olt_id, 'name' => $node['name'], 'technology' => $node['technology'],
+				'available' => true, 'stale' => ! empty( $result['stale'] ),
+				'count' => isset( $result['count'] ) ? (int) $result['count'] : count( $result['entries'] ),
+				'valid_count' => isset( $result['valid_count'] ) ? (int) $result['valid_count'] : 0,
+				'rx_oid' => isset( $result['rx_oid'] ) ? (string) $result['rx_oid'] : '', 'error' => '',
+			);
+		}
+
+		if ( empty( $entries ) ) {
+			return new WP_Error( 'afc_olt_no_saved_nodes', __( 'No active OLT has a saved RX snapshot yet.', 'airfiber-centralized' ) );
+		}
+		return array(
+			'format' => self::SNAPSHOT_FORMAT, 'entries' => $entries, 'learned_macs' => $learned_macs,
+			'nodes' => $node_results, 'node_count' => count( $nodes ), 'available_nodes' => $available,
+			'count' => count( $entries ), 'valid_count' => $valid_count, 'invalid_count' => $invalid_count,
+			'rx_oid' => 1 === count( $node_results ) ? (string) reset( $node_results )['rx_oid'] : '',
+			'collected_at' => $collected_at ? $collected_at : current_time( 'mysql' ),
+			'collected_ts' => $collected_ts ? $collected_ts : time(), 'source' => 'node-refresh',
+			'stale' => false, 'partial' => $available < count( $nodes ), 'error' => implode( ' ', $errors ),
+		);
+	}
+
+	public static function store_snapshot( $snapshot ) {
+		if ( is_wp_error( $snapshot ) || empty( $snapshot['entries'] ) ) return $snapshot;
+		set_transient( self::SNAPSHOT_TRANSIENT, $snapshot, self::snapshot_cache_ttl() );
+		update_option( self::LAST_SNAPSHOT_KEY, $snapshot, false );
 		return $snapshot;
 	}
 

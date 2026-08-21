@@ -55,9 +55,12 @@
 		const stale = opticalSummary.stale
 			? ' <span class="badge bg-yellow-lt">Stale snapshot</span>'
 			: ' <span class="badge bg-success-lt">Current</span>';
+		const nodeCount = Number( opticalSummary.node_count || 1 );
+		const availableNodes = Number( opticalSummary.available_nodes || 1 );
 		$status.html(
 			'<div class="alert alert-secondary py-2 mb-0"><strong>' +
 			escapeHtml( opticalSummary.count ) + ' ONU reading(s)</strong> · ' +
+			escapeHtml( availableNodes + '/' + nodeCount + ' OLT' + ( nodeCount === 1 ? '' : 's' ) ) + ' · ' +
 			escapeHtml( opticalSummary.collected_at || 'time unavailable' ) + stale + '</div>'
 		);
 	}

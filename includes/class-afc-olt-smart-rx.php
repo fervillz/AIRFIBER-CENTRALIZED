@@ -456,6 +456,7 @@ class AFC_OLT_Smart_RX {
 
 	public static function ajax_test() {
 		self::authorize();
+		if ( function_exists( 'set_time_limit' ) ) @set_time_limit( 210 );
 		self::$started_at  = microtime( true );
 		self::$diagnostics = array();
 
@@ -551,6 +552,40 @@ class AFC_OLT_Smart_RX {
 			$device['onu_count'],
 			$device['valid_count']
 		);
+
+		/* The Smart RX handler owns this AJAX request, so it must also publish the
+		 * successful walk to the same multi-OLT/customer data pipeline. */
+		if ( 'publish' === get_post_status( $post_id ) ) {
+			$is_primary = (bool) get_post_meta( $post_id, AFC_OLT_Manager::PRIMARY_META, true );
+			$reference  = $is_primary ? 'primary' : (string) $post_id;
+			$node       = array(
+				'id' => $reference, 'post_id' => $post_id, 'name' => get_the_title( $post_id ),
+				'technology' => $config['technology'], 'primary' => $is_primary, 'config' => $config,
+			);
+			$snapshot = AFC_OLT::refresh_node_from_walk( $node, $match['rows'], $match['oid'] );
+			if ( ! is_wp_error( $snapshot ) ) {
+				$inventory = class_exists( 'AFC_OLT_Inventory' ) ? AFC_OLT_Inventory::refresh_node_inventory( $node ) : null;
+				$updated   = class_exists( 'AFC_OLT_Refresh_Manager' )
+					? AFC_OLT_Refresh_Manager::persist_snapshot( $snapshot, 'connection:' . $reference, is_wp_error( $inventory ) ? null : $inventory )
+					: 0;
+				$device['snapshot_count']    = isset( $snapshot['count'] ) ? (int) $snapshot['count'] : 0;
+				$device['snapshot_nodes']    = isset( $snapshot['available_nodes'] ) ? (int) $snapshot['available_nodes'] : 1;
+				$device['customers_updated'] = (int) $updated;
+				if ( is_wp_error( $inventory ) && class_exists( 'AFC_OLT_Refresh_Manager' ) ) {
+					AFC_OLT_Refresh_Manager::schedule_connection_inventory_refresh( $reference );
+					$device['inventory_refresh'] = 'scheduled';
+				} else {
+					$device['inventory_refresh'] = 'complete';
+				}
+				$device['message'] .= ' ' . sprintf(
+					__( 'Shared optical data updated: %1$d ONU row(s) across %2$d OLT(s), with %3$d customer record(s) refreshed.', 'airfiber-centralized' ),
+					$device['snapshot_count'], $device['snapshot_nodes'], $device['customers_updated']
+				) . ' ' . ( is_wp_error( $inventory ) ? __( 'ONU identity matching will retry in the background.', 'airfiber-centralized' ) : __( 'ONU identity matching is complete.', 'airfiber-centralized' ) );
+				self::log( $device['message'], 'success' );
+			} else {
+				self::log( __( 'The connection succeeded, but the shared optical snapshot could not be updated.', 'airfiber-centralized' ), 'warning' );
+			}
+		}
 		update_post_meta( $post_id, AFC_OLT_Manager::DEVICE_META, $device );
 
 		wp_send_json_success(

@@ -244,6 +244,14 @@ class AFC_OLT_MAC_Link {
 		if ( empty( $signal['refreshed_at'] ) ) {
 			$signal['refreshed_at'] = current_time( 'mysql' );
 		}
+		if ( ! empty( $signal['mapped'] ) && ! empty( $signal['pon'] ) && ! empty( $signal['onu'] ) ) {
+			update_post_meta( $customer_id, '_afc_olt_id', AFC_OLT::normalize_olt_id( isset( $signal['olt_id'] ) ? $signal['olt_id'] : 'primary' ) );
+			update_post_meta( $customer_id, '_afc_olt_pon', absint( $signal['pon'] ) );
+			update_post_meta( $customer_id, '_afc_olt_onu', absint( $signal['onu'] ) );
+			if ( ! empty( $signal['description'] ) ) update_post_meta( $customer_id, '_afc_olt_description', sanitize_text_field( $signal['description'] ) );
+			if ( ! empty( $signal['onu_mac'] ) ) update_post_meta( $customer_id, '_afc_olt_onu_mac', AFC_OLT_Inventory::normalize_mac( $signal['onu_mac'] ) );
+			if ( ! empty( $signal['match_method'] ) ) update_post_meta( $customer_id, '_afc_olt_match_method', sanitize_key( $signal['match_method'] ) );
+		}
 		update_post_meta( $customer_id, AFC_OLT_Refresh_Manager::CUSTOMER_SIGNAL, $signal );
 		return true;
 	}
@@ -279,6 +287,9 @@ class AFC_OLT_MAC_Link {
 				continue;
 			}
 			$signal = self::signal_for_customer( $customer_id, $caller_id, $username, $snapshot, $inventory, true );
+			if ( class_exists( 'AFC_OLT_PPP_Auto_Link' ) ) {
+				$signal = AFC_OLT_PPP_Auto_Link::resolve( $username, $caller_id, $signal );
+			}
 			if ( self::persist_signal( $customer_id, $signal ) ) {
 				$count++;
 			}
@@ -329,6 +340,7 @@ class AFC_OLT_MAC_Link {
 
 	public static function ajax_customer_signals() {
 		self::authorize();
+		if ( ! empty( $_POST['refresh'] ) && function_exists( 'set_time_limit' ) ) @set_time_limit( 210 );
 		$customers = array();
 		if ( isset( $_POST['customers'] ) ) {
 			$decoded = json_decode( wp_unslash( $_POST['customers'] ), true );
@@ -360,13 +372,12 @@ class AFC_OLT_MAC_Link {
 				update_post_meta( $customer_id, '_afc_caller_id', $caller_id );
 			}
 
-			$saved = get_post_meta( $customer_id, AFC_OLT_Refresh_Manager::CUSTOMER_SIGNAL, true );
-			if ( is_array( $saved ) && ! empty( $saved['mapped'] ) ) {
-				$signals[ (string) $customer_id ] = $saved;
-				continue;
-			}
-
+			/* Always resolve against this request's combined snapshot. A previously
+			 * saved EPON signal must never hide a fresh GPON result. */
 			$signal = self::signal_for_customer( $customer_id, $caller_id, $username, $snapshot, $inventory, true );
+			if ( class_exists( 'AFC_OLT_PPP_Auto_Link' ) ) {
+				$signal = AFC_OLT_PPP_Auto_Link::resolve( $username, $caller_id, $signal );
+			}
 			$signals[ (string) $customer_id ] = $signal;
 			if ( is_array( $signal ) && ! empty( $signal['mapped'] ) ) {
 				self::persist_signal( $customer_id, $signal );

@@ -275,7 +275,23 @@ class AFC_OLT_PPP_Auto_Link {
 		}
 
 		list( $snapshot, $inventory ) = self::sources();
-		$link = self::stored_link( $username, $caller_id );
+		$link            = self::stored_link( $username, $caller_id );
+		$learned_match   = self::learned_mac_match( $caller_id, $snapshot );
+		$inventory_match = self::fallback_match( $username, $caller_id, $inventory );
+		$exact_method    = $inventory_match && isset( $inventory_match['match_method'] ) ? sanitize_key( $inventory_match['match_method'] ) : '';
+		$live_match      = $learned_match;
+		if ( ! $live_match && in_array( $exact_method, array( 'mac', 'description' ), true ) ) {
+			$live_match = $inventory_match;
+		}
+
+		/* A unique live MAC or exact OLT interface description is authoritative.
+		 * It must replace a stale link created before multi-OLT support existed. */
+		if ( $live_match ) {
+			$signal = self::signal_for_location( $live_match, $snapshot, $inventory );
+			self::persist_link( $username, $caller_id, $signal, $link );
+			return $signal;
+		}
+
 		if ( $link ) {
 			$signal = self::signal_from_link( $link, $snapshot, $inventory );
 			self::persist_link( $username, $caller_id, $signal, $link );
@@ -298,10 +314,7 @@ class AFC_OLT_PPP_Auto_Link {
 			return $signal;
 		}
 
-		$match = self::learned_mac_match( $caller_id, $snapshot );
-		if ( ! $match ) {
-			$match = self::fallback_match( $username, $caller_id, $inventory );
-		}
+		$match = $inventory_match;
 		if ( ! $match ) {
 			return is_array( $existing_optical ) ? $existing_optical : self::empty_signal();
 		}

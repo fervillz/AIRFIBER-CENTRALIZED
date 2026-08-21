@@ -469,6 +469,9 @@
 		} );
 
 		bindDocumentEvents();
+		document.addEventListener( 'afc:optical-snapshot-updated', function () {
+			watchers.forEach( function ( watcher ) { scheduleWatcher( watcher ); } );
+		} );
 		new MutationObserver( function () {
 			window.clearTimeout( observerTimer );
 			observerTimer = window.setTimeout( decorateAllFromCache, 35 );

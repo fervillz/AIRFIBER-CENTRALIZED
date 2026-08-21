@@ -722,6 +722,43 @@ class AFC_OLT_Manager {
 			count( $walk ),
 			$valid
 		);
+
+		/*
+		 * A test of a published OLT is also a real data refresh. Reuse this exact
+		 * walk so slow GPON tables are not read twice, merge it with every other
+		 * active OLT, then update the customer-facing optical records.
+		 */
+		if ( 'publish' === get_post_status( $post_id ) ) {
+			$is_primary = $post_id === self::primary_id();
+			$reference  = $is_primary ? 'primary' : (string) $post_id;
+			$node       = array(
+				'id' => $reference, 'post_id' => $post_id, 'name' => get_the_title( $post_id ),
+				'technology' => self::normalize_technology( $config['technology'] ),
+				'primary' => $is_primary, 'config' => $config,
+			);
+			$snapshot = AFC_OLT::refresh_node_from_walk( $node, $walk, $config['rx_oid'] );
+			if ( ! is_wp_error( $snapshot ) ) {
+				$inventory = class_exists( 'AFC_OLT_Inventory' ) ? AFC_OLT_Inventory::refresh_node_inventory( $node ) : null;
+				$updated   = class_exists( 'AFC_OLT_Refresh_Manager' )
+					? AFC_OLT_Refresh_Manager::persist_snapshot( $snapshot, 'connection:' . $reference, is_wp_error( $inventory ) ? null : $inventory )
+					: 0;
+				$device['snapshot_count']  = isset( $snapshot['count'] ) ? (int) $snapshot['count'] : 0;
+				$device['snapshot_nodes']  = isset( $snapshot['available_nodes'] ) ? (int) $snapshot['available_nodes'] : 1;
+				$device['customers_updated'] = (int) $updated;
+				if ( is_wp_error( $inventory ) && class_exists( 'AFC_OLT_Refresh_Manager' ) ) {
+					AFC_OLT_Refresh_Manager::schedule_connection_inventory_refresh( $reference );
+					$device['inventory_refresh'] = 'scheduled';
+				} else {
+					$device['inventory_refresh'] = 'complete';
+				}
+				$device['message'] .= ' ' . sprintf(
+					__( 'The shared optical database now contains %1$d ONU row(s) from %2$d OLT(s); %3$d customer record(s) were updated.', 'airfiber-centralized' ),
+					$device['snapshot_count'], $device['snapshot_nodes'], $device['customers_updated']
+				) . ' ' . ( is_wp_error( $inventory ) ? __( 'ONU identity matching will retry in the background.', 'airfiber-centralized' ) : __( 'ONU identity matching is complete.', 'airfiber-centralized' ) );
+			} else {
+				$device['message'] .= ' ' . __( 'The connection worked, but the shared optical snapshot could not be updated.', 'airfiber-centralized' );
+			}
+		}
 		update_post_meta( $post_id, self::DEVICE_META, $device );
 		delete_post_meta( $post_id, self::DISCONNECTED_META );
 		self::sync_primary_legacy( $post_id );
@@ -827,7 +864,7 @@ class AFC_OLT_Manager {
 	public static function ajax_test() {
 		self::authorize();
 		/* Large GPON optical tables can legitimately take longer than PHP's default limit. */
-		if ( function_exists( 'set_time_limit' ) ) @set_time_limit( 90 );
+		if ( function_exists( 'set_time_limit' ) ) @set_time_limit( 210 );
 		$post_id = isset( $_POST['id'] ) ? absint( $_POST['id'] ) : 0;
 		if ( ! $post_id || self::POST_TYPE !== get_post_type( $post_id ) ) wp_send_json_error( array( 'message' => __( 'Save the OLT draft before testing.', 'airfiber-centralized' ) ), 400 );
 		$result = self::run_test( $post_id );

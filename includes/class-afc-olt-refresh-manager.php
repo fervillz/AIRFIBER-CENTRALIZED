@@ -17,11 +17,13 @@ class AFC_OLT_Refresh_Manager {
 	const LAST_REFRESH       = 'afc_olt_last_full_refresh_v1';
 	const CUSTOMER_SIGNAL    = '_afc_olt_last_signal';
 	const CRON_HOOK          = 'afc_olt_scheduled_refresh';
+	const CONNECTION_INVENTORY_HOOK = 'afc_olt_connection_inventory_refresh';
 	const NONCE              = 'afc_olt_refresh_manager';
 
 	public static function init() {
 		add_action( 'init', array( __CLASS__, 'ensure_schedule' ), 30 );
 		add_action( self::CRON_HOOK, array( __CLASS__, 'cron_refresh' ), 10, 1 );
+		add_action( self::CONNECTION_INVENTORY_HOOK, array( __CLASS__, 'refresh_connection_inventory' ), 10, 1 );
 		add_action( 'wp_ajax_afc_save_olt_refresh_schedule', array( __CLASS__, 'ajax_save_schedule' ) );
 		add_action( 'wp_ajax_afc_refresh_customer_optical', array( __CLASS__, 'ajax_refresh_customer' ) );
 		add_action( 'wp_ajax_afc_flush_olt_runtime_cache', array( __CLASS__, 'ajax_flush_runtime_cache' ) );
@@ -150,21 +152,11 @@ class AFC_OLT_Refresh_Manager {
 	}
 
 	public static function refresh_full( $source = 'manual' ) {
+		/* Two OLTs plus their inventory tables can exceed the normal web limit. */
+		if ( function_exists( 'set_time_limit' ) ) @set_time_limit( 210 );
 		$snapshot  = AFC_OLT::get_snapshot( true );
 		$inventory = AFC_OLT_Inventory::get_inventory( true );
-		$count     = 0;
-
-		if ( ! is_wp_error( $snapshot ) && class_exists( 'AFC_OLT_MAC_Link' ) ) {
-			$count = AFC_OLT_MAC_Link::store_all_customer_signals( $snapshot, $inventory );
-			$meta  = array(
-				'refreshed_ts' => time(),
-				'refreshed_at' => current_time( 'mysql' ),
-				'source'       => sanitize_text_field( (string) $source ),
-				'customers'    => (int) $count,
-				'onu_rows'     => isset( $snapshot['count'] ) ? (int) $snapshot['count'] : 0,
-			);
-			update_option( self::LAST_REFRESH, $meta, false );
-		}
+		$count     = self::persist_snapshot( $snapshot, $source, $inventory );
 
 		return array(
 			'snapshot'  => $snapshot,
@@ -172,6 +164,47 @@ class AFC_OLT_Refresh_Manager {
 			'count'     => $count,
 			'last'      => self::get_last_refresh(),
 		);
+	}
+
+	/**
+	 * Persist a shared RX snapshot into every mapped customer record. Connection
+	 * popup refreshes use this with their already-completed OLT walk, while full
+	 * refreshes pass the newly collected inventory as well.
+	 */
+	public static function persist_snapshot( $snapshot, $source = 'manual', $inventory = null ) {
+		if ( is_wp_error( $snapshot ) || ! is_array( $snapshot ) || empty( $snapshot['entries'] ) ) return 0;
+		if ( null === $inventory ) $inventory = self::stored_inventory();
+		$inventory = is_array( $inventory ) ? $inventory : array( 'entries' => array() );
+		$count = class_exists( 'AFC_OLT_MAC_Link' ) ? AFC_OLT_MAC_Link::store_all_customer_signals( $snapshot, $inventory ) : 0;
+		update_option(
+			self::LAST_REFRESH,
+			array(
+				'refreshed_ts' => time(), 'refreshed_at' => current_time( 'mysql' ),
+				'source' => sanitize_text_field( (string) $source ), 'customers' => (int) $count,
+				'onu_rows' => isset( $snapshot['count'] ) ? (int) $snapshot['count'] : count( $snapshot['entries'] ),
+				'olt_nodes' => isset( $snapshot['available_nodes'] ) ? (int) $snapshot['available_nodes'] : 1,
+			),
+			false
+		);
+		return $count;
+	}
+
+	public static function schedule_connection_inventory_refresh( $olt_id ) {
+		$olt_id = AFC_OLT::normalize_olt_id( $olt_id );
+		if ( ! wp_next_scheduled( self::CONNECTION_INVENTORY_HOOK, array( $olt_id ) ) ) {
+			wp_schedule_single_event( time() + 1, self::CONNECTION_INVENTORY_HOOK, array( $olt_id ) );
+		}
+	}
+
+	public static function refresh_connection_inventory( $olt_id ) {
+		if ( function_exists( 'set_time_limit' ) ) @set_time_limit( 210 );
+		$olt_id = AFC_OLT::normalize_olt_id( $olt_id );
+		$node   = AFC_OLT::monitoring_node( $olt_id );
+		if ( ! $node ) return;
+		$inventory = AFC_OLT_Inventory::refresh_node_inventory( $node );
+		if ( is_wp_error( $inventory ) ) return;
+		$snapshot = self::stored_snapshot();
+		if ( ! is_wp_error( $snapshot ) ) self::persist_snapshot( $snapshot, 'connection-inventory:' . $olt_id, $inventory );
 	}
 
 	private static function authorize() {

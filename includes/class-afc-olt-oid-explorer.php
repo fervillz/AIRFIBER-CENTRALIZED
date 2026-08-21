@@ -136,42 +136,12 @@ class AFC_OLT_OID_Explorer {
 	}
 
 	private static function walk( $config, $root, &$warning ) {
-		$target  = self::target( $config );
-		$timeout = min( 2500, max( 600, (int) $config['timeout_ms'] ) ) * 1000;
-		$retries = 0;
-		$root    = ltrim( $root, '.' );
-
-		if ( function_exists( 'snmp_set_oid_output_format' ) && defined( 'SNMP_OID_OUTPUT_NUMERIC' ) ) {
-			snmp_set_oid_output_format( SNMP_OID_OUTPUT_NUMERIC );
-		}
-
-		if ( '2c' === $config['version'] ) {
-			if ( ! function_exists( 'snmp2_real_walk' ) ) return new WP_Error( 'snmp_missing', __( 'PHP SNMPv2 support is not available on this server.', 'airfiber-centralized' ) );
-			$community = self::decrypt_secret( $config['community'] );
-			if ( '' === $community ) return new WP_Error( 'credentials_missing', __( 'Save the SNMPv2 monitoring password first.', 'airfiber-centralized' ) );
-			$rows = self::capture_call(
-				function () use ( $target, $community, $root, $timeout, $retries ) {
-					return snmp2_real_walk( $target, $community, $root, $timeout, $retries );
-				},
-				$warning
-			);
-		} else {
-			if ( ! function_exists( 'snmp3_real_walk' ) ) return new WP_Error( 'snmp_missing', __( 'PHP SNMPv3 support is not available on this server.', 'airfiber-centralized' ) );
-			$auth    = self::decrypt_secret( $config['auth_passphrase'] );
-			$privacy = self::decrypt_secret( $config['privacy_passphrase'] );
-			if ( '' === $config['security_name'] || '' === $auth || '' === $privacy ) return new WP_Error( 'credentials_missing', __( 'Save the SNMPv3 username, login password and encryption password first.', 'airfiber-centralized' ) );
-			$rows = self::capture_call(
-				function () use ( $target, $config, $auth, $privacy, $root, $timeout, $retries ) {
-					return snmp3_real_walk( $target, $config['security_name'], 'authPriv', 'SHA', $auth, 'DES', $privacy, $root, $timeout, $retries );
-				},
-				$warning
-			);
-		}
-
-		if ( false === $rows || ! is_array( $rows ) || empty( $rows ) ) {
-			return new WP_Error( 'walk_failed', __( 'The OLT returned no readable OIDs under this branch.', 'airfiber-centralized' ) );
-		}
-		return $rows;
+		$warning = '';
+		$rows    = AFC_OLT::walk_configured_oid( $config, ltrim( $root, '.' ) );
+		if ( is_wp_error( $rows ) ) return $rows;
+		return is_array( $rows ) && $rows
+			? $rows
+			: new WP_Error( 'walk_failed', __( 'The OLT returned no readable OIDs under this branch.', 'airfiber-centralized' ) );
 	}
 
 	private static function numeric_oid( $oid ) {
