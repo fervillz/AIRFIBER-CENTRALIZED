@@ -143,9 +143,9 @@ defined( 'ABSPATH' ) || exit;
 				</form>
 
 				<footer class="afc-olt-dialog-footer">
-					<button type="button" class="afc-olt-btn is-ghost" data-afc-olt-save-draft><?php esc_html_e( 'Save as Draft', 'airfiber-centralized' ); ?></button>
+					<button type="button" class="afc-olt-btn is-ghost" data-afc-olt-secondary><?php esc_html_e( 'Save Draft', 'airfiber-centralized' ); ?></button>
 					<button type="button" class="afc-olt-btn is-test" data-afc-olt-test><?php esc_html_e( 'Test Connection', 'airfiber-centralized' ); ?></button>
-					<button type="button" class="afc-olt-btn is-primary" data-afc-olt-publish><?php esc_html_e( 'Publish', 'airfiber-centralized' ); ?></button>
+					<button type="button" class="afc-olt-btn is-primary" data-afc-olt-publish><?php esc_html_e( 'Publish OLT', 'airfiber-centralized' ); ?></button>
 				</footer>
 			</div>
 

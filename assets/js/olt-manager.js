@@ -11,6 +11,8 @@
 	let dirty = false;
 	let currentId = 0;
 	let currentStatus = 'draft';
+	let currentState = 'draft';
+	let currentDevice = {};
 	let activeTestRequest = null;
 	let testElapsedTimer = null;
 	let testStartedAt = 0;
@@ -36,6 +38,73 @@
 		copy.textContent = message || '';
 	}
 
+	function setActionButton( button, label, hidden, title ) {
+		if ( ! button ) return;
+		button.hidden = Boolean( hidden );
+		button.textContent = label;
+		button.setAttribute( 'aria-label', label );
+		button.title = title || label;
+	}
+
+	function updateActionButtons() {
+		const secondary = q( '[data-afc-olt-secondary]', modal );
+		const connection = q( '[data-afc-olt-test]', modal );
+		const primary = q( '[data-afc-olt-publish]', modal );
+
+		if ( currentStatus !== 'publish' ) {
+			setActionButton( secondary, 'Save Draft', false, 'Save without activating this OLT' );
+			setActionButton( connection, currentDevice.test_status === 'success' ? 'Test Again' : 'Test Connection', false, 'Verify SNMP and read the ONU RX table' );
+			setActionButton( primary, 'Publish OLT', false, 'Activate this OLT connection' );
+			return;
+		}
+
+		setActionButton( primary, 'Update OLT', false, 'Save changes to this active OLT' );
+		if ( currentState === 'offline' ) {
+			setActionButton( secondary, '', true, '' );
+			setActionButton( connection, 'Reconnect', false, 'Reconnect monitoring and refresh RX data' );
+		} else if ( currentState === 'error' ) {
+			setActionButton( secondary, 'Pause Monitoring', false, 'Stop polling this OLT without deleting it' );
+			setActionButton( connection, 'Retry Connection', false, 'Retry SNMP and refresh RX data' );
+		} else {
+			setActionButton( secondary, 'Pause Monitoring', false, 'Stop polling this OLT without deleting it' );
+			setActionButton( connection, 'Refresh RX Data', false, 'Read the latest ONU RX values now' );
+		}
+	}
+
+	function showConnectionState() {
+		const kicker = q( '[data-afc-olt-dialog-kicker]', modal );
+		const lastRefresh = currentDevice.tested_at ? ' · Last refreshed ' + currentDevice.tested_at : '';
+		const lastAttempt = currentDevice.tested_at ? ' · Last attempt ' + currentDevice.tested_at : '';
+		const lastTest = currentDevice.tested_at ? ' · Tested ' + currentDevice.tested_at : '';
+		const name = currentDevice.name ? ' · ' + currentDevice.name : '';
+		const onuCount = Number( currentDevice.onu_count || 0 );
+		const validCount = Number( currentDevice.valid_count || 0 );
+		const readings = onuCount > 0 ? ' · ' + onuCount + ' ONU rows · ' + validCount + ' readable RX' : '';
+
+		if ( currentStatus !== 'publish' ) {
+			if ( kicker ) kicker.textContent = currentDevice.test_status === 'success' ? 'Ready to publish' : 'Draft OLT';
+			if ( currentDevice.test_status === 'success' ) {
+				setInfo( 'Connection verified' + name + readings + lastTest + '. Publish when ready.', 'success' );
+			} else if ( currentDevice.test_status === 'error' ) {
+				setInfo( 'Draft connection needs attention · ' + ( currentDevice.message || 'The last test failed.' ) + lastAttempt, 'error' );
+			} else {
+				setInfo( 'Draft · Test the connection before publishing.', 'neutral' );
+			}
+			return;
+		}
+
+		if ( currentState === 'offline' ) {
+			if ( kicker ) kicker.textContent = 'Monitoring paused';
+			setInfo( 'Monitoring is paused' + name + lastRefresh + '. Reconnect when ready.', 'warning' );
+		} else if ( currentState === 'error' ) {
+			if ( kicker ) kicker.textContent = 'Connection needs attention';
+			setInfo( 'Connection needs attention · ' + ( currentDevice.message || 'The latest refresh failed.' ) + lastAttempt, 'error' );
+		} else {
+			if ( kicker ) kicker.textContent = 'Connected OLT';
+			setInfo( 'Connected' + name + readings + lastRefresh, 'success' );
+		}
+	}
+
 	function setTestAttention( active, focus ) {
 		const button = q( '[data-afc-olt-test]', modal );
 		if ( ! button ) return;
@@ -45,7 +114,7 @@
 			button.style.setProperty( 'border-color', '#2f9e56', 'important' );
 			button.style.setProperty( 'color', '#fff', 'important' );
 			button.style.setProperty( 'box-shadow', '0 0 0 4px rgba(47,158,86,.16), 0 8px 20px rgba(47,158,86,.20)', 'important' );
-			button.setAttribute( 'aria-label', 'Test Connection — next step' );
+			button.setAttribute( 'aria-label', button.textContent + ' — recommended next step' );
 			if ( focus ) {
 				window.setTimeout( function () {
 					try {
@@ -135,7 +204,8 @@
 		const button = q( '[data-afc-olt-test]', modal );
 		if ( ! button ) return;
 		button.disabled = Boolean( running );
-		button.textContent = running ? 'Testing…' : 'Test Connection';
+		if ( running ) button.textContent = currentState === 'offline' ? 'Reconnecting…' : ( currentStatus === 'publish' ? 'Refreshing…' : 'Testing…' );
+		else updateActionButtons();
 		button.style.opacity = running ? '.78' : '';
 		button.style.cursor = running ? 'wait' : '';
 	}
@@ -199,6 +269,8 @@
 		setTestRunning( false );
 		currentId = 0;
 		currentStatus = 'draft';
+		currentState = 'draft';
+		currentDevice = {};
 		dirty = false;
 		if ( ! form ) return;
 		form.reset();
@@ -220,6 +292,7 @@
 		if ( details ) details.hidden = true;
 		const kicker = q( '[data-afc-olt-dialog-kicker]', modal );
 		if ( kicker ) kicker.textContent = 'New OLT';
+		updateActionButtons();
 		setInfo( 'Start entering the OLT details. The first draft will save automatically after 5 seconds.', 'neutral' );
 	}
 
@@ -241,6 +314,8 @@
 		resetForm();
 		currentId = Number( node.id || 0 );
 		currentStatus = node.post_status || 'draft';
+		currentState = node.state || ( currentStatus === 'publish' ? 'error' : 'draft' );
+		currentDevice = node.device || {};
 		q( '[name="id"]', form ).value = String( currentId );
 		q( '[name="post_status"]', form ).value = currentStatus;
 		q( '[name="title"]', form ).value = node.title || '';
@@ -249,18 +324,9 @@
 			if ( field && ! [ 'has_community', 'has_auth', 'has_privacy' ].includes( key ) ) field.value = node.config[ key ] == null ? '' : node.config[ key ];
 		} );
 		updateVersionFields();
-		const kicker = q( '[data-afc-olt-dialog-kicker]', modal );
-		if ( kicker ) kicker.textContent = currentStatus === 'publish' ? 'Published OLT' : 'Draft OLT';
-		if ( node.device && node.device.test_status === 'success' ) {
-			setTestAttention( false, false );
-			setInfo( 'Last test passed' + ( node.device.name ? ' · OLT reports its name as “' + node.device.name + '”.' : '.' ), 'success' );
-		} else if ( node.device && node.device.test_status === 'error' ) {
-			setTestAttention( currentStatus === 'publish', false );
-			setInfo( node.device.message || 'The last connection test failed.', 'error' );
-		} else {
-			setTestAttention( currentStatus === 'publish', false );
-			setInfo( currentStatus === 'publish' ? 'Published. Test the connection when ready.' : 'Draft loaded. Changes autosave after 5 seconds.', 'neutral' );
-		}
+		setTestAttention( currentStatus === 'publish' && currentState === 'error', false );
+		updateActionButtons();
+		showConnectionState();
 		dirty = false;
 	}
 
@@ -303,6 +369,7 @@
 	function save( mode, options ) {
 		options = options || {};
 		if ( saving || ! form ) return $.Deferred().reject().promise();
+		const hadChanges = dirty;
 		saving = true;
 		window.clearTimeout( autosaveTimer );
 		autosaveTimer = null;
@@ -322,8 +389,20 @@
 			dirty = false;
 			if ( response.data.node ) fillForm( response.data.node );
 			if ( mode === 'publish' ) {
-				setInfo( 'OLT published. Next step: click Test Connection to verify the OLT and read its RX data.', 'warning' );
-				setTestAttention( true, true );
+				if ( currentDevice.test_status === 'success' ) {
+					setInfo( 'OLT published and connected. Monitoring is active.', 'success' );
+					setTestAttention( false, false );
+				} else {
+					setInfo( 'OLT published. Retry the connection to activate RX monitoring.', 'warning' );
+					setTestAttention( true, true );
+				}
+			} else if ( mode === 'keep' ) {
+				if ( hadChanges ) {
+					setInfo( 'Settings updated. Refresh RX Data to verify the new connection details.', 'warning' );
+					setTestAttention( true, false );
+				} else {
+					showConnectionState();
+				}
 			} else {
 				setInfo(
 					mode === 'autosave' ? 'Draft autosaved at ' + ( response.data.saved_at || 'just now' ) + '. You can keep editing.' : ( response.data.message || 'Saved.' ),
@@ -344,6 +423,7 @@
 		if ( ! form ) return;
 		dirty = true;
 		window.clearTimeout( autosaveTimer );
+		if ( currentStatus === 'publish' ) setActionButton( q( '[data-afc-olt-publish]', modal ), 'Save Changes', false, 'Save these OLT changes now' );
 		setInfo( currentId ? 'Changes pending · autosaving in 5 seconds…' : 'A draft will be created automatically in 5 seconds…', 'warning' );
 		autosaveTimer = window.setTimeout( function () {
 			if ( dirty ) save( currentStatus === 'publish' ? 'keep' : 'autosave' );
@@ -409,27 +489,36 @@
 				if ( ! response ) {
 					testLog( 'The server returned an empty connection-test response.', 'error' );
 					setTestAttention( true, true );
-					setInfo( 'Connection test failed: empty server response.', 'error' );
+					currentState = currentStatus === 'publish' ? 'error' : 'draft';
+					currentDevice = Object.assign( {}, currentDevice, { test_status: 'error', message: 'The server returned an empty response.' } );
+					updateActionButtons();
+					showConnectionState();
 					return;
 				}
-				if ( ! response.success ) {
+				if ( response.success === false ) {
 					const data = response.data || {};
+					currentDevice = data.device || currentDevice;
+					currentState = data.state || ( currentStatus === 'publish' ? 'error' : 'draft' );
 					const message = data.message || 'Connection test failed.';
 					testLog( message, 'error' );
 					if ( data.error_code ) testLog( 'Server error code: ' + data.error_code + '.', 'error' );
 					if ( data.state ) testLog( 'OLT state after test: ' + data.state + '.', 'warning' );
 					setTestAttention( true, true );
-					setInfo( message + ' Open Connection test details below.', 'error' );
+					updateActionButtons();
+					showConnectionState();
 					refreshList();
 					return;
 				}
 				const device = response.data.device || {};
+				currentDevice = device;
+				currentState = response.data.state || ( currentStatus === 'publish' ? 'online' : 'draft' );
 				let message = response.data.message || 'Connection successful.';
 				if ( device.name ) message += ' OLT name: ' + device.name + '.';
 				testLog( message, 'success' );
 				if ( Number.isFinite( Number( device.onu_count ) ) ) testLog( 'ONU rows returned: ' + Number( device.onu_count ) + '; readable RX values: ' + Number( device.valid_count || 0 ) + '.', 'success' );
 				setTestAttention( false, false );
-				setInfo( message, 'success' );
+				updateActionButtons();
+				showConnectionState();
 				refreshList();
 			} ).fail( function ( xhr, textStatus, errorThrown ) {
 				let message = xhr.responseJSON && xhr.responseJSON.data && xhr.responseJSON.data.message ? xhr.responseJSON.data.message : '';
@@ -446,7 +535,10 @@
 					testLog( 'HTTP ' + ( xhr.status || 0 ) + ( errorThrown ? ' · ' + errorThrown : '' ) + '.', 'error' );
 				}
 				setTestAttention( true, true );
-				setInfo( message + ' Open Connection test details below.', 'error' );
+				currentState = currentStatus === 'publish' ? 'error' : 'draft';
+				currentDevice = Object.assign( {}, currentDevice, { test_status: 'error', message: message } );
+				updateActionButtons();
+				showConnectionState();
 				refreshList();
 			} ).always( function () {
 				stopTestClock();
@@ -470,17 +562,39 @@
 		} );
 	}
 
-	function stateAction( id, state ) {
-		if ( state === 'online' ) {
-			post( 'afc_olt_manager_state', { id: id, state_action: 'disconnect' } ).always( refreshList );
-			return;
+	function pauseMonitoring() {
+		const button = q( '[data-afc-olt-secondary]', modal );
+		if ( ! currentId || currentStatus !== 'publish' || currentState === 'offline' ) return;
+		if ( button ) {
+			button.disabled = true;
+			button.textContent = 'Pausing…';
 		}
-		if ( state === 'offline' ) {
-			const card = q( '[data-afc-olt-card="' + id + '"]', root );
-			if ( card ) card.classList.add( 'is-working' );
-			post( 'afc_olt_manager_state', { id: id, state_action: 'reconnect' } ).always( refreshList );
-			return;
-		}
+		setInfo( 'Pausing OLT monitoring…', 'saving' );
+		post( 'afc_olt_manager_state', { id: currentId, state_action: 'disconnect' } ).done( function ( response ) {
+			if ( ! response || ! response.success ) return;
+			currentState = response.data.state || 'offline';
+			updateActionButtons();
+			showConnectionState();
+			refreshList();
+		} ).fail( function ( xhr ) {
+			const message = xhr.responseJSON && xhr.responseJSON.data && xhr.responseJSON.data.message ? xhr.responseJSON.data.message : 'Could not pause monitoring.';
+			setInfo( message, 'error' );
+		} ).always( function () {
+			if ( button ) button.disabled = false;
+			updateActionButtons();
+		} );
+	}
+
+	function secondaryAction() {
+		if ( currentStatus === 'publish' ) pauseMonitoring();
+		else save( 'draft' );
+	}
+
+	function primaryAction() {
+		save( currentStatus === 'publish' ? 'keep' : 'publish' );
+	}
+
+	function stateAction( id ) {
 		openEdit( id );
 	}
 
@@ -496,7 +610,7 @@
 			const action = event.target.closest( '[data-afc-olt-action]' );
 			if ( action ) {
 				event.stopPropagation();
-				stateAction( Number( action.getAttribute( 'data-afc-olt-id' ) || 0 ), action.getAttribute( 'data-afc-olt-action' ) || '' );
+				stateAction( Number( action.getAttribute( 'data-afc-olt-id' ) || 0 ) );
 				return;
 			}
 
@@ -515,8 +629,8 @@
 		qa( '[data-afc-olt-close]', modal ).forEach( function ( button ) { button.addEventListener( 'click', closeModal ); } );
 		q( '[data-afc-olt-help-toggle]', modal ).addEventListener( 'click', function () { setHelpOpen( ! dialog.classList.contains( 'is-help-open' ), true ); } );
 		q( '[data-afc-olt-help-close]', modal ).addEventListener( 'click', function () { setHelpOpen( false, true ); } );
-		q( '[data-afc-olt-save-draft]', modal ).addEventListener( 'click', function () { save( 'draft' ); } );
-		q( '[data-afc-olt-publish]', modal ).addEventListener( 'click', function () { save( 'publish' ); } );
+		q( '[data-afc-olt-secondary]', modal ).addEventListener( 'click', secondaryAction );
+		q( '[data-afc-olt-publish]', modal ).addEventListener( 'click', primaryAction );
 		q( '[data-afc-olt-test]', modal ).addEventListener( 'click', testConnection );
 
 		form.addEventListener( 'input', scheduleAutosave );

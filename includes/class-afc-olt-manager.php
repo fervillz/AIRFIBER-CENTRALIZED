@@ -744,10 +744,10 @@ class AFC_OLT_Manager {
 		$config = $node['config'];
 		$device = $node['device'];
 		$action = 'Continue';
-		if ( 'online' === $state ) $action = __( 'Disconnect', 'airfiber-centralized' );
+		if ( 'online' === $state ) $action = __( 'Manage', 'airfiber-centralized' );
 		elseif ( 'offline' === $state ) $action = __( 'Reconnect', 'airfiber-centralized' );
 		elseif ( 'draft' === $state ) $action = __( 'Continue', 'airfiber-centralized' );
-		elseif ( 'error' === $state ) $action = __( 'Continue', 'airfiber-centralized' );
+		elseif ( 'error' === $state ) $action = __( 'Review', 'airfiber-centralized' );
 		$device_name = $device['name'] ? $device['name'] : __( 'OLT name not read yet', 'airfiber-centralized' );
 		$version_label = '2c' === $config['version'] ? 'SNMPv2c' : 'SNMPv3';
 		ob_start();
@@ -816,7 +816,9 @@ class AFC_OLT_Manager {
 			array(
 				'id'      => $saved_id,
 				'node'    => $node,
-				'message' => 'publish' === $node['post_status'] ? __( 'OLT published.', 'airfiber-centralized' ) : __( 'Draft saved.', 'airfiber-centralized' ),
+				'message' => 'publish' === $mode
+					? __( 'OLT published.', 'airfiber-centralized' )
+					: ( 'publish' === $node['post_status'] ? __( 'OLT updated.', 'airfiber-centralized' ) : __( 'Draft saved.', 'airfiber-centralized' ) ),
 				'saved_at'=> current_time( 'H:i:s' ),
 			)
 		);
