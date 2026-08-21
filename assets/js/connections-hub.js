@@ -255,7 +255,14 @@
 			const menu = event.target.closest( '.afc-workspace-menu-item[data-afc-ws-panel="integrations"]' );
 			if ( menu ) window.setTimeout( refreshCards, 120 );
 		} );
-		const observer = new MutationObserver( function () { queue(); } );
+		const observer = new MutationObserver( function ( mutations ) {
+			/* Rebuilding the hub mutates its own descendants. Ignore those changes
+			 * so the observer cannot replace every card again on the next frame. */
+			const externalChange = mutations.some( function ( mutation ) {
+				return ! hub || ! hub.contains( mutation.target );
+			} );
+			if ( externalChange ) queue();
+		} );
 		observer.observe( document.body, { childList: true, subtree: true } );
 	}
 
