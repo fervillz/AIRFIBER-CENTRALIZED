@@ -8,6 +8,9 @@ if ( ! defined( 'AFCN_VERSION' ) ) {
 	define( 'AFCN_URL', trailingslashit( AFC_URL . 'next' ) );
 }
 
+require_once AFCN_PATH . 'core/class-mu-module-autoloader.php';
+\Airfiber\Next\MU_Module_Autoloader::register();
+
 require_once AFCN_PATH . 'core/class-bootstrap.php';
 
 \Airfiber\Next\Bootstrap::init();
