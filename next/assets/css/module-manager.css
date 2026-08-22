@@ -133,20 +133,32 @@
 	border-radius:var(--afcn-radius-card);
 	background:#fff;
 	box-shadow:0 3px 12px rgba(24,36,51,.04);
-	transition:transform var(--afcn-transition),box-shadow var(--afcn-transition),background-color var(--afcn-transition),border-color var(--afcn-transition),opacity var(--afcn-transition);
+	transition:
+		transform var(--afcn-hover-out),
+		box-shadow var(--afcn-hover-out),
+		background-color var(--afcn-hover-out),
+		border-color var(--afcn-hover-out),
+		opacity var(--afcn-hover-out);
 }
 
 .afcn-module-card:hover,
 .afcn-module-card:focus-within{
 	z-index:10;
 	border-color:#cbd6e2;
-	background:#fff;
-	box-shadow:0 10px 40px 0 rgba(0,0,0,.1);
-	transform:translateY(-10px);
+	background:var(--afcn-card-hover-bg);
+	box-shadow:var(--afcn-hover-shadow);
+	transform:translateY(var(--afcn-hover-lift));
+	transition-duration:160ms;
+	transition-timing-function:cubic-bezier(.2,.8,.2,1);
 }
 
 .afcn-module-card.is-inactive{
 	background:#fbfcfd;
+}
+
+.afcn-module-card.is-inactive:hover,
+.afcn-module-card.is-inactive:focus-within{
+	background:var(--afcn-card-hover-bg);
 }
 
 .afcn-module-card.is-trashed{
@@ -229,6 +241,7 @@
 	cursor:help;
 }
 
+/* The description lives only in this shared tooltip, never in the card body. */
 .afcn-module-card-title .afcn-tooltip-panel{
 	min-width:220px;
 	max-width:280px;
@@ -250,6 +263,7 @@
 	line-height:1.3;
 }
 
+/* Action wrapper is layout-only: no panel, border, background or shadow. */
 .afcn-module-card-actions{
 	position:absolute;
 	right:9px;
@@ -258,12 +272,11 @@
 	display:flex;
 	align-items:center;
 	justify-content:center;
-	gap:6px;
-	padding:5px;
-	border:1px solid rgba(220,227,235,.92);
-	border-radius:9px;
-	background:rgba(255,255,255,.97);
-	box-shadow:0 10px 26px rgba(24,36,51,.12);
+	gap:7px;
+	padding:0;
+	border:0;
+	background:transparent;
+	box-shadow:none;
 	opacity:0;
 	pointer-events:none;
 	transform:translateY(7px);
@@ -286,34 +299,35 @@
 	margin:0;
 }
 
+/* Icon-only actions. Tooltip supplies the text label. */
 .afcn-module-action{
 	display:grid;
-	width:30px;
-	height:30px;
+	width:28px;
+	height:28px;
 	place-items:center;
 	padding:0;
-	border:1px solid var(--afcn-border);
-	border-radius:8px;
-	background:#fff;
+	border:0;
+	border-radius:0;
+	background:transparent;
 	box-shadow:none;
 	color:#536274;
 	cursor:pointer;
-	transition:transform var(--afcn-transition),box-shadow var(--afcn-transition),background-color var(--afcn-transition),color var(--afcn-transition),border-color var(--afcn-transition);
+	transition:transform var(--afcn-transition),color var(--afcn-transition),opacity var(--afcn-transition);
 }
 
 .afcn-module-action .afcn-icon{
-	width:15px;
-	height:15px;
+	width:16px;
+	height:16px;
 }
 
 .afcn-module-action:hover,
 .afcn-module-action:focus-visible{
-	border-color:#c9d4df;
-	background:#f7f9fb;
-	box-shadow:0 10px 40px 0 rgba(0,0,0,.1);
+	border:0;
+	background:transparent;
+	box-shadow:none;
 	color:var(--afcn-primary);
 	outline:0;
-	transform:translateY(-10px);
+	transform:translateY(-4px);
 }
 
 .afcn-module-action.is-danger:hover,
