@@ -2,7 +2,7 @@
   "id": "modules",
   "name": "Modules",
   "description": "Manage Airfiber modules, MU components and module health.",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "class": "Airfiber\\Next\\Modules\\Modules\\Modules_Module",
   "position": 80,
   "icon": "modules",
@@ -12,8 +12,8 @@
   "settings": "",
   "assets": {
     "css": [],
-    "js": ["assets/module-browser.js"]
+    "js": []
   },
-  "requires": {"core": ">=0.1.0"},
+  "requires": {"core": ">=0.3.2"},
   "events": []
 }
