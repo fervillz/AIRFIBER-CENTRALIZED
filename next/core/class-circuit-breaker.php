@@ -15,12 +15,14 @@ class Circuit_Breaker {
 		$recent = isset( $state['last_violation'] ) && (int) $state['last_violation'] >= time() - self::VIOLATION_WINDOW;
 		$count  = $recent && isset( $state['violations'] ) ? (int) $state['violations'] + 1 : 1;
 		$status = 'healthy';
+
 		if ( $count >= 3 ) {
 			$status = 'warning';
 		}
 		if ( $count >= 6 ) {
 			$status = 'degraded';
 		}
+
 		$meta = Module_Registry::get( $module );
 		if ( $count >= 12 && ( ! $meta || empty( $meta['system'] ) ) ) {
 			$status = 'quarantined';
@@ -44,10 +46,15 @@ class Circuit_Breaker {
 		);
 		update_option( self::OPTION, $all, false );
 
+		$context = array(
+			'module' => $module,
+			'reason' => $reason,
+			'sample' => is_array( $sample ) ? $sample : array(),
+		);
 		if ( 'quarantined' === $status ) {
-			Debug_Logger::error( 'Module automatically quarantined.', array( 'module' => $module, 'reason' => $reason, 'sample' => $sample ) );
+			Debug_Logger::error( 'Module automatically quarantined.', $context );
 		} else {
-			Debug_Logger::warning( 'Module performance budget exceeded.', array( 'module' => $module, 'reason' => $reason ) );
+			Debug_Logger::warning( 'Module performance budget exceeded.', $context );
 		}
 	}
 
@@ -60,6 +67,7 @@ class Circuit_Breaker {
 		$count  = $recent && isset( $state['failures'] ) ? (int) $state['failures'] + 1 : 1;
 		$meta   = Module_Registry::get( $module );
 		$status = 1 === $count ? 'warning' : 'degraded';
+
 		if ( $count >= 3 && ( ! $meta || empty( $meta['system'] ) ) ) {
 			$status = 'quarantined';
 		}
@@ -92,7 +100,12 @@ class Circuit_Breaker {
 
 	public static function state( $module ) {
 		$all = get_option( self::OPTION, array() );
-		return isset( $all[ $module ] ) && is_array( $all[ $module ] ) ? $all[ $module ] : array( 'status' => 'healthy', 'violations' => 0, 'failures' => 0, 'message' => '' );
+		return isset( $all[ $module ] ) && is_array( $all[ $module ] ) ? $all[ $module ] : array(
+			'status'     => 'healthy',
+			'violations' => 0,
+			'failures'   => 0,
+			'message'    => '',
+		);
 	}
 
 	public static function is_quarantined( $module ) {
@@ -116,12 +129,15 @@ class Circuit_Breaker {
 		if ( empty( $state['last_sample'] ) ) {
 			return '';
 		}
-		$sample = $state['last_sample'];
-		$phase  = isset( $sample['phase'] ) ? $sample['phase'] : '';
-		if ( isset( $sample['db_queries'] ) && $sample['db_queries'] > 15 ) {
+
+		$sample  = $state['last_sample'];
+		$phase   = isset( $sample['phase'] ) ? $sample['phase'] : '';
+		$budgets = Performance_Monitor::budgets();
+
+		if ( isset( $sample['db_queries'], $budgets['db_queries'] ) && $sample['db_queries'] > $budgets['db_queries'] ) {
 			return __( 'Reduce queries, cache repeated lookups, or paginate the dataset.', 'airfiber-centralized' );
 		}
-		if ( isset( $sample['memory_mb'] ) && $sample['memory_mb'] > 8 ) {
+		if ( isset( $sample['memory_mb'], $budgets['memory_mb'] ) && $sample['memory_mb'] > $budgets['memory_mb'] ) {
 			return __( 'Load less data at once and split heavy features into lazy chunks.', 'airfiber-centralized' );
 		}
 		if ( in_array( $phase, array( 'css', 'js' ), true ) ) {
