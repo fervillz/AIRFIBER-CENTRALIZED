@@ -8,7 +8,7 @@ Build Airfiber Next/BETA as an isolated, very fast application platform inside t
 
 BETA URL: `/airfiber-beta/`.
 
-Airfiber Next Core version: **0.3.5**.
+Airfiber Next Core version: **0.3.6**.
 
 ## Boundary
 
@@ -36,7 +36,7 @@ GitHub Markdown is the documentation source of truth. Start at `docs/README.md` 
 
 `module.json` is intentionally the Airfiber equivalent of a WordPress plugin header. Core detects `next/modules/*/module.json` without executing module PHP.
 
-As of Core 0.3.5, a convention-following module manifest only requires:
+A convention-following manifest can be only:
 
 ```json
 {
@@ -44,18 +44,37 @@ As of Core 0.3.5, a convention-following module manifest only requires:
 }
 ```
 
-For folder `hello-world/`, Core infers:
+For folder `hello-world/`, Core infers `Airfiber\Next\Modules\HelloWorld\Hello_World_Module` in `includes/class-hello-world-module.php`.
 
-```text
-id        hello-world
-namespace Airfiber\Next\Modules\HelloWorld
-class     Hello_World_Module
-file      includes/class-hello-world-module.php
+`Module_Naming` is the single source of truth for folder/namespace/class conventions.
+
+## Active does not mean loaded
+
+Core 0.3.6 formalizes the rule:
+
+> Installed does not mean loaded. Active does not mean loaded.
+
+Feature module PHP/assets/data are loaded only when a direct page, query, action, lazy chunk, declared event, background task or shared-page slot explicitly needs them.
+
+`module.json` now supports lightweight `slots` metadata. Example:
+
+```json
+"slots": {
+  "dashboard.summary": {
+    "chunk": "dashboard-summary",
+    "priority": 20,
+    "span": 4
+  }
+}
 ```
 
-`Module_Naming` is the single source of truth for folder/namespace/class conventions. Explicit `id` and `class` remain supported, but normally are unnecessary. The registry cache schema is bumped so the convention metadata recompiles automatically.
+Core `Module_Slots` resolves eligible contributors from the cached manifest registry without loading their PHP. The browser uses `IntersectionObserver` with a small prefetch margin and requests each contribution only as its placeholder approaches the viewport. Disabled, trashed, dependency-blocked, unauthorized or quarantined modules are excluded before rendering placeholders.
 
-See `docs/MODULE-BASICS.md`, `docs/MODULE-SDK.md`, and the corresponding entry in `docs/DECISIONS.md`.
+Lazy chunk responses now include the owning module's optional assets. Core loads/deduplicates those assets before inserting the chunk and emits `afcn:chunk:loaded` afterward.
+
+Dashboard exposes the first shared slot: `dashboard.summary`. It currently renders nothing because no feature module contributes to it yet. The first real use should be the read-only OLT module.
+
+See `docs/MODULE-LOADING.md`, `docs/MODULE-BASICS.md`, `docs/MODULE-SDK.md`, and `docs/ARCHITECTURE.md`.
 
 ## Modules browser
 
@@ -70,42 +89,21 @@ Performance rule:
 
 ## Performance telemetry — important
 
-Core 0.3.4 corrected a measurement bug from metric schema v1.
-
-Previously `client` timing started **before the module REST request**, so WordPress/network/server time was incorrectly reported as browser/client work. Values such as 170–400 ms therefore did not prove that module JavaScript was slow.
-
-Browser timing is now separated:
-
-- `client` = DOM insertion + Core/module event wiring through the next paint; actionable and allowed to affect module health
-- `transport` = REST/WordPress/network delivery; diagnostic only
-- `asset_load` = optional module CSS/JS delivery; diagnostic only
-- `navigation` = complete uncached module transition; diagnostic only
-- `external` = OLT/MikroTik/API latency; diagnostic only
-
-Default budgets now include client 160 ms, transport 500 ms, asset load 250 ms, navigation 650 ms and external 800 ms. Server budgets remain bootstrap 30 ms, render 120 ms, query 180 ms, action 250 ms, background 1000 ms, 8 MB memory delta and 15 DB queries.
-
-Only actionable code/server/client violations feed the circuit breaker. Transport/navigation/asset-delivery/external latency can be logged as diagnostics but cannot quarantine a module.
-
-A one-time metric migration runs only on the BETA frontend and removes the invalid legacy `client` warning state, samples and matching debug rows while preserving unrelated failures. Runtime health p50/p95 now excludes transport/navigation/network timing and exposes those as separate p95 values.
+Core 0.3.4 corrected the old client-timing bug. Browser timing is separated into actionable client apply versus diagnostic transport, asset-load and full-navigation timing. External provider latency is also separate. Only actionable code/server/client violations feed the circuit breaker.
 
 See `docs/PERFORMANCE-CONTRACT.md`.
 
 ## Connections architecture
 
-Core owns generic connector primitives only:
+Core owns generic `Connector_Registry`, `Connection_Store`, `Secret_Store` and `Connection_Health`. The normal `connections` add-on provides the grouped Hub UI. Existing Classic OLT, MikroTik and Google Sheets entries appear as read-only **CLASSIC** cards without copying credentials.
 
-- `Connector_Registry`
-- `Connection_Store`
-- `Secret_Store`
-- `Connection_Health`
-
-The normal `next/modules/connections/` add-on provides the central grouped Connections Hub. Existing Classic OLT, MikroTik and Google Sheets entries appear as read-only **CLASSIC** cards without copying credentials. Native provider modules will advertise connector metadata in `module.json` and perform their own explicit/background tests; opening Connections must never fan out to every device.
-
-See `docs/CONNECTORS.md` and `docs/MODULE-SDK.md`.
+See `docs/CONNECTORS.md`.
 
 ## Core safety rules
 
-An unopened module costs almost nothing beyond cached manifest metadata. External device/network latency cannot quarantine a module. Secrets never belong in manifests, browser bootstrap data, logs or task payloads. Do not weaken a budget just to hide a warning; first identify whether the cost is server code, DB queries, memory, client apply, transport, assets or external latency.
+An unopened module costs almost nothing beyond cached manifest metadata. External device/network latency cannot quarantine a module. Secrets never belong in manifests, browser bootstrap data, logs or task payloads. Do not weaken a performance budget just to hide a warning.
+
+Do not introduce broad feature-module bootstrap hooks that run on every Airfiber request. Prefer explicit Core loading triggers and manifest metadata.
 
 ## Intentionally deferred
 
@@ -115,12 +113,10 @@ Runtime ZIP installation and permanent filesystem deletion are not exposed yet. 
 
 Do NOT bulk-migrate Classic.
 
-Build the first real provider module: read-only **OLT**. Use the new convention-based module skeleton, advertise OLT connector types through its manifest, use Core connection APIs, start with cached overview/list, then lazy per-OLT/PON/ONU chunks. Provisioning writes come only after the read-only path proves the SDK.
-
-Before optimizing a module because of a performance warning, use the separated telemetry to identify the actual phase first.
+Build the first real provider module: read-only **OLT**. Use the convention-based module skeleton, advertise OLT connector types, contribute a small cache-first `dashboard.summary` slot, then build cached overview/list and lazy per-OLT/PON/ONU chunks. Provisioning writes come only after the read-only path proves the SDK.
 
 ## New-chat handoff
 
 Tell ChatGPT:
 
-> Open `fervillz/AIRFIBER-CENTRALIZED`, read `CONTINUE-HERE.md`, `AGENTS.md`, `docs/README.md`, `docs/MODULE-BASICS.md`, `docs/ARCHITECTURE.md`, `docs/CONNECTORS.md`, `docs/MODULE-SDK.md` and `docs/PERFORMANCE-CONTRACT.md`, inspect current `main`, then continue Airfiber Next/BETA work.
+> Open `fervillz/AIRFIBER-CENTRALIZED`, read `CONTINUE-HERE.md`, `AGENTS.md`, `docs/README.md`, `docs/MODULE-BASICS.md`, `docs/MODULE-LOADING.md`, `docs/ARCHITECTURE.md`, `docs/CONNECTORS.md`, `docs/MODULE-SDK.md` and `docs/PERFORMANCE-CONTRACT.md`, inspect current `main`, then continue Airfiber Next/BETA work.
