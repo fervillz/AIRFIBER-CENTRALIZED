@@ -12,6 +12,8 @@ Classic stays in `includes/`, `templates/`, and `assets/`. Next/BETA lives in `n
 
 BETA URL: `/airfiber-beta/`.
 
+Airfiber Next Core version: **0.3.0**.
+
 ## Core platform completed
 
 - isolated `Airfiber\Next` namespace and `afcn_` prefixes
@@ -45,6 +47,32 @@ BETA URL: `/airfiber-beta/`.
 - module descriptions live in the shared black tooltip on the module title instead of occupying 150 × 150 card space
 - Module Manager action wrappers are visual-free/layout-only and actions are icon-only with tooltip labels
 
+## Connector/Connections foundation completed
+
+Core now owns generic connector primitives only:
+
+- `Connector_Registry` — lightweight connector types compiled from module manifests
+- `Connection_Store` — generic non-secret configured connection records
+- `Secret_Store` — encrypted credentials, Sodium preferred / AES-256-GCM fallback, no plaintext fallback
+- `Connection_Health` — cached status/latency/last-check records separate from configuration
+- `afcn_manage_connections` capability for Airfiber administrators
+
+Normal feature modules may advertise `connectors` metadata in `module.json`. Reading that metadata must not bootstrap the owning module.
+
+The normal `next/modules/connections/` add-on is now the central Connections Hub UI. It is enabled by default and positioned after Dashboard. It provides:
+
+- All / Online / Offline / Warning / Unconfigured filters
+- search
+- grouped cards: Network, Cloud & Integrations, Payments, Messaging, Storage, Other
+- shared Core card/tooltip/hover language
+- generic create/edit/delete UI when an active module advertises a connector type
+- provider test action routed lazily to the owning module
+- cache-first health presentation
+
+While feature modules are still Classic-owned, the Hub shows existing Classic OLT, MikroTik and Google Sheets entries as read-only **CLASSIC** cards. No credentials are copied. Management links back to Classic.
+
+See `docs/CONNECTORS.md` and the updated `docs/MODULE-SDK.md`.
+
 ## Module folders
 
 Must-use Core components live in:
@@ -69,16 +97,26 @@ Update UI is provider-ready through the `afcn_module_update_catalog` filter. No 
 
 An unopened module costs almost nothing beyond cached manifest metadata. External device latency cannot quarantine a module. Non-MU modules can be quarantined after repeated code/performance failures. MU/Core components are protected from disable/trash actions.
 
-## Intentionally deferred from Core 0.2
+Opening Connections must not fan out to every remote device. It renders stored/cached state first. Provider modules perform explicit tests/background refreshes through their own logic.
+
+Secrets never belong in manifests, connection config, browser bootstrap data, audit/debug logs or task payloads.
+
+## Intentionally deferred
 
 Runtime ZIP install and permanent filesystem delete are not exposed yet. Modules are deployed under `next/modules/` and then the registry is refreshed. Trash is currently safe soft-state. This avoids filesystem/package-execution risk until the SDK is proven with real feature modules.
 
-## Next work after Core
+Native BETA connector provider modules do not exist yet, so **Add Connection** will remain hidden until an active feature module advertises a connector type. Existing Classic connections still appear through the read-only bridge.
 
-Do NOT bulk-migrate Classic. Build the first real non-system module as a proof: read-only **OLT overview/list**, then per-OLT/PON/ONU lazy chunks, and only later provisioning writes. After OLT proves the SDK, migrate PPP and other domains one bounded workflow at a time.
+## Next work
+
+Do NOT bulk-migrate Classic.
+
+Build the first real provider module: read-only **OLT**. Its manifest should advertise the relevant OLT connector type(s), then use the Core connection APIs for native BETA ownership. Start with OLT overview/list and cached health; add per-OLT/PON/ONU lazy chunks next; provisioning writes come only after the read-only path proves the SDK.
+
+During transition, keep the Classic OLT connection card read-only until its credentials/config are intentionally migrated. After OLT proves the provider contract, migrate MikroTik, PPP and other domains one bounded workflow at a time.
 
 ## New-chat handoff
 
 Tell ChatGPT:
 
-> Open `fervillz/AIRFIBER-CENTRALIZED`, read `CONTINUE-HERE.md`, `AGENTS.md` and the architecture docs, inspect current `main`, then continue the unfinished Airfiber Next/BETA work.
+> Open `fervillz/AIRFIBER-CENTRALIZED`, read `CONTINUE-HERE.md`, `AGENTS.md`, `docs/ARCHITECTURE.md`, `docs/CONNECTORS.md` and `docs/MODULE-SDK.md`, inspect current `main`, then continue the unfinished Airfiber Next/BETA work.
