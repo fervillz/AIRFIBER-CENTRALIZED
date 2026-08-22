@@ -6,7 +6,7 @@ defined( 'ABSPATH' ) || exit;
 
 class Module_Registry {
 	const OPTION_CACHE = 'afcn_module_registry_v1';
-	const CACHE_SCHEMA = 3;
+	const CACHE_SCHEMA = 4;
 
 	private static $modules = null;
 
@@ -119,18 +119,20 @@ class Module_Registry {
 	}
 
 	private static function normalize( $data, $folder, $source, $file ) {
-		$id    = isset( $data['id'] ) ? sanitize_key( $data['id'] ) : '';
+		$id    = isset( $data['id'] ) && '' !== (string) $data['id'] ? sanitize_key( $data['id'] ) : $folder;
 		$name  = isset( $data['name'] ) ? sanitize_text_field( $data['name'] ) : '';
-		$class = isset( $data['class'] ) ? ltrim( sanitize_text_field( $data['class'] ), '\\' ) : '';
+		$class = isset( $data['class'] ) && '' !== (string) $data['class']
+			? ltrim( sanitize_text_field( $data['class'] ), '\\' )
+			: Module_Naming::default_class( $folder );
 
-		if ( '' === $id || $id !== $folder ) {
-			return new \WP_Error( 'afcn_manifest_id', 'Manifest id must match its folder name.' );
+		if ( $id !== $folder ) {
+			return new \WP_Error( 'afcn_manifest_id', 'Manifest id must match its folder name when explicitly supplied.' );
 		}
-		if ( '' === $name || '' === $class ) {
-			return new \WP_Error( 'afcn_manifest_required', 'Manifest name and class are required.' );
+		if ( '' === $name ) {
+			return new \WP_Error( 'afcn_manifest_required', 'Manifest name is required.' );
 		}
 
-		$expected_class = __NAMESPACE__ . '\\Modules\\' . str_replace( ' ', '', ucwords( str_replace( '-', ' ', $folder ) ) ) . '\\';
+		$expected_class = Module_Naming::namespace_prefix( $folder );
 		if ( 0 !== strpos( $class, $expected_class ) ) {
 			return new \WP_Error( 'afcn_manifest_class', 'Module class must live inside its Airfiber Next module namespace.' );
 		}
