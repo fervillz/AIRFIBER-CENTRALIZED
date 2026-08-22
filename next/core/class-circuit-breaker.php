@@ -121,6 +121,32 @@ class Circuit_Breaker {
 		return true;
 	}
 
+	/**
+	 * Metric schema v1 used "client" for the complete module REST round trip.
+	 * Those states are not valid browser-performance signals. Remove them once,
+	 * while preserving any module state that also contains runtime failures.
+	 */
+	public static function reset_legacy_client_states() {
+		$all     = get_option( self::OPTION, array() );
+		$changed = false;
+
+		if ( ! is_array( $all ) ) {
+			return;
+		}
+
+		foreach ( $all as $module => $state ) {
+			$phase = isset( $state['last_sample']['phase'] ) ? sanitize_key( $state['last_sample']['phase'] ) : '';
+			if ( 'client' === $phase && empty( $state['failures'] ) ) {
+				unset( $all[ $module ] );
+				$changed = true;
+			}
+		}
+
+		if ( $changed ) {
+			update_option( self::OPTION, $all, false );
+		}
+	}
+
 	public static function recommendation( $module ) {
 		$state = self::state( $module );
 		if ( ! empty( $state['failures'] ) ) {
@@ -145,6 +171,9 @@ class Circuit_Breaker {
 		}
 		if ( 'bootstrap' === $phase ) {
 			return __( 'Move work out of module bootstrap. Bootstrap should only register lightweight behavior.', 'airfiber-centralized' );
+		}
+		if ( 'client' === $phase ) {
+			return __( 'Reduce synchronous DOM work and event wiring during the module swap. Defer non-visible client work until after first paint.', 'airfiber-centralized' );
 		}
 		if ( 'render' === $phase || 'action' === $phase ) {
 			return __( 'Use cache-first data, server-side pagination, and smaller on-demand feature chunks.', 'airfiber-centralized' );
