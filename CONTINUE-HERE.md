@@ -12,7 +12,7 @@ Classic stays in `includes/`, `templates/`, and `assets/`. Next/BETA lives in `n
 
 BETA URL: `/airfiber-beta/`.
 
-Airfiber Next Core version: **0.3.0**.
+Airfiber Next Core version: **0.3.1**.
 
 ## Core platform completed
 
@@ -44,6 +44,8 @@ Airfiber Next Core version: **0.3.0**.
 - shared card hover language: `#e7f0fb` hover background, -10px lift and `0 10px 40px 0 rgba(0,0,0,.1)` shadow
 - shared card timing: fast hover-in (~160ms) and slow 5s hover-out; reduced-motion is respected
 - Module Manager CSS is Core-owned to prevent a flash of unstyled controls; its JavaScript remains lazy
+- shared `next/assets/css/browser.css` now owns the common filter-tab/search/browser treatment used by Modules and Connections
+- native `[hidden]` state is enforced over card `display` rules, so All/Active/Inactive/MU filtering cannot be visually overridden by card CSS
 - module descriptions live in the shared black tooltip on the module title instead of occupying 150 × 150 card space
 - Module Manager action wrappers are visual-free/layout-only and actions are icon-only with tooltip labels
 
@@ -65,6 +67,7 @@ The normal `next/modules/connections/` add-on is now the central Connections Hub
 - search
 - grouped cards: Network, Cloud & Integrations, Payments, Messaging, Storage, Other
 - shared Core card/tooltip/hover language
+- Core-owned browser/filter/search/card styling so Connections does not depend on a feature CSS file just to render correctly
 - generic create/edit/delete UI when an active module advertises a connector type
 - provider test action routed lazily to the owning module
 - cache-first health presentation
