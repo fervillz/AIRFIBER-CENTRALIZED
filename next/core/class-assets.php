@@ -6,8 +6,10 @@ defined( 'ABSPATH' ) || exit;
 
 class Assets {
 	public static function enqueue_core() {
-		$css = AFCN_PATH . 'assets/css/core.css';
-		$js  = AFCN_PATH . 'assets/js/app.js';
+		$css          = AFCN_PATH . 'assets/css/core.css';
+		$interactions = AFCN_PATH . 'assets/css/ui-interactions.css';
+		$js           = AFCN_PATH . 'assets/js/app.js';
+
 		wp_enqueue_style(
 			'afcn-source-serif-4',
 			'https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400&display=swap',
@@ -15,6 +17,7 @@ class Assets {
 			null
 		);
 		wp_enqueue_style( 'afcn-core', AFCN_URL . 'assets/css/core.css', array( 'afcn-source-serif-4' ), file_exists( $css ) ? (string) filemtime( $css ) : AFCN_VERSION );
+		wp_enqueue_style( 'afcn-ui-interactions', AFCN_URL . 'assets/css/ui-interactions.css', array( 'afcn-core' ), file_exists( $interactions ) ? (string) filemtime( $interactions ) : AFCN_VERSION );
 		wp_enqueue_script( 'afcn-app', AFCN_URL . 'assets/js/app.js', array(), file_exists( $js ) ? (string) filemtime( $js ) : AFCN_VERSION, true );
 		wp_localize_script(
 			'afcn-app',
@@ -41,6 +44,7 @@ class Assets {
 			return $out;
 		}
 		$base_real = trailingslashit( $base_real );
+		$url_path  = ! empty( $module['url_path'] ) ? trim( $module['url_path'], '/' ) : 'modules/' . $module['id'];
 
 		foreach ( array( 'css', 'js' ) as $type ) {
 			foreach ( (array) $module['assets'][ $type ] as $relative ) {
@@ -53,7 +57,7 @@ class Assets {
 					continue;
 				}
 				$out[ $type ][] = array(
-					'url'   => trailingslashit( AFCN_URL . 'modules/' . $module['id'] ) . $relative,
+					'url'   => trailingslashit( AFCN_URL . $url_path ) . $relative,
 					'ver'   => (string) filemtime( $file ),
 					'bytes' => (int) filesize( $file ),
 				);
