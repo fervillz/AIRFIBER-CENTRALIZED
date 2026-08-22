@@ -39,9 +39,11 @@ BETA URL: `/airfiber-beta/`.
 - Modules health screen and Settings diagnostics/performance screen
 - WordPress-like Modules browser with All, Active, Inactive, Update Available, Auto-updates Disabled, Trash and MU views
 - reusable Core SVG icons and tooltip API
-- shared card/button hover language: -10px lift and `0 10px 40px 0 rgba(0,0,0,.1)` shadow
+- shared card hover language: `#e7f0fb` hover background, -10px lift and `0 10px 40px 0 rgba(0,0,0,.1)` shadow
+- shared card timing: fast hover-in (~160ms) and slow 5s hover-out; reduced-motion is respected
 - Module Manager CSS is Core-owned to prevent a flash of unstyled controls; its JavaScript remains lazy
-- module descriptions live in the shared tooltip on the module title instead of occupying 150 × 150 card space
+- module descriptions live in the shared black tooltip on the module title instead of occupying 150 × 150 card space
+- Module Manager action wrappers are visual-free/layout-only and actions are icon-only with tooltip labels
 
 ## Module folders
 
