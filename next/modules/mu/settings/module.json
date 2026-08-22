@@ -1,0 +1,16 @@
+{
+  "id": "settings",
+  "name": "Settings",
+  "description": "Airfiber Next performance budgets and platform diagnostics.",
+  "version": "0.1.0",
+  "class": "Airfiber\\Next\\Modules\\Settings\\Settings_Module",
+  "position": 90,
+  "icon": "settings",
+  "capability": "afcn_manage_settings",
+  "system": true,
+  "default_enabled": true,
+  "settings": "settings",
+  "assets": {"css": [], "js": []},
+  "requires": {"core": ">=0.1.0"},
+  "events": []
+}
