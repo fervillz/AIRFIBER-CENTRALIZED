@@ -1,0 +1,15 @@
+{
+  "id": "modules",
+  "name": "Modules",
+  "description": "Manage Airfiber internal modules and inspect their health.",
+  "version": "0.1.0",
+  "class": "Airfiber\\Next\\Modules\\Modules\\Modules_Module",
+  "position": 80,
+  "icon": "modules",
+  "capability": "afcn_manage_modules",
+  "system": true,
+  "default_enabled": true,
+  "assets": {"css": [], "js": []},
+  "requires": {"core": ">=0.1.0"},
+  "events": []
+}
