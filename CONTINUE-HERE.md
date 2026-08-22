@@ -12,7 +12,7 @@ Classic stays in `includes/`, `templates/`, and `assets/`. Next/BETA lives in `n
 
 BETA URL: `/airfiber-beta/`.
 
-Airfiber Next Core version: **0.3.2**.
+Airfiber Next Core version: **0.3.3**.
 
 ## Core platform completed
 
@@ -35,6 +35,9 @@ Airfiber Next Core version: **0.3.2**.
 - performance budgets, sampling, p50/p95, separate external p95
 - performance circuit breaker + runtime-failure isolation/quarantine
 - bounded debug diagnostics and bounded administrative Audit Log
+- performance budget lookup is cached for the request so the profiler does not repeatedly resolve the same Core option
+- a single profile sample can report every exceeded budget (for example render time plus DB-query count), instead of hiding secondary causes
+- warning records retain module, reason and sanitized sample context; Core Settings exposes the exact module and cause rather than only a generic warning message
 - Airfiber users backed by WordPress users (`airfiber_admin`, `airfiber_operator`)
 - user create/update/delete UI
 - Dashboard, Users, Modules and Settings must-use Core components
@@ -118,6 +121,8 @@ An unopened module costs almost nothing beyond cached manifest metadata. Externa
 Opening Connections must not fan out to every remote device. It renders stored/cached state first. Provider modules perform explicit tests/background refreshes through their own logic.
 
 Secrets never belong in manifests, connection config, browser bootstrap data, audit/debug logs or task payloads.
+
+Performance diagnostics must identify the module and the exact exceeded budget. Do not weaken a budget just to hide a warning; first determine whether the cost is code time, query count, memory, assets or external latency.
 
 ## Intentionally deferred
 
