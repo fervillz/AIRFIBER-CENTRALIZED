@@ -70,8 +70,9 @@ file      includes/class-speed-test-module.php
   "settings": "example",
   "updates": true,
   "assets": {"css": [], "js": []},
+  "slots": {},
   "connectors": [],
-  "requires": {"core": ">=0.3.5"},
+  "requires": {"core": ">=0.3.6"},
   "events": []
 }
 ```
@@ -105,10 +106,62 @@ class Example_Module implements Module_Contract {
 A module may add these without changing Core:
 
 - `handle_query( $query, $payload )` — lazy GET/read-only data.
-- `render_chunk( $chunk, $payload )` — lazy HTML sub-view.
+- `render_chunk( $chunk, $payload )` — lazy HTML sub-view and shared-slot contribution.
 - `handle_background( $action, $payload )` — durable background queue work.
 - `activate()` / `deactivate()` — lifecycle when module state changes.
 - `on_event()` / `filter_event()` — lazy event subscriptions declared by the manifest.
+
+## Lazy shared-page slots
+
+Slots let a module contribute a small chunk to a shared page without making that page depend on the module or load its PHP during page render.
+
+Shorthand:
+
+```json
+"slots": {
+  "dashboard.summary": "dashboard-summary"
+}
+```
+
+Full declaration:
+
+```json
+"slots": {
+  "dashboard.summary": {
+    "chunk": "dashboard-summary",
+    "priority": 20,
+    "span": 4
+  }
+}
+```
+
+`priority` defaults to `50`. `span` defaults to `4` and is clamped to the Core 12-column grid.
+
+The module implements the declared chunk:
+
+```php
+public static function render_chunk( $chunk, $payload = array() ) {
+    if ( 'dashboard-summary' === $chunk ) {
+        return '<div class="afcn-card"><div class="afcn-card-body">...</div></div>';
+    }
+
+    return '';
+}
+```
+
+A shared page exposes a slot with:
+
+```php
+use Airfiber\Next\Module_Slots;
+
+echo Module_Slots::render( 'dashboard.summary', array( 'grid' => true ) );
+```
+
+Core resolves contributors from cached manifest metadata only. The browser requests each chunk when its placeholder approaches the viewport. Disabled, trashed, dependency-blocked, unauthorized or quarantined modules are excluded before placeholders are rendered.
+
+Chunk responses include the module's optional asset manifest. Core loads those assets once before inserting the chunk and emits `afcn:chunk:loaded` afterward.
+
+See [Module Loading](MODULE-LOADING.md) for the full runtime contract.
 
 ## Connector types
 
@@ -186,6 +239,7 @@ Do not put provider credentials in the manifest, normal connection config, debug
 - `Airfiber\Next\UI` — shared fields/buttons/badges/notices.
 - `Airfiber\Next\Tooltip` — shared text/rich tooltips; default black, optional direction/background/action.
 - `Airfiber\Next\Icon` — dependency-free shared SVG icons.
+- `Airfiber\Next\Module_Slots` — compiled manifest-driven shared-page extension points with visibility-lazy chunks.
 - `Airfiber\Next\Cache` — namespaced transient and stale/fresh caching.
 - `Airfiber\Next\Module_Options` — one namespaced settings store per module.
 - `Airfiber\Next\HTTP_Client` — measured remote HTTP requests.
@@ -210,6 +264,17 @@ AirfiberNext.toast('Saved');
 
 Module JavaScript should use this API rather than inventing another AJAX layer.
 
+For custom lazy-chunk behavior, listen for:
+
+```js
+document.addEventListener('afcn:chunk:loaded', function (event) {
+    if (event.detail.module !== 'example') {
+        return;
+    }
+    // Initialize only the inserted chunk when needed.
+});
+```
+
 ## Shared UI first
 
 Use Core classes and markup: `.afcn-button`, `.afcn-input`, `.afcn-select`, `.afcn-card`, `.afcn-table`, `.afcn-dialog`, and `Airfiber\Next\UI`.
@@ -220,7 +285,7 @@ Only add module CSS when Core cannot express the feature.
 
 ## Lazy assets
 
-Declare optional assets in the manifest. Core does not send them on the initial app request; they load only when the module opens.
+Declare optional assets in the manifest. Core does not send them on the initial app request; they load only when the module page or one of its lazy chunks is actually requested.
 
 MU/Core components follow the same lazy-asset rule. Being must-use does not mean their feature-specific CSS/JavaScript is sent on every Airfiber page.
 
@@ -238,7 +303,7 @@ Core posts the form to the module action route, shows the result, and reloads on
 
 ```json
 "requires": {
-  "core": ">=0.3.5",
+  "core": ">=0.3.6",
   "modules": ["ppp"]
 }
 ```
@@ -251,6 +316,6 @@ Module discovery reads manifest metadata without booting module PHP. Keep that a
 
 No broad database scans, remote OLT/MikroTik calls, or large data construction may happen because the module class was merely discovered or loaded.
 
-Connector metadata must be lightweight manifest metadata. Do not contact the remote provider to populate navigation, module discovery or the Connections page shell.
+Connector and slot metadata must be lightweight manifest metadata. Do not contact a remote provider to populate navigation, module discovery, Dashboard slots or the Connections page shell.
 
 If a logical module becomes large, split it into lazy queries/chunks/background tasks rather than many tightly coupled modules.
