@@ -2,15 +2,16 @@
   "id": "modules",
   "name": "Modules",
   "description": "Manage Airfiber modules, MU components and module health.",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "class": "Airfiber\\Next\\Modules\\Modules\\Modules_Module",
   "position": 80,
   "icon": "modules",
   "capability": "afcn_manage_modules",
   "system": true,
   "default_enabled": true,
+  "settings": "",
   "assets": {
-    "css": ["assets/module-browser.css"],
+    "css": [],
     "js": ["assets/module-browser.js"]
   },
   "requires": {"core": ">=0.1.0"},
