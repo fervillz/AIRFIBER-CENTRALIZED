@@ -13,7 +13,8 @@
 		current: '',
 		cache: new Map(),
 		styles: new Set(),
-		scripts: new Set()
+		scripts: new Set(),
+		slotObserver: null
 	};
 
 	function path(value) {
@@ -238,12 +239,86 @@
 
 	async function loadChunk(module, chunk, target, payload) {
 		const result = await api('module/' + encodeURIComponent(module) + '/chunk/' + encodeURIComponent(chunk) + params(payload));
+		await loadAssets(result.assets);
 		const element = typeof target === 'string' ? document.querySelector(target) : target;
 		if (element) {
 			element.innerHTML = result.html || '';
 			wireModule(element);
+			document.dispatchEvent(new CustomEvent('afcn:chunk:loaded', {
+				detail: {
+					module: module,
+					chunk: chunk,
+					target: element,
+					data: result
+				}
+			}));
 		}
 		return result;
+	}
+
+	function slotError(item, error) {
+		const label = item.dataset.afcnSlotLabel || item.dataset.afcnSlotModule || 'Module';
+		item.innerHTML = '<div class="afcn-card afcn-slot-error"><div class="afcn-card-body"><strong></strong><p class="afcn-page-description"></p><button type="button" class="afcn-button afcn-button-secondary afcn-button-small">Try again</button></div></div>';
+		item.querySelector('strong').textContent = label;
+		item.querySelector('p').textContent = error.message || cfg.labels.failed;
+		item.querySelector('button').addEventListener('click', function () {
+			item.dataset.afcnSlotState = '';
+			loadSlotItem(item);
+		});
+	}
+
+	async function loadSlotItem(item) {
+		if (!item || item.dataset.afcnSlotState === 'loading' || item.dataset.afcnSlotState === 'loaded') {
+			return;
+		}
+
+		const module = item.dataset.afcnSlotModule;
+		const chunk = item.dataset.afcnSlotChunk;
+		if (!module || !chunk) {
+			return;
+		}
+
+		item.dataset.afcnSlotState = 'loading';
+		item.setAttribute('aria-busy', 'true');
+		try {
+			await loadChunk(module, chunk, item, {});
+			item.dataset.afcnSlotState = 'loaded';
+			item.removeAttribute('aria-busy');
+		} catch (error) {
+			item.dataset.afcnSlotState = 'error';
+			item.removeAttribute('aria-busy');
+			slotError(item, error);
+		}
+	}
+
+	function observeSlotItem(item) {
+		if (!item || item.dataset.afcnSlotObserved || item.dataset.afcnSlotState === 'loaded') {
+			return;
+		}
+		item.dataset.afcnSlotObserved = '1';
+
+		if (typeof window.IntersectionObserver !== 'function') {
+			loadSlotItem(item);
+			return;
+		}
+
+		if (!state.slotObserver) {
+			state.slotObserver = new IntersectionObserver(function (entries) {
+				entries.forEach(function (entry) {
+					if (!entry.isIntersecting) {
+						return;
+					}
+					state.slotObserver.unobserve(entry.target);
+					loadSlotItem(entry.target);
+				});
+			}, { rootMargin: '200px 0px' });
+		}
+
+		state.slotObserver.observe(item);
+	}
+
+	function wireSlots(root) {
+		root.querySelectorAll('[data-afcn-slot-item]').forEach(observeSlotItem);
 	}
 
 	function openDialog(id) {
@@ -334,6 +409,8 @@
 				closeDialog(button.closest('dialog'));
 			});
 		});
+
+		wireSlots(root);
 	}
 
 	nav.forEach(function (button) {
