@@ -41,14 +41,16 @@ Airfiber Next Core version: **0.3.2**.
 - Modules health screen and Settings diagnostics/performance screen
 - WordPress-like Modules browser with All, Active, Inactive, Update Available, Auto-updates Disabled, Trash and MU views
 - reusable Core SVG icons and tooltip API
+- Core icon library includes module identity icons for Dashboard, Users, Modules, Settings and Connections; module cards use manifest `icon` metadata instead of hard-coded feature knowledge
 - shared card hover language: `#e7f0fb` hover background, -10px lift and `0 10px 40px 0 rgba(0,0,0,.1)` shadow
 - shared card timing: fast hover-in (~160ms) and slow 5s hover-out; reduced-motion is respected
 - Module Manager CSS is Core-owned to prevent a flash of unstyled controls
 - shared `next/assets/css/browser.css` owns the common filter-tab/search/browser treatment used by Modules and Connections
 - shared `next/assets/js/browser.js` owns reliable filter/search behavior for Modules and Connections; feature modules do not duplicate this browser logic
 - native `[hidden]` state is enforced over card `display` rules, so All/Active/Inactive/MU filtering cannot be visually overridden by card CSS
+- module cards use the same visual identity language as Connections: icon at upper-left, compact state/update pills at upper-right, title tooltip, health/version footer
+- module actions remain icon-only with tooltip labels, live directly below the title like WordPress plugin actions, appear on card hover/focus, and receive a white rounded shadowed surface only when the individual action is hovered/focused
 - module descriptions live in the shared black tooltip on the module title instead of occupying 150 × 150 card space
-- Module Manager action wrappers are visual-free/layout-only and actions are icon-only with tooltip labels
 - cached module views now emit the same `afcn:module:loaded` lifecycle event as fresh views, so Core/feature wiring remains consistent when navigating back to a cached screen
 
 ## Modules browser performance rule
