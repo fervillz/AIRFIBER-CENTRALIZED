@@ -35,12 +35,21 @@ class Assets {
 	}
 
 	public static function module_manifest( $module ) {
-		$out = array( 'css' => array(), 'js' => array() );
+		$out       = array( 'css' => array(), 'js' => array() );
+		$base_real = realpath( $module['path'] );
+		if ( ! $base_real ) {
+			return $out;
+		}
+		$base_real = trailingslashit( $base_real );
+
 		foreach ( array( 'css', 'js' ) as $type ) {
 			foreach ( (array) $module['assets'][ $type ] as $relative ) {
-				$relative = ltrim( str_replace( '..', '', $relative ), '/' );
-				$file     = trailingslashit( $module['path'] ) . $relative;
-				if ( ! is_readable( $file ) ) {
+				$relative = ltrim( str_replace( '\\', '/', (string) $relative ), '/' );
+				if ( false !== strpos( $relative, '..' ) || strtolower( pathinfo( $relative, PATHINFO_EXTENSION ) ) !== $type ) {
+					continue;
+				}
+				$file = realpath( $base_real . $relative );
+				if ( ! $file || 0 !== strpos( $file, $base_real ) || ! is_readable( $file ) ) {
 					continue;
 				}
 				$out[ $type ][] = array(

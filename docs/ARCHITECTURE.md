@@ -4,40 +4,13 @@
 
 Airfiber Next is a platform inside the existing Airfiber Centralized WordPress plugin. WordPress sees one plugin; Airfiber Next discovers and runs internal modules.
 
-```text
-WordPress
-└── Airfiber Centralized
-    ├── Classic (existing system)
-    └── Next/BETA
-        ├── Core
-        └── Modules
-```
-
-## Isolation
-
-Classic and Next share WordPress, authentication and existing application data, but they do not share frontend architecture.
-
 Classic continues to use the existing files. Next uses the `Airfiber\Next` namespace, `afcn_` options/handles, `/airfiber-beta/`, and files under `next/`.
 
-## Bootstrap
+## Core runtime
 
-`next/bootstrap.php` loads only `next/core/class-bootstrap.php`. The bootstrap registers a lightweight autoloader and the few WordPress hooks required to recognize the BETA page and REST routes.
+`next/bootstrap.php` loads only `next/core/class-bootstrap.php`. Bootstrap registers the autoloader, protected BETA page, REST router and background queue hook. It does not load feature modules.
 
-It does not load feature modules.
-
-## Module discovery
-
-Each module has a tiny `module.json`. Core compiles discovered manifests into a persistent registry option. Normal requests read that compiled registry instead of reopening every manifest file.
-
-The Modules system screen has **Refresh Registry** for newly deployed module folders. A future secure package installer must invalidate the registry automatically.
-
-Opening a module causes Core to autoload that module class and call its render method through the shared REST router.
-
-## Module lifecycle
-
-Non-system modules can optionally expose static `activate()` and `deactivate()` methods. They run only when the module state is intentionally changed, not during normal app boot.
-
-Module state changes also fire `afcn_module_state_changed` and the lazy `module_state_changed` Event Bus event.
+Module manifests compile into a persistent registry option, so normal requests do not reopen dozens of JSON files. The Modules page can rebuild the registry after a deployment.
 
 ## Request flow
 
@@ -47,33 +20,36 @@ Open /airfiber-beta/
   -> cached module registry builds navigation
   -> browser asks REST for current module
   -> Core loads only that module PHP
-  -> optional module CSS/JS is returned as a lazy manifest
-  -> browser injects module markup
+  -> optional module CSS/JS loads
+  -> deeper queries/chunks load only when requested
 ```
 
-## Data flow
+## Module lifecycle and extension
 
-Modules should return cached/current UI quickly. Expensive device/network refreshes belong in separate on-demand/background requests.
+Modules implement `Module_Contract` and may optionally expose lazy query/chunk/background/lifecycle/event methods. Core provides generic routes, so a new module does not require edits to the REST router.
 
-Use `Airfiber\Next\Cache` for namespaced caches and stale/fresh envelopes. Use `Airfiber\Next\HTTP_Client` for remote calls so external latency is profiled separately from module PHP.
+Cross-module behavior can use `Event_Bus` or normal `afcn_*` WordPress hooks. Module state changes publish both.
+
+## Background work
+
+`Task_Queue` stores a small bounded queue and wakes through WP-Cron. Only the module attached to a due task is loaded. Jobs retry with bounded exponential backoff. Payloads are size-limited and should contain identifiers, never large datasets/secrets.
+
+The queue contract is intentionally runner-agnostic so a dedicated worker can replace WP-Cron later without changing module APIs.
+
+## Data and external devices
+
+Use `Cache` for cache-first/stale-while-refresh behavior, `Module_Options` for per-module settings, and `HTTP_Client` so remote latency is measured separately from PHP performance.
 
 ## Users
 
-Airfiber does not maintain a second password database. It uses WordPress users underneath with Airfiber-specific roles and capabilities:
-
-- `airfiber_admin`
-- `airfiber_operator`
-
-WordPress administrators automatically have Airfiber Next capabilities.
-
-## Extension points
-
-The platform uses three forms of extension:
-
-1. Manifest metadata for navigation, assets, dependencies and lazy event subscriptions.
-2. `Airfiber\Next\Event_Bus` for events that should lazy-load only subscribed modules.
-3. Normal WordPress actions/filters inside modules that are already loaded.
+Airfiber uses WordPress authentication underneath with `airfiber_admin` and `airfiber_operator` roles. WordPress administrators automatically receive Airfiber capabilities.
 
 ## Fault isolation
 
-Each module is profiled independently. Non-system modules with repeated clustered code/query/memory/asset budget violations can be quarantined without bringing down Core or unrelated modules. External device/API latency is reported separately and cannot quarantine a module by itself.
+Core catches module `Throwable` failures around bootstrap/render/query/action/chunk/background/event execution. Runtime failures are tracked separately from performance violations. Three clustered runtime failures can quarantine a non-system module; Core and unrelated modules remain available.
+
+External device/API latency is diagnostic and never quarantines a module by itself.
+
+## Security boundaries
+
+Only the built-in Dashboard, Users, Modules and Settings IDs can be marked as Core system modules. Module class namespaces and lazy asset paths are validated before loading.

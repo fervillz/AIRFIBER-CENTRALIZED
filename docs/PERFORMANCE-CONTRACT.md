@@ -2,67 +2,41 @@
 
 Performance is an architectural requirement, not a later optimization pass.
 
-## Primary rule
-
-**An unopened module must have near-zero runtime cost.**
-
-Core may read its small manifest. It must not load the module class, optional assets, feature data or external device connections merely because the module is enabled.
+**An unopened module must have near-zero runtime cost.** Core may read cached manifest metadata; it must not load the module class, optional assets, feature data or external connections merely because the module is enabled.
 
 ## Default budgets
 
-- module bootstrap: 30 ms
-- module render: 120 ms
-- module action: 250 ms
-- client module initialization: 160 ms
-- measured external request: 800 ms
-- memory delta per profiled phase: 8 MB
-- database queries per profiled phase: 15
-- optional module CSS: 40 KB
-- optional module JavaScript: 100 KB
+- bootstrap: 30 ms
+- render: 120 ms
+- lazy query: 180 ms
+- action: 250 ms
+- background task: 1000 ms
+- client initialization: 160 ms
+- external request: 800 ms (diagnostic only)
+- memory delta: 8 MB
+- database queries: 15 per profiled phase
+- optional CSS: 40 KB
+- optional JavaScript: 100 KB
 
-Budgets are configurable from the BETA Settings module.
-
-## Sampling
-
-Normal samples are kept at a low sampling rate to stop the profiler from becoming the performance problem. Violations are always retained.
-
-Metrics include duration, memory delta, query count and optional asset size. Module health stores bounded recent history and exposes p50/p95. External request p95 is stored separately from module execution p95.
+Normal samples are retained at a low sampling rate; violations are always retained. Health exposes bounded p50/p95 and separate external p95.
 
 ## Circuit breaker
 
-Code/query/memory/asset violations are counted inside a rolling one-hour cluster window.
+Performance/code/query/memory/asset violations cluster over one hour: 3 warning, 6 degraded, 12 quarantine for non-system modules.
 
-- 3: warning
-- 6: degraded
-- 12: quarantine for non-system modules
+Runtime failures are stricter: first failure warns, second degrades, third clustered failure can quarantine a non-system module.
 
-A quarantine blocks module loading while Core and other modules continue running. System modules are never automatically quarantined.
+System modules are never automatically quarantined. External OLT/MikroTik/API latency is also excluded from quarantine.
 
-External OLT/MikroTik/API latency is deliberately excluded from automatic quarantine. A remote device can be slow while the module itself remains well designed.
+## Fast patterns
 
-An administrator can inspect the recommendation and reset module health from Modules.
+- cache-first responses
+- stale-while-refresh network data
+- server-side pagination
+- lazy HTML chunks
+- lazy read-only queries
+- background queue for work not required for first paint
+- small module manifests and optional assets
+- measured external HTTP via `HTTP_Client`
 
-## Recommendations
-
-Core attempts to distinguish common causes:
-
-- too many queries → cache/paginate
-- high memory → reduce dataset/split lazy feature chunks
-- oversized CSS/JS → split optional assets into lazy chunks
-- slow bootstrap → move work out of module class loading
-- slow render/action → cache-first UI and smaller on-demand chunks
-
-## External latency
-
-Use `Airfiber\Next\HTTP_Client` instead of direct `wp_remote_*()` for device/API work where possible. This records external latency as `external` rather than incorrectly treating a slow OLT or API as PHP bootstrap cost.
-
-## Cache-first behavior
-
-For network equipment and large ISP data, prefer:
-
-1. show cached/last-known values immediately;
-2. mark their age;
-3. refresh asynchronously;
-4. update only changed UI.
-
-Fast software should not make the user wait for work that can happen after first paint.
+The profiler itself must stay cheap; do not add verbose production tracing to every request.

@@ -103,10 +103,15 @@ class Module_Registry {
 		if ( '' === $name || '' === $class ) {
 			return new \WP_Error( 'afcn_manifest_required', 'Manifest name and class are required.' );
 		}
+		$expected_class = __NAMESPACE__ . '\\Modules\\' . str_replace( ' ', '', ucwords( str_replace( '-', ' ', $folder ) ) ) . '\\';
+		if ( 0 !== strpos( $class, $expected_class ) ) {
+			return new \WP_Error( 'afcn_manifest_class', 'Module class must live inside its Airfiber Next module namespace.' );
+		}
 
-		$assets = isset( $data['assets'] ) && is_array( $data['assets'] ) ? $data['assets'] : array();
-		$file   = AFCN_PATH . 'modules/' . $folder . '/module.json';
-		$real   = realpath( $file );
+		$assets  = isset( $data['assets'] ) && is_array( $data['assets'] ) ? $data['assets'] : array();
+		$file    = AFCN_PATH . 'modules/' . $folder . '/module.json';
+		$real    = realpath( $file );
+		$systems = array( 'dashboard', 'users', 'modules', 'settings' );
 		return array(
 			'id'              => $id,
 			'name'            => $name,
@@ -116,7 +121,7 @@ class Module_Registry {
 			'position'        => isset( $data['position'] ) ? (int) $data['position'] : 100,
 			'icon'            => isset( $data['icon'] ) ? sanitize_key( $data['icon'] ) : 'box',
 			'capability'      => isset( $data['capability'] ) ? sanitize_key( $data['capability'] ) : Capabilities::ACCESS,
-			'system'          => ! empty( $data['system'] ),
+			'system'          => ! empty( $data['system'] ) && in_array( $id, $systems, true ),
 			'default_enabled' => ! isset( $data['default_enabled'] ) || (bool) $data['default_enabled'],
 			'assets'          => array(
 				'css' => isset( $assets['css'] ) && is_array( $assets['css'] ) ? array_values( array_map( 'sanitize_text_field', $assets['css'] ) ) : array(),

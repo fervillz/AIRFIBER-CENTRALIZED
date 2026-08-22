@@ -4,108 +4,54 @@ Updated: 2026-08-22
 
 ## Current goal
 
-Build Airfiber Next/BETA as an isolated, very fast application platform inside the existing WordPress plugin while keeping Airfiber Classic working.
+Build Airfiber Next/BETA as an isolated, very fast application platform inside the existing WordPress plugin while keeping Airfiber Classic working. Product principle: **Fast by design**.
 
-The product principle is **Fast by design**.
+## Boundary
 
-## Important boundary
+Classic stays in `includes/`, `templates/`, and `assets/`. Next/BETA lives in `next/`. The only Classic bootstrap bridge is `require_once AFC_PATH . 'next/bootstrap.php';`; the Classic frontend gets a small **Try BETA** link without restructuring Classic templates.
 
-Classic remains where it is:
+BETA URL: `/airfiber-beta/`.
 
-- `includes/`
-- `templates/`
-- `assets/`
-
-Next/BETA lives only in:
-
-- `next/`
-
-The only Classic bootstrap bridge is `require_once AFC_PATH . 'next/bootstrap.php';` in the main plugin file. The Classic frontend receives a small **Try BETA** link through an inline script; its existing templates are not restructured.
-
-## Next/BETA URL
-
-`/airfiber-beta/`
-
-The page is managed automatically by `Airfiber\Next\Bootstrap`.
-
-## Core completed
+## Core platform completed
 
 - isolated `Airfiber\Next` namespace and `afcn_` prefixes
-- WordPress-style readable `class-*.php` class filenames
-- managed BETA page and protected app template
-- Classic → **Try BETA** bridge and BETA → **Back to Classic** link
-- Core UI design tokens, fields, buttons, cards, tables, dialogs and transitions
-- Source Serif 4 headings and system/Inter UI stack
-- manifest-based module discovery with a persistent compiled registry cache
-- manual registry refresh for newly deployed modules
-- numeric module menu positions
-- lazy module PHP autoloading
-- AJAX/REST module rendering
-- lazy per-module CSS/JavaScript manifests
-- generic module actions/forms
-- module dependencies
-- module enable/disable state plus optional `activate()` / `deactivate()` lifecycle methods
-- lazy event bus for declared module events
-- namespaced cache helper with stale/fresh envelopes
-- measured HTTP client for external requests
-- performance budgets and request sampling
-- module health history with p50/p95 plus separate external p95
-- asset-size budgets for optional module CSS/JS
-- performance circuit breaker
-- automatic quarantine after repeated clustered module-code violations for non-system modules
-- external device/API slowness is measured separately and does not quarantine a module by itself
-- bounded debug warning/error log
-- Airfiber roles/capabilities using WordPress users underneath
-- Airfiber user create/update/delete UI
-- Core Modules health page
-- Core Settings/performance budget page
-- Dashboard system module
+- readable WordPress-style `class-*.php` class/interface files
+- protected managed BETA page; Try BETA / Back to Classic navigation
+- shared UI design system (Source Serif 4 headings, 9px buttons/fields, 14px dialogs)
+- compiled persistent module manifest registry + manual refresh
+- numeric menu positions
+- lazy PHP module autoloading
+- generic REST rendering, read-only queries, lazy HTML chunks, and actions
+- lazy per-module CSS/JS + asset path validation and size budgets
+- browser SDK at `window.AirfiberNext`
+- module dependencies, state, optional activate/deactivate lifecycle
+- lazy Event Bus + normal WordPress `afcn_*` hooks
+- `Module_Options` namespaced per-module settings
+- cache/stale-cache helpers
+- measured HTTP client
+- durable bounded background Task Queue with retry/backoff
+- performance budgets, sampling, p50/p95, separate external p95
+- performance circuit breaker + runtime-failure isolation/quarantine
+- bounded debug diagnostics and bounded administrative Audit Log
+- Airfiber users backed by WordPress users (`airfiber_admin`, `airfiber_operator`)
+- user create/update/delete UI
+- Dashboard, Users, Modules and Settings Core modules
+- Modules health screen and Settings diagnostics/performance screen
 
-## Built-in system modules
+## Core safety rules
 
-- `dashboard`
-- `users`
-- `modules`
-- `settings`
+An unopened module costs almost nothing beyond cached manifest metadata. External device latency cannot quarantine a module. Non-system modules can be quarantined after repeated code/performance failures. Only built-in Core IDs may declare themselves system modules.
 
-They are system modules and cannot be disabled from BETA.
+## Intentionally deferred from Core 0.1
 
-## Performance contract
+Runtime ZIP install/delete is not exposed yet. Modules are deployed under `next/modules/` and then the registry is refreshed. This avoids filesystem/package-execution risk until the SDK is proven with real feature modules.
 
-An enabled module that has not been opened should cost almost nothing beyond reading its cached manifest metadata.
+## Next work after Core
 
-Default budgets:
+Do NOT bulk-migrate Classic. Build the first real non-system module as a proof: read-only **OLT overview/list**, then per-OLT/PON/ONU lazy chunks, and only later provisioning writes. After OLT proves the SDK, migrate PPP and other domains one bounded workflow at a time.
 
-- bootstrap: 30 ms
-- server render: 120 ms
-- action: 250 ms
-- client initialization: 160 ms
-- external request: 800 ms (diagnostic only; does not quarantine by itself)
-- memory delta: 8 MB
-- database queries per profiled phase: 15
-- optional module CSS: 40 KB
-- optional module JavaScript: 100 KB
-
-Three clustered module-code/asset violations → warning.
-Six → degraded.
-Twelve within the one-hour violation window → non-system module quarantined.
-
-System modules are never automatically quarantined.
-
-## What is intentionally NOT migrated yet
-
-Classic PPP, OLT, Billing, Payments, Connections, SMS and Integrations are still Classic code. Do not move all of them at once.
-
-The next major task is to prove the module SDK by migrating one read-only feature first. Recommended first feature: **OLT overview/list**, then progressively add ONU views and provisioning.
-
-## Safety decision
-
-Runtime ZIP installation/deletion of module folders is intentionally not exposed yet. During BETA, modules are added through the repository under `next/modules/`. This keeps filesystem mutation out of the first platform release. Add a secure package installer only after the module contract is stable.
-
-## When starting a new chat
+## New-chat handoff
 
 Tell ChatGPT:
 
-> Open `fervillz/AIRFIBER-CENTRALIZED`, read `CONTINUE-HERE.md`, `AGENTS.md`, and the referenced architecture docs, inspect current `main`, then continue the unfinished Airfiber Next/BETA work.
-
-Do not redesign the architecture from scratch unless a measured problem requires it.
+> Open `fervillz/AIRFIBER-CENTRALIZED`, read `CONTINUE-HERE.md`, `AGENTS.md` and the architecture docs, inspect current `main`, then continue the unfinished Airfiber Next/BETA work.

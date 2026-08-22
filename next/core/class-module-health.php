@@ -66,6 +66,7 @@ class Module_Health {
 			'max_queries'     => empty( $queries ) ? 0 : max( $queries ),
 			'max_asset_kb'    => empty( $assets ) ? 0 : round( max( $assets ), 2 ),
 			'violations'      => isset( $state['violations'] ) ? (int) $state['violations'] : 0,
+			'failures'        => isset( $state['failures'] ) ? (int) $state['failures'] : 0,
 			'message'         => isset( $state['message'] ) ? $state['message'] : '',
 			'recommendation'  => Circuit_Breaker::recommendation( $module ),
 		);

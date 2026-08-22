@@ -12,7 +12,7 @@ next/modules/example/
     └── example.js    (optional)
 ```
 
-Class filenames use the readable WordPress-style `class-` prefix.
+Every PHP class/interface file uses the readable WordPress-style `class-` prefix. A filename must tell a developer what is inside it.
 
 ## Minimal manifest
 
@@ -34,9 +34,9 @@ Class filenames use the readable WordPress-style `class-` prefix.
 }
 ```
 
-`position` works like WordPress menu numbering: lower values appear earlier.
+`position` works like WordPress menu numbering: lower values appear earlier. Third-party/future modules cannot mark themselves as Core system modules.
 
-## Module class
+## Required module methods
 
 ```php
 namespace Airfiber\Next\Modules\Example;
@@ -49,41 +49,55 @@ class Example_Module implements Module_Contract {
     }
 
     public static function handle_action( $action, $payload = array() ) {
-        // Validate capability and input, then perform the requested action.
+        // Validate capability and input, then perform writes.
     }
 }
 ```
 
+## Optional module methods
+
+A module may add these without changing Core:
+
+- `handle_query( $query, $payload )` — lazy GET/read-only data.
+- `render_chunk( $chunk, $payload )` — lazy HTML sub-view.
+- `handle_background( $action, $payload )` — durable background queue work.
+- `activate()` / `deactivate()` — lifecycle when module state changes.
+- `on_event()` / `filter_event()` — lazy event subscriptions declared by the manifest.
+
+## Shared Core services
+
+- `Airfiber\Next\UI` — shared fields/buttons/badges/notices.
+- `Airfiber\Next\Cache` — namespaced transient and stale/fresh caching.
+- `Airfiber\Next\Module_Options` — one namespaced settings store per module.
+- `Airfiber\Next\HTTP_Client` — measured remote HTTP requests.
+- `Airfiber\Next\Task_Queue` — background work; queue IDs/small payloads, not large datasets or secrets.
+- `Airfiber\Next\Event_Bus` — lazy cross-module events/filters.
+- `Airfiber\Next\Audit_Log` — bounded administrative audit events.
+
+## Browser API
+
+Core exposes `window.AirfiberNext` after startup:
+
+```js
+AirfiberNext.query('example', 'items', {page: 2});
+AirfiberNext.action('example', 'save-item', {id: 14});
+AirfiberNext.loadChunk('example', 'details', '#target', {id: 14});
+AirfiberNext.toast('Saved');
+```
+
+Module JavaScript should use this API rather than inventing another AJAX layer.
+
 ## Shared UI first
 
-Use Core classes and markup:
-
-- `.afcn-button`
-- `.afcn-input`
-- `.afcn-select`
-- `.afcn-card`
-- `.afcn-table`
-- `.afcn-dialog`
-- `Airfiber\Next\UI`
+Use Core classes and markup: `.afcn-button`, `.afcn-input`, `.afcn-select`, `.afcn-card`, `.afcn-table`, `.afcn-dialog`, and `Airfiber\Next\UI`.
 
 Only add module CSS when Core cannot express the feature.
 
 ## Lazy assets
 
-Declare optional assets in the manifest:
+Declare optional assets in the manifest. Core does not send them on the initial app request; they load only when the module opens.
 
-```json
-"assets": {
-  "css": ["assets/example.css"],
-  "js": ["assets/example.js"]
-}
-```
-
-Core does not send them on the initial app request. They load only when the module opens.
-
-## Actions
-
-Forms can use the generic Core action transport:
+## Generic forms/actions
 
 ```html
 <form data-afcn-module="example" data-afcn-action="save-item">
@@ -91,7 +105,7 @@ Forms can use the generic Core action transport:
 </form>
 ```
 
-The browser posts to the module action endpoint. The module validates capability/input in `handle_action()`.
+Core posts the form to the module action route, shows the result, and reloads only that module unless the response contains `reload: false`.
 
 ## Dependencies
 
@@ -102,14 +116,8 @@ The browser posts to the module action endpoint. The module validates capability
 }
 ```
 
-A module with missing dependencies is not exposed as available.
-
-## Lazy events
-
-Declare event names in `events` and implement `on_event()` or `filter_event()` on the module class. `Event_Bus` loads only modules that declared that event.
-
 ## Performance rules
 
-Module bootstrap must be tiny. No broad database scans, remote OLT/MikroTik calls, or large data construction should happen simply because the module class was loaded.
+Module bootstrap must be tiny. No broad database scans, remote OLT/MikroTik calls, or large data construction may happen because the module class was merely discovered or loaded.
 
-If a feature becomes large, keep one logical module but split it into on-demand feature chunks rather than creating many tightly coupled modules.
+If a logical module becomes large, split it into lazy queries/chunks/background tasks rather than many tightly coupled modules.

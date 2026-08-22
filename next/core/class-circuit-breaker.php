@@ -25,19 +25,22 @@ class Circuit_Breaker {
 		if ( $count >= 12 && ( ! $meta || empty( $meta['system'] ) ) ) {
 			$status = 'quarantined';
 		}
+		$status = self::more_severe( $status, isset( $state['status'] ) ? $state['status'] : 'healthy' );
 
 		$message = sprintf(
-			/* translators: 1: module, 2: reason */
 			__( '%1$s exceeded its performance budget: %2$s', 'airfiber-centralized' ),
 			$meta ? $meta['name'] : $module,
 			sanitize_text_field( $reason )
 		);
-		$all[ $module ] = array(
-			'status'         => $status,
-			'violations'     => $count,
-			'last_violation' => time(),
-			'last_sample'    => is_array( $sample ) ? $sample : array(),
-			'message'        => $message,
+		$all[ $module ] = array_merge(
+			$state,
+			array(
+				'status'         => $status,
+				'violations'     => $count,
+				'last_violation' => time(),
+				'last_sample'    => is_array( $sample ) ? $sample : array(),
+				'message'        => $message,
+			)
 		);
 		update_option( self::OPTION, $all, false );
 
@@ -48,9 +51,48 @@ class Circuit_Breaker {
 		}
 	}
 
+	public static function record_failure( $module, $phase, $error ) {
+		$module = sanitize_key( $module );
+		$phase  = sanitize_key( $phase );
+		$all    = get_option( self::OPTION, array() );
+		$state  = isset( $all[ $module ] ) && is_array( $all[ $module ] ) ? $all[ $module ] : array();
+		$recent = isset( $state['last_failure'] ) && (int) $state['last_failure'] >= time() - self::VIOLATION_WINDOW;
+		$count  = $recent && isset( $state['failures'] ) ? (int) $state['failures'] + 1 : 1;
+		$meta   = Module_Registry::get( $module );
+		$status = 1 === $count ? 'warning' : 'degraded';
+		if ( $count >= 3 && ( ! $meta || empty( $meta['system'] ) ) ) {
+			$status = 'quarantined';
+		}
+		$status = self::more_severe( $status, isset( $state['status'] ) ? $state['status'] : 'healthy' );
+		$message = sprintf(
+			__( '%1$s failed while running %2$s.', 'airfiber-centralized' ),
+			$meta ? $meta['name'] : $module,
+			$phase
+		);
+		$all[ $module ] = array_merge(
+			$state,
+			array(
+				'status'       => $status,
+				'failures'     => $count,
+				'last_failure' => time(),
+				'message'      => $message,
+			)
+		);
+		update_option( self::OPTION, $all, false );
+		Debug_Logger::error(
+			'Module runtime failure.',
+			array(
+				'module' => $module,
+				'phase'  => $phase,
+				'type'   => is_object( $error ) ? get_class( $error ) : 'error',
+				'error'  => is_object( $error ) && method_exists( $error, 'getMessage' ) ? $error->getMessage() : '',
+			)
+		);
+	}
+
 	public static function state( $module ) {
 		$all = get_option( self::OPTION, array() );
-		return isset( $all[ $module ] ) && is_array( $all[ $module ] ) ? $all[ $module ] : array( 'status' => 'healthy', 'violations' => 0, 'message' => '' );
+		return isset( $all[ $module ] ) && is_array( $all[ $module ] ) ? $all[ $module ] : array( 'status' => 'healthy', 'violations' => 0, 'failures' => 0, 'message' => '' );
 	}
 
 	public static function is_quarantined( $module ) {
@@ -68,6 +110,9 @@ class Circuit_Breaker {
 
 	public static function recommendation( $module ) {
 		$state = self::state( $module );
+		if ( ! empty( $state['failures'] ) ) {
+			return __( 'This module has runtime failures. Inspect the debug log before re-enabling or resetting its health.', 'airfiber-centralized' );
+		}
 		if ( empty( $state['last_sample'] ) ) {
 			return '';
 		}
@@ -89,5 +134,10 @@ class Circuit_Breaker {
 			return __( 'Use cache-first data, server-side pagination, and smaller on-demand feature chunks.', 'airfiber-centralized' );
 		}
 		return __( 'Review the module profile and move expensive work behind an on-demand request.', 'airfiber-centralized' );
+	}
+
+	private static function more_severe( $left, $right ) {
+		$rank = array( 'healthy' => 0, 'warning' => 1, 'degraded' => 2, 'quarantined' => 3 );
+		return ( $rank[ $right ] ?? 0 ) > ( $rank[ $left ] ?? 0 ) ? $right : $left;
 	}
 }
