@@ -3,11 +3,12 @@
 defined( 'ABSPATH' ) || exit;
 
 if ( ! defined( 'AFCN_VERSION' ) ) {
-	define( 'AFCN_VERSION', '0.3.4' );
+	define( 'AFCN_VERSION', '0.3.5' );
 	define( 'AFCN_PATH', trailingslashit( AFC_PATH . 'next' ) );
 	define( 'AFCN_URL', trailingslashit( AFC_URL . 'next' ) );
 }
 
+require_once AFCN_PATH . 'core/class-module-naming.php';
 require_once AFCN_PATH . 'core/class-mu-module-autoloader.php';
 \Airfiber\Next\MU_Module_Autoloader::register();
 
