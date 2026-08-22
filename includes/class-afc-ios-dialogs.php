@@ -48,6 +48,14 @@ class AFC_IOS_Dialogs {
 			file_exists( $choice_css ) ? (string) filemtime( $choice_css ) : AFC_VERSION
 		);
 
+		$shape_css = AFC_PATH . 'assets/css/ui-shape-consistency.css';
+		wp_enqueue_style(
+			'afc-ui-shape-consistency',
+			AFC_URL . 'assets/css/ui-shape-consistency.css',
+			array( 'afc-basic-add-choice-polish' ),
+			file_exists( $shape_css ) ? (string) filemtime( $shape_css ) : AFC_VERSION
+		);
+
 		$add_menu_js = AFC_PATH . 'assets/js/basic-add-menu.js';
 		wp_enqueue_script(
 			'afc-basic-add-menu',
