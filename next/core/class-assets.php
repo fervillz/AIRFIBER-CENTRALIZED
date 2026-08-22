@@ -6,6 +6,8 @@ defined( 'ABSPATH' ) || exit;
 
 class Assets {
 	public static function enqueue_core() {
+		Performance_Monitor::migrate_metrics();
+
 		$css            = AFCN_PATH . 'assets/css/core.css';
 		$interactions   = AFCN_PATH . 'assets/css/ui-interactions.css';
 		$module_manager = AFCN_PATH . 'assets/css/module-manager.css';
