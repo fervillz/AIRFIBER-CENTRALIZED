@@ -6,140 +6,94 @@ Updated: 2026-08-23
 
 Build Airfiber Next/BETA as an isolated, very fast application platform inside the existing WordPress plugin while keeping Airfiber Classic working. Product principle: **Fast by design**.
 
-## Boundary
-
-Classic stays in `includes/`, `templates/`, and `assets/`. Next/BETA lives in `next/`. The only Classic bootstrap bridge is `require_once AFC_PATH . 'next/bootstrap.php';`; the Classic frontend gets a small **Try BETA** link without restructuring Classic templates.
-
 BETA URL: `/airfiber-beta/`.
 
-Airfiber Next Core version: **0.3.3**.
+Airfiber Next Core version: **0.3.4**.
+
+## Boundary
+
+Classic stays in `includes/`, `templates/`, and `assets/`. Next/BETA lives in `next/`. Do not bulk-restructure Classic. The Classic bridge only boots `next/bootstrap.php` and exposes the small **Try BETA** entry.
 
 ## Core platform completed
 
 - isolated `Airfiber\Next` namespace and `afcn_` prefixes
-- readable WordPress-style `class-*.php` class/interface files
-- protected managed BETA page; Try BETA / Back to Classic navigation
-- shared UI design system (Source Serif 4 headings, 9px buttons/fields, 14px dialogs)
-- compiled persistent module manifest registry + manual refresh
-- numeric menu positions
-- lazy PHP module autoloading
-- generic REST rendering, read-only queries, lazy HTML chunks, and actions
-- lazy per-module CSS/JS + asset path validation and size budgets
+- readable WordPress-style `class-*.php` files
+- managed/protected BETA page
+- shared UI system: Source Serif 4 headings, 9px controls, 14px dialogs, shared cards/tooltips/icons/motion
+- compiled cached module registry, numeric menu positions and lazy module PHP/assets/data
+- generic REST render/query/chunk/action runtime
 - browser SDK at `window.AirfiberNext`
-- module dependencies, state, optional activate/deactivate lifecycle
-- lazy Event Bus + normal WordPress `afcn_*` hooks
-- `Module_Options` namespaced per-module settings
-- cache/stale-cache helpers
-- measured HTTP client
-- durable bounded background Task Queue with retry/backoff
-- performance budgets, sampling, p50/p95, separate external p95
-- performance circuit breaker + runtime-failure isolation/quarantine
-- bounded debug diagnostics and bounded administrative Audit Log
-- performance budget lookup is cached for the request so the profiler does not repeatedly resolve the same Core option
-- a single profile sample can report every exceeded budget (for example render time plus DB-query count), instead of hiding secondary causes
-- warning records retain module, reason and sanitized sample context; Core Settings exposes the exact module and cause rather than only a generic warning message
-- Airfiber users backed by WordPress users (`airfiber_admin`, `airfiber_operator`)
-- user create/update/delete UI
-- Dashboard, Users, Modules and Settings must-use Core components
-- Modules health screen and Settings diagnostics/performance screen
-- WordPress-like Modules browser with All, Active, Inactive, Update Available, Auto-updates Disabled, Trash and MU views
-- reusable Core SVG icons and tooltip API
-- Core icon library includes module identity icons for Dashboard, Users, Modules, Settings and Connections; module cards use manifest `icon` metadata instead of hard-coded feature knowledge
-- shared card hover language: `#e7f0fb` hover background, -10px lift and `0 10px 40px 0 rgba(0,0,0,.1)` shadow
-- shared card timing: fast hover-in (~160ms) and slow 5s hover-out; reduced-motion is respected
-- Module Manager CSS is Core-owned to prevent a flash of unstyled controls
-- shared `next/assets/css/browser.css` owns the common filter-tab/search/browser treatment used by Modules and Connections
-- shared `next/assets/js/browser.js` owns reliable filter/search behavior for Modules and Connections; feature modules do not duplicate this browser logic
-- native `[hidden]` state is enforced over card `display` rules, so All/Active/Inactive/MU filtering cannot be visually overridden by card CSS
-- module cards use the same visual identity language as Connections: icon at upper-left, compact state/update pills at upper-right, title tooltip, health/version footer
-- module actions remain icon-only with tooltip labels, live directly below the title like WordPress plugin actions, appear on card hover/focus, and receive a white rounded shadowed surface only when the individual action is hovered/focused
-- module descriptions live in the shared black tooltip on the module title instead of occupying 150 × 150 card space
-- cached module views now emit the same `afcn:module:loaded` lifecycle event as fresh views, so Core/feature wiring remains consistent when navigating back to a cached screen
+- module activation/deactivation, dependencies, Trash and MU separation
+- cache helpers, event bus/hooks, task queue, HTTP client, audit/debug logging
+- WordPress-backed Airfiber users/roles/capabilities
+- performance budgets, bounded samples, p50/p95 and circuit-breaker isolation
+- Core MU components: Dashboard, Users, Modules, Settings
+- normal Connections add-on with Classic read-only connector bridge
 
-## Modules browser performance rule
+## Modules browser
 
-The Modules browser is intentionally hybrid rather than AJAX-only:
+MU components live in `next/modules/mu/<id>/` and only appear in the MU tab. Normal add-ons live in `next/modules/<id>/`.
 
-- **60 modules or fewer:** render the lightweight cards once and filter/search instantly in the browser with no extra network request. This is faster than REST/AJAX for normal Airfiber installations.
-- **more than 60 modules:** the browser automatically switches to the existing Airfiber REST query path. Filters/search fetch only **30 cards per request**, with Load More for the next page.
-- search is debounced; stale REST responses are ignored.
-- AJAX-inserted module cards are passed back through the Core action/dialog wiring so Activate, Deactivate, Trash, Restore and Settings controls remain functional.
+The Modules browser uses shared Core CSS/JS and WordPress-like filters: All, Active, Inactive, Update Available, Auto-updates Disabled, Trash and MU. Module cards are 150×150 with manifest-driven icons, pills, description tooltip, health/version footer and icon-only hover actions.
 
-MU modules only belong to the MU group; they are not counted or displayed in All/Active/Inactive/update/trash views.
+Performance rule:
 
-## Connector/Connections foundation completed
+- **60 modules or fewer:** render lightweight card metadata once and filter/search locally with no AJAX request.
+- **more than 60 modules:** switch automatically to REST/AJAX, 30 cards per page, debounced search and Load More only when another page exists.
 
-Core now owns generic connector primitives only:
+## Performance telemetry — important
 
-- `Connector_Registry` — lightweight connector types compiled from module manifests
-- `Connection_Store` — generic non-secret configured connection records
-- `Secret_Store` — encrypted credentials, Sodium preferred / AES-256-GCM fallback, no plaintext fallback
-- `Connection_Health` — cached status/latency/last-check records separate from configuration
-- `afcn_manage_connections` capability for Airfiber administrators
+Core 0.3.4 corrected a measurement bug from metric schema v1.
 
-Normal feature modules may advertise `connectors` metadata in `module.json`. Reading that metadata must not bootstrap the owning module.
+Previously `client` timing started **before the module REST request**, so WordPress/network/server time was incorrectly reported as browser/client work. Values such as 170–400 ms therefore did not prove that module JavaScript was slow.
 
-The normal `next/modules/connections/` add-on is now the central Connections Hub UI. It is enabled by default and positioned after Dashboard. It provides:
+Browser timing is now separated:
 
-- All / Online / Offline / Warning / Unconfigured filters
-- search
-- grouped cards: Network, Cloud & Integrations, Payments, Messaging, Storage, Other
-- shared Core card/tooltip/hover language
-- Core-owned browser/filter/search/card styling so Connections does not depend on a feature CSS file just to render correctly
-- generic create/edit/delete UI when an active module advertises a connector type
-- provider test action routed lazily to the owning module
-- cache-first health presentation
+- `client` = DOM insertion + Core/module event wiring through the next paint; actionable and allowed to affect module health
+- `transport` = REST/WordPress/network delivery; diagnostic only
+- `asset_load` = optional module CSS/JS delivery; diagnostic only
+- `navigation` = complete uncached module transition; diagnostic only
+- `external` = OLT/MikroTik/API latency; diagnostic only
 
-While feature modules are still Classic-owned, the Hub shows existing Classic OLT, MikroTik and Google Sheets entries as read-only **CLASSIC** cards. No credentials are copied. Management links back to Classic.
+Default budgets now include client 160 ms, transport 500 ms, asset load 250 ms, navigation 650 ms and external 800 ms. Server budgets remain bootstrap 30 ms, render 120 ms, query 180 ms, action 250 ms, background 1000 ms, 8 MB memory delta and 15 DB queries.
 
-See `docs/CONNECTORS.md` and the updated `docs/MODULE-SDK.md`.
+Only actionable code/server/client violations feed the circuit breaker. Transport/navigation/asset-delivery/external latency can be logged as diagnostics but cannot quarantine a module.
 
-## Module folders
+A one-time metric migration runs only on the BETA frontend and removes the invalid legacy `client` warning state, samples and matching debug rows while preserving unrelated failures. Runtime health p50/p95 now excludes transport/navigation/network timing and exposes those as separate p95 values.
 
-Must-use Core components live in:
+See `docs/PERFORMANCE-CONTRACT.md`.
 
-`next/modules/mu/<id>/`
+## Connections architecture
 
-They are always active and cannot be deactivated or trashed. Only settings may be exposed when declared.
+Core owns generic connector primitives only:
 
-Normal installable add-ons live in:
+- `Connector_Registry`
+- `Connection_Store`
+- `Secret_Store`
+- `Connection_Health`
 
-`next/modules/<id>/`
+The normal `next/modules/connections/` add-on provides the central grouped Connections Hub. Existing Classic OLT, MikroTik and Google Sheets entries appear as read-only **CLASSIC** cards without copying credentials. Native provider modules will advertise connector metadata in `module.json` and perform their own explicit/background tests; opening Connections must never fan out to every device.
 
-Regular modules can be activated/deactivated, moved to Trash, restored and can declare a settings target.
-
-The registry determines MU status from the physical folder, not from a module-controlled manifest flag.
-
-## Updates
-
-Update UI is provider-ready through the `afcn_module_update_catalog` filter. No package/update service is connected yet, so Update Available and Auto-updates Disabled may show zero until a provider is built.
+See `docs/CONNECTORS.md` and `docs/MODULE-SDK.md`.
 
 ## Core safety rules
 
-An unopened module costs almost nothing beyond cached manifest metadata. External device latency cannot quarantine a module. Non-MU modules can be quarantined after repeated code/performance failures. MU/Core components are protected from disable/trash actions.
-
-Opening Connections must not fan out to every remote device. It renders stored/cached state first. Provider modules perform explicit tests/background refreshes through their own logic.
-
-Secrets never belong in manifests, connection config, browser bootstrap data, audit/debug logs or task payloads.
-
-Performance diagnostics must identify the module and the exact exceeded budget. Do not weaken a budget just to hide a warning; first determine whether the cost is code time, query count, memory, assets or external latency.
+An unopened module costs almost nothing beyond cached manifest metadata. External device/network latency cannot quarantine a module. Secrets never belong in manifests, browser bootstrap data, logs or task payloads. Do not weaken a budget just to hide a warning; first identify whether the cost is server code, DB queries, memory, client apply, transport, assets or external latency.
 
 ## Intentionally deferred
 
-Runtime ZIP install and permanent filesystem delete are not exposed yet. Modules are deployed under `next/modules/` and then the registry is refreshed. Trash is currently safe soft-state. This avoids filesystem/package-execution risk until the SDK is proven with real feature modules.
-
-Native BETA connector provider modules do not exist yet, so **Add Connection** will remain hidden until an active feature module advertises a connector type. Existing Classic connections still appear through the read-only bridge.
+Runtime ZIP installation and permanent filesystem deletion are not exposed yet. Trash is safe soft-state while the SDK is proven with real modules. The update UI is provider-ready but no package/update provider exists yet.
 
 ## Next work
 
 Do NOT bulk-migrate Classic.
 
-Build the first real provider module: read-only **OLT**. Its manifest should advertise the relevant OLT connector type(s), then use the Core connection APIs for native BETA ownership. Start with OLT overview/list and cached health; add per-OLT/PON/ONU lazy chunks next; provisioning writes come only after the read-only path proves the SDK.
+Build the first real provider module: read-only **OLT**. Advertise OLT connector types through its manifest, use Core connection APIs, start with cached overview/list, then lazy per-OLT/PON/ONU chunks. Provisioning writes come only after the read-only path proves the SDK.
 
-During transition, keep the Classic OLT connection card read-only until its credentials/config are intentionally migrated. After OLT proves the provider contract, migrate MikroTik, PPP and other domains one bounded workflow at a time.
+Before optimizing a module because of a performance warning, use the new separated telemetry to identify the actual phase first.
 
 ## New-chat handoff
 
 Tell ChatGPT:
 
-> Open `fervillz/AIRFIBER-CENTRALIZED`, read `CONTINUE-HERE.md`, `AGENTS.md`, `docs/ARCHITECTURE.md`, `docs/CONNECTORS.md` and `docs/MODULE-SDK.md`, inspect current `main`, then continue the unfinished Airfiber Next/BETA work.
+> Open `fervillz/AIRFIBER-CENTRALIZED`, read `CONTINUE-HERE.md`, `AGENTS.md`, `docs/ARCHITECTURE.md`, `docs/CONNECTORS.md`, `docs/MODULE-SDK.md` and `docs/PERFORMANCE-CONTRACT.md`, inspect current `main`, then continue Airfiber Next/BETA work.
