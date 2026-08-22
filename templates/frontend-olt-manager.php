@@ -140,6 +140,30 @@ defined( 'ABSPATH' ) || exit;
 							<input name="retries" type="hidden" value="1">
 						</div>
 					</details>
+
+					<details class="afc-olt-advanced-fields afc-olt-management-fields">
+						<summary><?php esc_html_e( 'GPON provisioning login', 'airfiber-centralized' ); ?></summary>
+						<div class="afc-olt-advanced-grid">
+							<div class="afc-olt-field is-wide">
+								<label for="afc-manager-olt-management-source"><?php esc_html_e( 'Credential source', 'airfiber-centralized' ); ?></label>
+								<select id="afc-manager-olt-management-source" name="management_credential_source">
+									<option value="router"><?php esc_html_e( 'Use the saved main-router login', 'airfiber-centralized' ); ?></option>
+									<option value="custom"><?php esc_html_e( 'Use a dedicated OLT login', 'airfiber-centralized' ); ?></option>
+								</select>
+								<small><?php esc_html_e( 'Used only by the guarded ONU Settings workflow. SNMP monitoring remains read-only.', 'airfiber-centralized' ); ?></small>
+							</div>
+							<div class="afc-olt-version-fields is-v3" data-afc-olt-management-custom hidden>
+								<div class="afc-olt-field">
+									<label for="afc-manager-olt-management-user"><?php esc_html_e( 'OLT web username', 'airfiber-centralized' ); ?></label>
+									<input id="afc-manager-olt-management-user" name="management_username" type="text" autocomplete="username">
+								</div>
+								<div class="afc-olt-field">
+									<label for="afc-manager-olt-management-password"><?php esc_html_e( 'OLT web password', 'airfiber-centralized' ); ?></label>
+									<input id="afc-manager-olt-management-password" name="management_password" type="password" autocomplete="new-password" placeholder="<?php esc_attr_e( 'Saved securely', 'airfiber-centralized' ); ?>">
+								</div>
+							</div>
+						</div>
+					</details>
 				</form>
 
 				<footer class="afc-olt-dialog-footer">

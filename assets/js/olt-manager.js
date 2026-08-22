@@ -260,6 +260,13 @@
 		if ( known ) oid.value = technology.value === 'EPON' ? cfg.eponRxOid : cfg.gponRxOid;
 	}
 
+	function updateManagementFields() {
+		if ( ! form ) return;
+		const source = q( '[name="management_credential_source"]', form );
+		const custom = q( '[data-afc-olt-management-custom]', form );
+		if ( custom ) custom.hidden = ! source || source.value !== 'custom';
+	}
+
 	function resetForm() {
 		window.clearTimeout( autosaveTimer );
 		autosaveTimer = null;
@@ -286,7 +293,9 @@
 		q( '[name="cache_ttl"]', form ).value = '300';
 		q( '[name="timeout_ms"]', form ).value = '2500';
 		q( '[name="retries"]', form ).value = '1';
+		q( '[name="management_credential_source"]', form ).value = 'router';
 		updateVersionFields();
+		updateManagementFields();
 		setTestAttention( false, false );
 		const details = ensureTestLog();
 		if ( details ) details.hidden = true;
@@ -300,7 +309,7 @@
 		const names = [
 			'host', 'port', 'technology', 'version', 'community', 'security_name', 'auth_passphrase',
 			'privacy_passphrase', 'rx_oid', 'warning_dbm', 'critical_dbm', 'cache_ttl',
-			'timeout_ms', 'retries'
+			'timeout_ms', 'retries', 'management_credential_source', 'management_username', 'management_password'
 		];
 		const out = {};
 		names.forEach( function ( name ) {
@@ -324,6 +333,7 @@
 			if ( field && ! [ 'has_community', 'has_auth', 'has_privacy' ].includes( key ) ) field.value = node.config[ key ] == null ? '' : node.config[ key ];
 		} );
 		updateVersionFields();
+		updateManagementFields();
 		setTestAttention( currentStatus === 'publish' && currentState === 'error', false );
 		updateActionButtons();
 		showConnectionState();
@@ -647,6 +657,7 @@
 		form.addEventListener( 'change', function ( event ) {
 			if ( event.target && event.target.name === 'version' ) updateVersionFields();
 			if ( event.target && event.target.name === 'technology' ) updateTechnologyDefaults();
+			if ( event.target && event.target.name === 'management_credential_source' ) updateManagementFields();
 			scheduleAutosave();
 		} );
 
@@ -665,6 +676,7 @@
 		bindEvents();
 		countCards();
 		updateVersionFields();
+		updateManagementFields();
 	}
 
 	if ( document.readyState === 'loading' ) document.addEventListener( 'DOMContentLoaded', boot );

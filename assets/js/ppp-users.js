@@ -67,6 +67,9 @@
 
 	function opticalHtml( user ) {
 		const optical = user.optical || {};
+		const onuSettings = function ( label ) {
+			return '<button class="btn btn-link btn-sm p-0 ms-2 afc-onu-settings" type="button">' + label + '</button>';
+		};
 		if ( ! user.imported ) {
 			return '<span class="badge bg-secondary-lt">Import first</span>';
 		}
@@ -76,10 +79,11 @@
 				return '<span class="badge bg-azure-lt">Detected</span>' +
 					'<div class="small text-secondary">' + escapeHtml( optical.suggested.olt_name ? optical.suggested.olt_name + ' · ' : '' ) + 'PON ' + escapeHtml( optical.suggested.pon ) +
 					' · ONU ' + escapeHtml( optical.suggested.onu ) + '</div>' +
-					'<button class="btn btn-link btn-sm p-0 afc-map-onu" type="button">Review mapping</button>';
+					'<button class="btn btn-link btn-sm p-0 afc-map-onu" type="button">Review mapping</button>' +
+					onuSettings( 'Prepare GPON' );
 			}
 			return '<span class="badge bg-secondary-lt">Not mapped</span>' +
-				'<div><button class="btn btn-link btn-sm p-0 afc-map-onu" type="button">Map ONU</button></div>';
+				'<div><button class="btn btn-link btn-sm p-0 afc-map-onu" type="button">Map ONU</button>' + onuSettings( 'Prepare GPON' ) + '</div>';
 		}
 
 		const classes = {
@@ -108,11 +112,14 @@
 			optical.message || ''
 		].filter( Boolean ).join( '\n' );
 
+		const settingsButton = String( optical.technology || '' ).toUpperCase() === 'GPON'
+			? onuSettings( 'ONU Settings' )
+			: '';
 		return '<div title="' + escapeAttr( title ) + '">' + reading +
 			' <span class="badge ' + ( classes[ status ] || classes.unavailable ) + '">' +
 			escapeHtml( labels[ status ] || labels.unavailable ) + '</span>' +
 			'<div class="small text-secondary">' + escapeHtml( optical.olt_name ? optical.olt_name + ' · ' : '' ) + 'PON ' + escapeHtml( optical.pon ) + ' · ONU ' + escapeHtml( optical.onu ) + '</div>' +
-			'<button class="btn btn-link btn-sm p-0 afc-map-onu" type="button">Edit mapping</button></div>';
+			'<button class="btn btn-link btn-sm p-0 afc-map-onu" type="button">Edit mapping</button>' + settingsButton + '</div>';
 	}
 
 	function updateSummary() {
