@@ -66,13 +66,13 @@
 		if ( ! document.getElementById( 'afc-basic-add-choice-dialog' ) ) {
 			document.body.insertAdjacentHTML( 'beforeend', dialogShell(
 				'afc-basic-add-choice-dialog',
-				'What do you want to add?',
-				'New connection',
+				'Add',
+				'',
 				'<div class="afc-add-choice-grid">' +
 					'<button class="afc-add-choice-card" type="button" data-afc-add-choice="ppp"><span class="afc-add-choice-icon">P</span><strong>PPP Account</strong><span>Create the customer PPP login using the current Basic wizard.</span></button>' +
 					'<button class="afc-add-choice-card" type="button" data-afc-add-choice="onu"><span class="afc-add-choice-icon">+</span><strong>GPON ONU</strong><span>Add the ONU directly to a GPON OLT, then create TCONT, GEM, service and service ports.</span></button>' +
 				'</div>',
-				'<button class="btn btn-link" type="button" data-afc-add-close>Cancel</button>'
+				''
 			) );
 		}
 
@@ -118,30 +118,11 @@
 			option.textContent = node.name + ( node.host ? ' · ' + node.host : '' );
 			select.appendChild( option );
 		} );
-		let remembered = '';
-		try { remembered = window.localStorage.getItem( storageKey ) || ''; } catch ( error ) {}
-		if ( remembered && Array.from( select.options ).some( function ( option ) { return option.value === remembered; } ) ) select.value = remembered;
-	}
 
-	function resetOnuWizard() {
-		activePlan = null;
-		const dialog = document.getElementById( 'afc-basic-onu-dialog' );
-		if ( ! dialog ) return;
-		fillOlts();
-		dialog.querySelector( '[data-afc-onu-pon]' ).value = '';
-		dialog.querySelector( '[data-afc-onu-id]' ).value = '';
-		dialog.querySelector( '[data-afc-onu-name]' ).value = '';
-		dialog.querySelector( '[data-afc-onu-serial]' ).value = '';
-		dialog.querySelector( '[data-afc-onu-vlan-preset]' ).value = '510,399';
-		dialog.querySelector( '[data-afc-onu-vlans]' ).value = '510,399';
-		dialog.querySelector( '[data-afc-onu-form-view]' ).hidden = false;
-		dialog.querySelector( '[data-afc-onu-plan-view]' ).hidden = true;
-		dialog.querySelector( '[data-afc-onu-success]' ).hidden = true;
-		dialog.querySelector( '[data-afc-onu-preview]' ).hidden = false;
-		dialog.querySelector( '[data-afc-onu-execute]' ).hidden = true;
-		dialog.querySelector( '[data-afc-onu-back]' ).hidden = true;
-		dialog.querySelector( '[data-afc-onu-done]' ).hidden = true;
-		dialog.querySelector( '[data-afc-onu-status]' ).textContent = '';
+		const last = window.localStorage.getItem( storageKey );
+		if ( last && select.querySelector( 'option[value="' + CSS.escape( last ) + '"]' ) ) {
+			select.value = last;
+		}
 	}
 
 	function openChoice() {
@@ -152,158 +133,158 @@
 
 	function openOnu() {
 		ensureDialogs();
-		resetOnuWizard();
+		fillOlts();
+		activePlan = null;
 		const dialog = document.getElementById( 'afc-basic-onu-dialog' );
-		if ( dialog && ! dialog.open ) dialog.showModal();
+		if ( ! dialog ) return;
+		dialog.querySelector( '[data-afc-onu-form-view]' ).hidden = false;
+		dialog.querySelector( '[data-afc-onu-plan-view]' ).hidden = true;
+		dialog.querySelector( '[data-afc-onu-success]' ).hidden = true;
+		dialog.querySelector( '[data-afc-onu-preview]' ).hidden = false;
+		dialog.querySelector( '[data-afc-onu-execute]' ).hidden = true;
+		dialog.querySelector( '[data-afc-onu-done]' ).hidden = true;
+		dialog.querySelector( '[data-afc-onu-back]' ).hidden = true;
+		dialog.querySelector( '[data-afc-onu-status]' ).textContent = '';
+		if ( ! dialog.open ) dialog.showModal();
 	}
 
-	function previewOnu() {
+	function collectOnu() {
 		const dialog = document.getElementById( 'afc-basic-onu-dialog' );
 		const olt = dialog.querySelector( '[data-afc-onu-olt]' ).value;
-		const pon = dialog.querySelector( '[data-afc-onu-pon]' ).value;
-		const onu = dialog.querySelector( '[data-afc-onu-id]' ).value;
-		const name = String( dialog.querySelector( '[data-afc-onu-name]' ).value || '' ).trim();
-		const serialInput = dialog.querySelector( '[data-afc-onu-serial]' );
-		const serial = normalizeSerial( serialInput.value );
-		const vlans = dialog.querySelector( '[data-afc-onu-vlans]' ).value;
-		const status = dialog.querySelector( '[data-afc-onu-status]' );
-		const button = dialog.querySelector( '[data-afc-onu-preview]' );
-
-		serialInput.value = serial;
-		if ( ! olt || ! pon || ! name || serial.length < 8 || ! vlans ) {
-			status.className = 'afc-onu-status is-error';
-			status.textContent = 'Complete OLT, PON, ONU name, serial number and VLANs.';
-			return;
-		}
-		try { window.localStorage.setItem( storageKey, olt ); } catch ( error ) {}
-
-		button.disabled = true;
-		status.className = 'afc-onu-status is-loading';
-		status.textContent = 'Connecting to the OLT and checking the ONU configuration…';
-		post( 'afc_gpon_standalone_preview', { olt_id: olt, pon: pon, onu: onu, onu_name: name, serial: serial, vlans: vlans } )
-			.done( function ( response ) {
-				if ( ! response || ! response.success ) {
-					status.className = 'afc-onu-status is-error';
-					status.textContent = errorMessage( response, 'Could not prepare the ONU.' );
-					return;
-				}
-				activePlan = response.data.plan;
-				renderPlan( activePlan );
-			} )
-			.fail( function ( xhr ) {
-				status.className = 'afc-onu-status is-error';
-				status.textContent = errorMessage( xhr.responseJSON, 'Could not connect to the GPON OLT.' );
-			} )
-			.always( function () { button.disabled = false; } );
+		const serialEl = dialog.querySelector( '[data-afc-onu-serial]' );
+		serialEl.value = normalizeSerial( serialEl.value );
+		return {
+			olt_id: olt,
+			pon: dialog.querySelector( '[data-afc-onu-pon]' ).value,
+			onu_id: dialog.querySelector( '[data-afc-onu-id]' ).value,
+			onu_name: dialog.querySelector( '[data-afc-onu-name]' ).value.trim(),
+			serial: serialEl.value,
+			vlans: dialog.querySelector( '[data-afc-onu-vlans]' ).value.trim()
+		};
 	}
 
-	function renderPlan( plan ) {
+	function renderPlan( data ) {
 		const dialog = document.getElementById( 'afc-basic-onu-dialog' );
+		const plan = data.plan || [];
+		activePlan = data;
 		dialog.querySelector( '[data-afc-onu-form-view]' ).hidden = true;
 		dialog.querySelector( '[data-afc-onu-plan-view]' ).hidden = false;
 		dialog.querySelector( '[data-afc-onu-preview]' ).hidden = true;
 		dialog.querySelector( '[data-afc-onu-execute]' ).hidden = false;
 		dialog.querySelector( '[data-afc-onu-back]' ).hidden = false;
-		dialog.querySelector( '[data-afc-onu-summary]' ).innerHTML = '<strong>' + escapeHtml( plan.onu_name || 'ONU' ) + '</strong><br>' +
-			escapeHtml( plan.olt_name ) + ' · PON ' + escapeHtml( plan.pon ) + ' / ONU ' + escapeHtml( plan.onu ) + '<br><code>' + escapeHtml( plan.serial ) + '</code> · VLAN ' + escapeHtml( ( plan.vlans || [] ).join( ', ' ) );
-		dialog.querySelector( '[data-afc-onu-plan]' ).innerHTML = ( plan.steps || [] ).map( function ( step ) {
-			const reuse = step.action !== 'create';
-			return '<div class="afc-onu-plan-step' + ( reuse ? ' is-reuse' : '' ) + '"><b>' + ( reuse ? '✓' : '+' ) + '</b><div><strong>' + escapeHtml( step.label ) + '</strong><small>' + escapeHtml( step.summary ) + '</small></div></div>';
+		dialog.querySelector( '[data-afc-onu-summary]' ).innerHTML = '<strong>' + escapeHtml( data.onu_name || data.serial || 'ONU' ) + '</strong><br><small>' + escapeHtml( data.olt_name || '' ) + ' · PON ' + escapeHtml( data.pon || '' ) + ' · ONU ' + escapeHtml( data.onu_id || '' ) + ' · ' + escapeHtml( data.serial || '' ) + '</small>';
+		dialog.querySelector( '[data-afc-onu-plan]' ).innerHTML = plan.map( function ( step, index ) {
+			const reuse = !! step.reuse;
+			return '<div class="afc-onu-plan-step' + ( reuse ? ' is-reuse' : '' ) + '"><b>' + ( reuse ? '↺' : ( index + 1 ) ) + '</b><div><strong>' + escapeHtml( step.label || step.key || 'Step' ) + '</strong><small>' + escapeHtml( step.detail || '' ) + '</small></div></div>';
 		} ).join( '' );
-		dialog.querySelector( '[data-afc-onu-plan-status]' ).className = 'afc-onu-status';
-		dialog.querySelector( '[data-afc-onu-plan-status]' ).textContent = 'Nothing has been changed yet. Submit below to add the ONU and line configuration.';
 	}
 
-	function executeOnu() {
-		if ( ! activePlan || ! activePlan.token ) return;
+	function showSuccess( message ) {
 		const dialog = document.getElementById( 'afc-basic-onu-dialog' );
-		const button = dialog.querySelector( '[data-afc-onu-execute]' );
-		const status = dialog.querySelector( '[data-afc-onu-plan-status]' );
-		button.disabled = true;
-		button.textContent = 'Provisioning…';
-		status.className = 'afc-onu-status is-loading';
-		status.textContent = 'Adding ONU → TCONT → GEM port → Service → Service ports…';
-
-		post( 'afc_gpon_standalone_execute', { token: activePlan.token } )
-			.done( function ( response ) {
-				if ( ! response || ! response.success ) {
-					status.className = 'afc-onu-status is-error';
-					status.textContent = errorMessage( response, 'ONU provisioning stopped.' );
-					button.disabled = false;
-					button.textContent = 'Retry Provisioning';
-					return;
-				}
-				const target = response.data.target || {};
-				dialog.querySelector( '[data-afc-onu-plan-view]' ).hidden = true;
-				dialog.querySelector( '[data-afc-onu-success]' ).hidden = false;
-				dialog.querySelector( '[data-afc-onu-success]' ).innerHTML = '<div class="afc-onu-summary"><strong>ONU added successfully</strong><br>' +
-					escapeHtml( target.onu_name || '' ) + '<br>' + escapeHtml( target.olt_name || '' ) + ' · PON ' + escapeHtml( target.pon ) + ' / ONU ' + escapeHtml( target.onu ) + '<br><code>' + escapeHtml( target.serial || '' ) + '</code></div>' +
-					'<div class="afc-onu-status is-success">TCONT, GEM, service and service ports were processed. PPP remains separate and can auto-link later from MAC information.</div>';
-				dialog.querySelector( '[data-afc-onu-execute]' ).hidden = true;
-				dialog.querySelector( '[data-afc-onu-back]' ).hidden = true;
-				dialog.querySelector( '[data-afc-onu-done]' ).hidden = false;
-				$( '#afc-refresh-optical' ).trigger( 'click' );
-			} )
-			.fail( function ( xhr ) {
-				status.className = 'afc-onu-status is-error';
-				status.textContent = errorMessage( xhr.responseJSON, 'ONU provisioning failed.' );
-				button.disabled = false;
-				button.textContent = 'Retry Provisioning';
-			} );
+		dialog.querySelector( '[data-afc-onu-form-view]' ).hidden = true;
+		dialog.querySelector( '[data-afc-onu-plan-view]' ).hidden = true;
+		const success = dialog.querySelector( '[data-afc-onu-success]' );
+		success.hidden = false;
+		success.innerHTML = '<div class="text-center py-4"><div style="font-size:40px;color:#2fb344">✓</div><h3>ONU provisioned</h3><p class="text-secondary">' + escapeHtml( message || 'The ONU and line services were created.' ) + '</p></div>';
+		dialog.querySelector( '[data-afc-onu-execute]' ).hidden = true;
+		dialog.querySelector( '[data-afc-onu-back]' ).hidden = true;
+		dialog.querySelector( '[data-afc-onu-done]' ).hidden = false;
 	}
 
-	function boot() {
-		ensureDialogs();
-		removeOldStandaloneButton();
-		const observer = new MutationObserver( removeOldStandaloneButton );
-		observer.observe( document.body, { childList: true, subtree: true } );
+	$( document ).on( 'click', '[data-afc-add-close]', function () {
+		closeDialog( this.closest( 'dialog' ) );
+	} );
 
-		document.addEventListener( 'click', function ( event ) {
-			const trigger = event.target.closest && event.target.closest( '#afc-add-ppp-account, #afc-basic-add-ppp' );
-			if ( ! trigger || 'basic' !== mode() ) return;
-			if ( allowPppClick ) {
-				allowPppClick = false;
+	$( document ).on( 'click', '[data-afc-add-choice="ppp"]', function () {
+		closeDialog( document.getElementById( 'afc-basic-add-choice-dialog' ) );
+		allowPppClick = true;
+		$( '#afc-add-ppp-account' ).trigger( 'click' );
+		allowPppClick = false;
+	} );
+
+	$( document ).on( 'click', '[data-afc-add-choice="onu"]', function () {
+		closeDialog( document.getElementById( 'afc-basic-add-choice-dialog' ) );
+		openOnu();
+	} );
+
+	$( document ).on( 'change', '[data-afc-onu-olt]', function () {
+		window.localStorage.setItem( storageKey, this.value );
+	} );
+
+	$( document ).on( 'change', '[data-afc-onu-vlan-preset]', function () {
+		const vlans = document.querySelector( '[data-afc-onu-vlans]' );
+		if ( this.value !== 'custom' && vlans ) vlans.value = this.value;
+	} );
+
+	$( document ).on( 'blur', '[data-afc-onu-serial]', function () {
+		this.value = normalizeSerial( this.value );
+	} );
+
+	$( document ).on( 'click', '[data-afc-onu-preview]', function () {
+		const dialog = document.getElementById( 'afc-basic-onu-dialog' );
+		const status = dialog.querySelector( '[data-afc-onu-status]' );
+		const payload = collectOnu();
+		status.className = 'afc-onu-status is-loading';
+		status.textContent = 'Building ONU provisioning plan…';
+		post( 'afc_gpon_standalone_preview', payload ).done( function ( response ) {
+			if ( ! response.success ) {
+				status.className = 'afc-onu-status is-error';
+				status.textContent = errorMessage( response, 'Could not build the provisioning plan.' );
 				return;
 			}
-			event.preventDefault();
-			event.stopImmediatePropagation();
-			openChoice();
-		}, true );
+			status.textContent = '';
+			renderPlan( response.data || {} );
+		} ).fail( function () {
+			status.className = 'afc-onu-status is-error';
+			status.textContent = 'Could not contact WordPress.';
+		} );
+	} );
 
-		$( document ).on( 'click', '[data-afc-add-close]', function () { closeDialog( this.closest( 'dialog' ) ); } );
-		$( document ).on( 'click', '[data-afc-add-choice="ppp"]', function () {
-			closeDialog( document.getElementById( 'afc-basic-add-choice-dialog' ) );
-			const trigger = document.getElementById( 'afc-add-ppp-account' ) || document.getElementById( 'afc-basic-add-ppp' );
-			if ( trigger ) {
-				allowPppClick = true;
-				trigger.click();
+	$( document ).on( 'click', '[data-afc-onu-back]', function () {
+		const dialog = document.getElementById( 'afc-basic-onu-dialog' );
+		dialog.querySelector( '[data-afc-onu-form-view]' ).hidden = false;
+		dialog.querySelector( '[data-afc-onu-plan-view]' ).hidden = true;
+		dialog.querySelector( '[data-afc-onu-preview]' ).hidden = false;
+		dialog.querySelector( '[data-afc-onu-execute]' ).hidden = true;
+		this.hidden = true;
+	} );
+
+	$( document ).on( 'click', '[data-afc-onu-execute]', function () {
+		if ( ! activePlan ) return;
+		const dialog = document.getElementById( 'afc-basic-onu-dialog' );
+		const status = dialog.querySelector( '[data-afc-onu-plan-status]' );
+		const button = this;
+		status.className = 'afc-onu-status is-loading';
+		status.textContent = 'Provisioning ONU on the OLT…';
+		button.disabled = true;
+		post( 'afc_gpon_standalone_execute', { plan_token: activePlan.plan_token, confirm: 'PROVISION' } ).done( function ( response ) {
+			button.disabled = false;
+			if ( ! response.success ) {
+				status.className = 'afc-onu-status is-error';
+				status.textContent = errorMessage( response, 'Provisioning failed.' );
+				return;
 			}
+			showSuccess( response.data && response.data.message );
+		} ).fail( function () {
+			button.disabled = false;
+			status.className = 'afc-onu-status is-error';
+			status.textContent = 'Could not contact WordPress.';
 		} );
-		$( document ).on( 'click', '[data-afc-add-choice="onu"]', function () {
-			closeDialog( document.getElementById( 'afc-basic-add-choice-dialog' ) );
-			openOnu();
-		} );
-		$( document ).on( 'change', '[data-afc-onu-olt]', function () {
-			try { window.localStorage.setItem( storageKey, this.value ); } catch ( error ) {}
-		} );
-		$( document ).on( 'change', '[data-afc-onu-vlan-preset]', function () {
-			if ( this.value !== 'custom' ) document.querySelector( '[data-afc-onu-vlans]' ).value = this.value;
-		} );
-		$( document ).on( 'blur', '[data-afc-onu-serial]', function () { this.value = normalizeSerial( this.value ); } );
-		$( document ).on( 'click', '[data-afc-onu-preview]', previewOnu );
-		$( document ).on( 'click', '[data-afc-onu-back]', function () {
-			activePlan = null;
-			const dialog = document.getElementById( 'afc-basic-onu-dialog' );
-			dialog.querySelector( '[data-afc-onu-form-view]' ).hidden = false;
-			dialog.querySelector( '[data-afc-onu-plan-view]' ).hidden = true;
-			dialog.querySelector( '[data-afc-onu-preview]' ).hidden = false;
-			dialog.querySelector( '[data-afc-onu-execute]' ).hidden = true;
-			this.hidden = true;
-		} );
-		$( document ).on( 'click', '[data-afc-onu-execute]', executeOnu );
-		$( document ).on( 'click', '[data-afc-onu-done]', function () { closeDialog( document.getElementById( 'afc-basic-onu-dialog' ) ); } );
-	}
+	} );
 
-	if ( document.readyState === 'loading' ) document.addEventListener( 'DOMContentLoaded', boot );
-	else boot();
+	$( document ).on( 'click', '[data-afc-onu-done]', function () {
+		closeDialog( document.getElementById( 'afc-basic-onu-dialog' ) );
+	} );
+
+	$( document ).on( 'click', '#afc-add-ppp-account, #afc-basic-add-ppp, [data-afc-dashboard-add-ppp]', function ( event ) {
+		if ( mode() !== 'basic' || allowPppClick ) return;
+		event.preventDefault();
+		event.stopImmediatePropagation();
+		openChoice();
+	} );
+
+	$( function () {
+		ensureDialogs();
+		removeOldStandaloneButton();
+	} );
 }( jQuery ) );
