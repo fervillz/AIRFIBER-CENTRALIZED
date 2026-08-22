@@ -122,14 +122,16 @@ class Module_Manager {
 		if ( is_wp_error( $loaded ) ) {
 			return $loaded;
 		}
-		$token = Performance_Monitor::start( $id, 'render' );
-		$html  = call_user_func( array( $loaded['class'], 'render' ), array( 'module' => $loaded['meta'] ) );
+		$token  = Performance_Monitor::start( $id, 'render' );
+		$html   = call_user_func( array( $loaded['class'], 'render' ), array( 'module' => $loaded['meta'] ) );
 		$sample = Performance_Monitor::finish( $token );
+		$assets = Assets::module_manifest( $loaded['meta'] );
+		Performance_Monitor::record_assets( $id, $assets );
 		return array(
 			'id'      => $id,
 			'name'    => $loaded['meta']['name'],
 			'html'    => (string) $html,
-			'assets'  => Assets::module_manifest( $loaded['meta'] ),
+			'assets'  => $assets,
 			'health'  => Module_Health::summary( $id ),
 			'timing'  => $sample,
 		);

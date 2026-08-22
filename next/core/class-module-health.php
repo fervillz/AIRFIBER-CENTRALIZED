@@ -28,15 +28,22 @@ class Module_Health {
 	}
 
 	public static function summary( $module ) {
-		$module  = sanitize_key( $module );
-		$stored  = get_option( self::OPTION, array() );
-		$samples = isset( $stored[ $module ] ) && is_array( $stored[ $module ] ) ? $stored[ $module ] : array();
-		$times   = array();
-		$memory  = array();
-		$queries = array();
+		$module   = sanitize_key( $module );
+		$stored   = get_option( self::OPTION, array() );
+		$samples  = isset( $stored[ $module ] ) && is_array( $stored[ $module ] ) ? $stored[ $module ] : array();
+		$times    = array();
+		$external = array();
+		$memory   = array();
+		$queries  = array();
+		$assets   = array();
 		foreach ( $samples as $sample ) {
+			$phase = isset( $sample['phase'] ) ? $sample['phase'] : '';
 			if ( isset( $sample['duration_ms'] ) ) {
-				$times[] = (float) $sample['duration_ms'];
+				if ( 'external' === $phase ) {
+					$external[] = (float) $sample['duration_ms'];
+				} elseif ( ! in_array( $phase, array( 'css', 'js' ), true ) ) {
+					$times[] = (float) $sample['duration_ms'];
+				}
 			}
 			if ( isset( $sample['memory_mb'] ) ) {
 				$memory[] = (float) $sample['memory_mb'];
@@ -44,18 +51,23 @@ class Module_Health {
 			if ( isset( $sample['db_queries'] ) ) {
 				$queries[] = (int) $sample['db_queries'];
 			}
+			if ( isset( $sample['asset_kb'] ) ) {
+				$assets[] = (float) $sample['asset_kb'];
+			}
 		}
 		$state = Circuit_Breaker::state( $module );
 		return array(
-			'status'       => isset( $state['status'] ) ? $state['status'] : 'healthy',
-			'samples'      => count( $samples ),
-			'p50_ms'       => self::percentile( $times, 50 ),
-			'p95_ms'       => self::percentile( $times, 95 ),
-			'max_memory_mb'=> empty( $memory ) ? 0 : round( max( $memory ), 2 ),
-			'max_queries'  => empty( $queries ) ? 0 : max( $queries ),
-			'violations'   => isset( $state['violations'] ) ? (int) $state['violations'] : 0,
-			'message'      => isset( $state['message'] ) ? $state['message'] : '',
-			'recommendation'=> Circuit_Breaker::recommendation( $module ),
+			'status'          => isset( $state['status'] ) ? $state['status'] : 'healthy',
+			'samples'         => count( $samples ),
+			'p50_ms'          => self::percentile( $times, 50 ),
+			'p95_ms'          => self::percentile( $times, 95 ),
+			'external_p95_ms' => self::percentile( $external, 95 ),
+			'max_memory_mb'   => empty( $memory ) ? 0 : round( max( $memory ), 2 ),
+			'max_queries'     => empty( $queries ) ? 0 : max( $queries ),
+			'max_asset_kb'    => empty( $assets ) ? 0 : round( max( $assets ), 2 ),
+			'violations'      => isset( $state['violations'] ) ? (int) $state['violations'] : 0,
+			'message'         => isset( $state['message'] ) ? $state['message'] : '',
+			'recommendation'  => Circuit_Breaker::recommendation( $module ),
 		);
 	}
 

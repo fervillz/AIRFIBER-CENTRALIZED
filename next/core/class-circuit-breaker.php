@@ -6,7 +6,7 @@ defined( 'ABSPATH' ) || exit;
 
 class Circuit_Breaker {
 	const OPTION           = 'afcn_module_circuit_v1';
-	const VIOLATION_WINDOW = HOUR_IN_SECONDS;
+	const VIOLATION_WINDOW = 3600;
 
 	public static function record_violation( $module, $sample, $reason ) {
 		$module = sanitize_key( $module );
@@ -78,6 +78,9 @@ class Circuit_Breaker {
 		}
 		if ( isset( $sample['memory_mb'] ) && $sample['memory_mb'] > 8 ) {
 			return __( 'Load less data at once and split heavy features into lazy chunks.', 'airfiber-centralized' );
+		}
+		if ( in_array( $phase, array( 'css', 'js' ), true ) ) {
+			return __( 'Split optional assets into smaller lazy chunks and avoid shipping code before its feature is opened.', 'airfiber-centralized' );
 		}
 		if ( 'bootstrap' === $phase ) {
 			return __( 'Move work out of module bootstrap. Bootstrap should only register lightweight behavior.', 'airfiber-centralized' );

@@ -9,6 +9,7 @@ class Capabilities {
 	const MANAGE_USERS    = 'afcn_manage_users';
 	const MANAGE_MODULES  = 'afcn_manage_modules';
 	const MANAGE_SETTINGS = 'afcn_manage_settings';
+	const OPTION_VERSION  = 'afcn_roles_version';
 
 	public static function all() {
 		return array(
@@ -20,12 +21,16 @@ class Capabilities {
 	}
 
 	public static function ensure_roles() {
+		if ( (string) get_option( self::OPTION_VERSION, '' ) === (string) AFCN_VERSION ) {
+			return;
+		}
+
 		$admin_caps = array(
-			'read'                 => true,
-			self::ACCESS           => true,
-			self::MANAGE_USERS     => true,
-			self::MANAGE_MODULES   => true,
-			self::MANAGE_SETTINGS  => true,
+			'read'                  => true,
+			self::ACCESS            => true,
+			self::MANAGE_USERS      => true,
+			self::MANAGE_MODULES    => true,
+			self::MANAGE_SETTINGS   => true,
 		);
 		$operator_caps = array(
 			'read'       => true,
@@ -59,6 +64,8 @@ class Capabilities {
 				$wp_admin->add_cap( $capability, true );
 			}
 		}
+
+		update_option( self::OPTION_VERSION, AFCN_VERSION, false );
 	}
 
 	public static function assignable_roles() {

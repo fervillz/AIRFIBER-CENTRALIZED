@@ -83,6 +83,7 @@ class Bootstrap {
 	public static function get_url() {
 		$page_id = self::get_page_id();
 		if ( ! $page_id && current_user_can( 'manage_options' ) && self::is_enabled() ) {
+			Capabilities::ensure_roles();
 			$page_id = self::ensure_page();
 		}
 		return $page_id ? get_permalink( $page_id ) : home_url( '/' . self::PAGE_SLUG . '/' );
@@ -183,6 +184,9 @@ class Bootstrap {
 		}
 		if ( ! is_user_logged_in() ) {
 			auth_redirect();
+		}
+		if ( current_user_can( 'manage_options' ) ) {
+			Capabilities::ensure_roles();
 		}
 		if ( ! User_Manager::can_access() ) {
 			wp_die(

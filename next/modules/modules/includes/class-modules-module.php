@@ -45,6 +45,7 @@ class Modules_Module implements Module_Contract {
 							<span><?php echo esc_html( size_format( $bytes ) ); ?> optional assets</span>
 							<span>p50 <?php echo esc_html( $health['p50_ms'] ); ?> ms</span>
 							<span>p95 <?php echo esc_html( $health['p95_ms'] ); ?> ms</span>
+							<?php if ( $health['external_p95_ms'] > 0 ) : ?><span>external p95 <?php echo esc_html( $health['external_p95_ms'] ); ?> ms</span><?php endif; ?>
 							<span><?php echo esc_html( $health['max_queries'] ); ?> max queries</span>
 						</div>
 						<?php if ( ! empty( $health['recommendation'] ) && 'healthy' !== $health['status'] ) : ?><p style="margin-top:7px"><?php echo esc_html( $health['recommendation'] ); ?></p><?php endif; ?>

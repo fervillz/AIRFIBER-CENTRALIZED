@@ -48,9 +48,11 @@ The page is managed automatically by `Airfiber\Next\Bootstrap`.
 - namespaced cache helper with stale/fresh envelopes
 - measured HTTP client for external requests
 - performance budgets and request sampling
-- module health history with p50/p95
+- module health history with p50/p95 plus separate external p95
+- asset-size budgets for optional module CSS/JS
 - performance circuit breaker
-- automatic quarantine after repeated clustered violations for non-system modules
+- automatic quarantine after repeated clustered module-code violations for non-system modules
+- external device/API slowness is measured separately and does not quarantine a module by itself
 - bounded debug warning/error log
 - Airfiber roles/capabilities using WordPress users underneath
 - Airfiber user create/update/delete UI
@@ -77,13 +79,15 @@ Default budgets:
 - server render: 120 ms
 - action: 250 ms
 - client initialization: 160 ms
-- external request: 800 ms
+- external request: 800 ms (diagnostic only; does not quarantine by itself)
 - memory delta: 8 MB
 - database queries per profiled phase: 15
+- optional module CSS: 40 KB
+- optional module JavaScript: 100 KB
 
-Three clustered violations → warning.
+Three clustered module-code/asset violations → warning.
 Six → degraded.
-Twelve within the violation window → non-system module quarantined.
+Twelve within the one-hour violation window → non-system module quarantined.
 
 System modules are never automatically quarantined.
 

@@ -20,6 +20,8 @@ class Performance_Monitor {
 			'external_ms'  => 800,
 			'memory_mb'    => 8,
 			'db_queries'   => 15,
+			'css_kb'       => 40,
+			'js_kb'        => 100,
 		);
 		$saved = get_option( self::OPTION_BUDGETS, array() );
 		if ( is_array( $saved ) ) {
@@ -102,13 +104,42 @@ class Performance_Monitor {
 		);
 	}
 
+	public static function record_assets( $module, $assets ) {
+		self::ensure_shutdown();
+		foreach ( array( 'css', 'js' ) as $type ) {
+			$bytes = 0;
+			foreach ( isset( $assets[ $type ] ) ? (array) $assets[ $type ] : array() as $asset ) {
+				$bytes += isset( $asset['bytes'] ) ? (int) $asset['bytes'] : 0;
+			}
+			if ( $bytes <= 0 ) {
+				continue;
+			}
+			self::capture(
+				array(
+					'module'      => sanitize_key( $module ),
+					'phase'       => $type,
+					'duration_ms' => 0,
+					'memory_mb'   => 0,
+					'db_queries'  => 0,
+					'asset_kb'    => round( $bytes / 1024, 2 ),
+					'time'        => time(),
+				)
+			);
+		}
+	}
+
 	private static function capture( $sample ) {
 		self::$samples[] = $sample;
 		$budgets = self::budgets();
 		$phase   = isset( $sample['phase'] ) ? $sample['phase'] : '';
 		$key     = $phase . '_ms';
 		$reason  = '';
-		if ( isset( $budgets[ $key ] ) && $sample['duration_ms'] > $budgets[ $key ] ) {
+		if ( in_array( $phase, array( 'css', 'js' ), true ) ) {
+			$asset_key = $phase . '_kb';
+			if ( isset( $sample['asset_kb'], $budgets[ $asset_key ] ) && $sample['asset_kb'] > $budgets[ $asset_key ] ) {
+				$reason = sprintf( '%s assets %.2f KB (budget %.2f KB)', strtoupper( $phase ), $sample['asset_kb'], $budgets[ $asset_key ] );
+			}
+		} elseif ( isset( $budgets[ $key ] ) && $sample['duration_ms'] > $budgets[ $key ] ) {
 			$reason = sprintf( '%s took %.2f ms (budget %.2f ms)', $phase, $sample['duration_ms'], $budgets[ $key ] );
 		} elseif ( isset( $sample['memory_mb'] ) && $sample['memory_mb'] > $budgets['memory_mb'] ) {
 			$reason = sprintf( 'memory %.2f MB (budget %.2f MB)', $sample['memory_mb'], $budgets['memory_mb'] );
@@ -117,7 +148,9 @@ class Performance_Monitor {
 		}
 		if ( '' !== $reason && 'core' !== $sample['module'] ) {
 			self::$force_flush = true;
-			Circuit_Breaker::record_violation( $sample['module'], $sample, $reason );
+			if ( 'external' !== $phase ) {
+				Circuit_Breaker::record_violation( $sample['module'], $sample, $reason );
+			}
 		}
 	}
 
