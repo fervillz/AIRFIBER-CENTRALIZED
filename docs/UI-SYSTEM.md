@@ -39,19 +39,23 @@ Core CSS currently includes:
 
 `Airfiber\Next\UI` provides basic PHP helpers for buttons, fields, selects, badges and notices.
 
-`Airfiber\Next\Tooltip` is the single tooltip API. It supports plain text, up/down animation, alternate backgrounds and an optional tooltip action. Default background is black.
+`Airfiber\Next\Tooltip` is the single tooltip API. It supports plain text, up/down motion, alternate backgrounds and an optional tooltip action. Default background is black. Tooltip enter/exit uses opacity and vertical movement instead of abruptly appearing/disappearing.
 
 `Airfiber\Next\Icon` supplies small dependency-free SVG icons for shared controls.
 
-## Default hover language
+## Default card hover language
 
-Cards and normal Airfiber buttons use the same motion language unless a component has a strong reason not to:
+All normal Airfiber cards use the same motion language unless a component has a strong reason to opt out:
 
 - `transform: translateY(-10px)`
-- soft background/glow
+- hover background `#e7f0fb`
 - `box-shadow: 0 10px 40px 0 rgba(0,0,0,.1)`
+- fast hover-in response (about 160 ms)
+- very slow hover-out return (5 seconds)
 
-The global interaction stylesheet respects `prefers-reduced-motion` and disables the lift when reduced motion is requested.
+The asymmetric timing is deliberate: cards respond immediately when hovered, then gently settle back after the pointer leaves. The global interaction stylesheet respects `prefers-reduced-motion` and disables the lift/transition when reduced motion is requested.
+
+Normal Airfiber buttons retain the shared lift/shadow behavior but do not use the five-second card return unless specifically designed as a card-like control.
 
 ## Module Manager cards
 
@@ -59,7 +63,7 @@ The Modules browser intentionally uses compact 150 × 150 px cards. This fixed s
 
 Module descriptions do not consume card space. Hovering/focusing the module name opens the shared Core tooltip containing the description. The health dot has its own performance tooltip.
 
-Card hover/focus reveals icon actions. MU/Core cards expose only Settings when a settings target exists. Normal module cards may expose Activate, Deactivate, Settings, Trash or Restore depending on state.
+Card hover/focus reveals icon-only actions. The `.afcn-module-card-actions` wrapper is layout-only: no border, panel background, padding or shadow. MU/Core cards expose only Settings when a settings target exists. Normal module cards may expose Activate, Deactivate, Settings, Trash or Restore depending on state. Tooltip text supplies the action label so the controls can remain visually icon-only.
 
 The Module Manager visual rules live in Core at `next/assets/css/module-manager.css`. This prevents a Core management screen from flashing as unstyled content while its own lazy module assets are still loading. The Module Manager JavaScript remains module-owned and lazy.
 
