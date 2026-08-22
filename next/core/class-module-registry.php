@@ -6,7 +6,7 @@ defined( 'ABSPATH' ) || exit;
 
 class Module_Registry {
 	const OPTION_CACHE = 'afcn_module_registry_v1';
-	const CACHE_SCHEMA = 4;
+	const CACHE_SCHEMA = 5;
 
 	private static $modules = null;
 
@@ -159,12 +159,46 @@ class Module_Registry {
 				'css' => isset( $assets['css'] ) && is_array( $assets['css'] ) ? array_values( array_map( 'sanitize_text_field', $assets['css'] ) ) : array(),
 				'js'  => isset( $assets['js'] ) && is_array( $assets['js'] ) ? array_values( array_map( 'sanitize_text_field', $assets['js'] ) ) : array(),
 			),
+			'slots'           => self::normalize_slots( isset( $data['slots'] ) ? $data['slots'] : array() ),
 			'connectors'      => self::normalize_connectors( isset( $data['connectors'] ) ? $data['connectors'] : array(), isset( $data['icon'] ) ? $data['icon'] : 'plug' ),
 			'requires'        => isset( $data['requires'] ) && is_array( $data['requires'] ) ? $data['requires'] : array(),
 			'events'          => isset( $data['events'] ) && is_array( $data['events'] ) ? array_values( array_map( 'sanitize_key', $data['events'] ) ) : array(),
 			'path'            => dirname( $real ? $real : $file ),
 			'url_path'        => $is_mu ? 'modules/mu/' . $folder : 'modules/' . $folder,
 		);
+	}
+
+	private static function normalize_slots( $slots ) {
+		if ( ! is_array( $slots ) ) {
+			return array();
+		}
+
+		$output = array();
+		foreach ( array_slice( $slots, 0, 20, true ) as $slot => $definition ) {
+			$slot = Module_Slots::normalize_slot_id( $slot );
+			if ( '' === $slot ) {
+				continue;
+			}
+
+			if ( is_string( $definition ) ) {
+				$definition = array( 'chunk' => $definition );
+			}
+			if ( ! is_array( $definition ) ) {
+				continue;
+			}
+
+			$chunk = isset( $definition['chunk'] ) ? sanitize_key( $definition['chunk'] ) : '';
+			if ( '' === $chunk ) {
+				continue;
+			}
+
+			$output[ $slot ] = array(
+				'chunk'    => $chunk,
+				'priority' => isset( $definition['priority'] ) ? (int) $definition['priority'] : 50,
+				'span'     => isset( $definition['span'] ) ? max( 1, min( 12, (int) $definition['span'] ) ) : 4,
+			);
+		}
+		return $output;
 	}
 
 	private static function normalize_connectors( $connectors, $fallback_icon ) {
