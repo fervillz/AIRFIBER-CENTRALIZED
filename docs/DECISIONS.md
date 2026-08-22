@@ -41,3 +41,33 @@ Reason: one bad add-on must not make the entire Airfiber application slow.
 Decision: modules are added through the repository until the module contract is proven.
 
 Reason: filesystem mutation and package validation add risk before the SDK stabilizes.
+
+## 2026-08-23 — Modules and Connections are separate concepts
+
+Decision: the Modules screen manages installed Airfiber software. The Connections Hub manages actual configured routers, OLTs, APIs, accounts and endpoints.
+
+Reason: one add-on can own many configured devices, so treating each connection as a module would mix software lifecycle with infrastructure inventory.
+
+## 2026-08-23 — Connector primitives are Core; provider logic is not
+
+Decision: Core owns the generic `Connector_Registry`, `Connection_Store`, `Secret_Store` and `Connection_Health`. OLT/MikroTik/Google/provider-specific protocol logic remains inside feature modules.
+
+Reason: all providers need consistent storage, credentials, security and health behavior, but Core must stay free of business/vendor knowledge.
+
+## 2026-08-23 — Connector metadata is manifest-first
+
+Decision: feature modules advertise connector types and field schemas in `module.json`. The Connections Hub can discover provider types without booting module PHP.
+
+Reason: opening navigation/Connections should remain cheap even when many provider modules are installed.
+
+## 2026-08-23 — Connections render cache-first
+
+Decision: opening Connections displays stored configuration and cached health. It never fans out to every external device/API simply to render the page.
+
+Reason: remote latency should not define Airfiber UI latency.
+
+## 2026-08-23 — Classic connections stay read-only during migration
+
+Decision: existing Classic OLT, MikroTik and Google Sheets configuration can appear as read-only CLASSIC cards in BETA. Credentials are not copied until the owning feature is intentionally migrated.
+
+Reason: users keep infrastructure visibility in BETA without creating two writable sources of truth.
