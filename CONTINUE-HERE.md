@@ -40,6 +40,8 @@ BETA URL: `/airfiber-beta/`.
 - WordPress-like Modules browser with All, Active, Inactive, Update Available, Auto-updates Disabled, Trash and MU views
 - reusable Core SVG icons and tooltip API
 - shared card/button hover language: -10px lift and `0 10px 40px 0 rgba(0,0,0,.1)` shadow
+- Module Manager CSS is Core-owned to prevent a flash of unstyled controls; its JavaScript remains lazy
+- module descriptions live in the shared tooltip on the module title instead of occupying 150 × 150 card space
 
 ## Module folders
 
