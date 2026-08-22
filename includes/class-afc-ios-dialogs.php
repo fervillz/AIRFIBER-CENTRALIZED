@@ -54,10 +54,19 @@ class AFC_IOS_Dialogs {
 			AFC_GPON_Standalone::frontend_config()
 		);
 
+		$add_choice_fix_js = AFC_PATH . 'assets/js/basic-add-choice-hotfix.js';
+		wp_enqueue_script(
+			'afc-basic-add-choice-hotfix',
+			AFC_URL . 'assets/js/basic-add-choice-hotfix.js',
+			array( 'afc-basic-add-menu' ),
+			file_exists( $add_choice_fix_js ) ? (string) filemtime( $add_choice_fix_js ) : AFC_VERSION,
+			true
+		);
+
 		wp_enqueue_script(
 			'afc-basic-ppp-wizard',
 			AFC_URL . 'assets/js/basic-ppp-wizard.js',
-			array( 'jquery', 'afc-ppp-manager', 'afc-basic-add-menu' ),
+			array( 'jquery', 'afc-ppp-manager', 'afc-basic-add-choice-hotfix' ),
 			AFC_VERSION,
 			true
 		);
