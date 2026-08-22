@@ -40,6 +40,14 @@ class AFC_IOS_Dialogs {
 			AFC_VERSION
 		);
 
+		$choice_css = AFC_PATH . 'assets/css/basic-add-choice-polish.css';
+		wp_enqueue_style(
+			'afc-basic-add-choice-polish',
+			AFC_URL . 'assets/css/basic-add-choice-polish.css',
+			array( 'afc-ios-dialogs' ),
+			file_exists( $choice_css ) ? (string) filemtime( $choice_css ) : AFC_VERSION
+		);
+
 		$add_menu_js = AFC_PATH . 'assets/js/basic-add-menu.js';
 		wp_enqueue_script(
 			'afc-basic-add-menu',
@@ -63,10 +71,19 @@ class AFC_IOS_Dialogs {
 			true
 		);
 
+		$choice_polish_js = AFC_PATH . 'assets/js/basic-add-choice-polish.js';
+		wp_enqueue_script(
+			'afc-basic-add-choice-polish',
+			AFC_URL . 'assets/js/basic-add-choice-polish.js',
+			array( 'afc-basic-add-choice-hotfix' ),
+			file_exists( $choice_polish_js ) ? (string) filemtime( $choice_polish_js ) : AFC_VERSION,
+			true
+		);
+
 		wp_enqueue_script(
 			'afc-basic-ppp-wizard',
 			AFC_URL . 'assets/js/basic-ppp-wizard.js',
-			array( 'jquery', 'afc-ppp-manager', 'afc-basic-add-choice-hotfix' ),
+			array( 'jquery', 'afc-ppp-manager', 'afc-basic-add-choice-polish' ),
 			AFC_VERSION,
 			true
 		);
