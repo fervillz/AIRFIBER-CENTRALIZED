@@ -76,7 +76,16 @@
 		});
 	}
 
+	function resetSlotObserver() {
+		if (!state.slotObserver) {
+			return;
+		}
+		state.slotObserver.disconnect();
+		state.slotObserver = null;
+	}
+
 	function loading(label) {
+		resetSlotObserver();
 		stage.innerHTML = '<div class="afcn-loading-state"><span class="afcn-spinner" aria-hidden="true"></span><strong></strong></div>';
 		stage.querySelector('strong').textContent = label || cfg.labels.loading;
 	}
@@ -106,7 +115,11 @@
 			link.rel = 'stylesheet';
 			link.href = url;
 			link.onload = resolve;
-			link.onerror = reject;
+			link.onerror = function () {
+				state.styles.delete(url);
+				link.remove();
+				reject(new Error('Module stylesheet could not be loaded.'));
+			};
 			document.head.appendChild(link);
 		});
 	}
@@ -123,7 +136,11 @@
 			script.src = url;
 			script.async = false;
 			script.onload = resolve;
-			script.onerror = reject;
+			script.onerror = function () {
+				state.scripts.delete(url);
+				script.remove();
+				reject(new Error('Module script could not be loaded.'));
+			};
 			document.body.appendChild(script);
 		});
 	}
@@ -139,6 +156,7 @@
 	}
 
 	function showError(error) {
+		resetSlotObserver();
 		stage.innerHTML = '<div class="afcn-card afcn-module-error"><h2>Module unavailable</h2><p></p><button type="button" class="afcn-button afcn-button-secondary">Try again</button></div>';
 		stage.querySelector('p').textContent = error.message || cfg.labels.failed;
 		stage.querySelector('button').addEventListener('click', function () {
@@ -148,6 +166,7 @@
 
 	async function applyModuleHtml(id, html, detail) {
 		const started = performance.now();
+		resetSlotObserver();
 		stage.innerHTML = html;
 		wireModule(stage);
 		document.dispatchEvent(new CustomEvent('afcn:module:loaded', { detail: detail }));
