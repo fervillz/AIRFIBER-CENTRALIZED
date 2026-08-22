@@ -31,6 +31,9 @@ class Module_Trash {
 		if ( ! empty( $module['system'] ) ) {
 			return new \WP_Error( 'afcn_mu_module', __( 'Core MU components cannot be moved to Trash.', 'airfiber-centralized' ) );
 		}
+		if ( Module_Manager::is_enabled( $module_id, $module ) ) {
+			return new \WP_Error( 'afcn_module_active', __( 'Deactivate this module before moving it to Trash.', 'airfiber-centralized' ) );
+		}
 		$trash               = self::all();
 		$trash[ $module_id ] = time();
 		update_option( self::OPTION_TRASH, $trash, false );
