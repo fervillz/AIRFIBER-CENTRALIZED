@@ -1,9 +1,35 @@
 :root{
 	--afcn-hover-shadow:0 10px 40px 0 rgba(0,0,0,.1);
 	--afcn-hover-lift:-10px;
+	--afcn-card-hover-bg:#e7f0fb;
+	--afcn-hover-in:160ms cubic-bezier(.2,.8,.2,1);
+	--afcn-hover-out:5s cubic-bezier(.16,1,.3,1);
 }
 
-.afcn-card,
+/*
+ * Core card motion is intentionally asymmetric:
+ * - fast response when the pointer enters
+ * - very slow, soft return when the pointer leaves
+ *
+ * All future Airfiber cards inherit this unless a component explicitly opts out.
+ */
+.afcn-card{
+	transition:
+		transform var(--afcn-hover-out),
+		box-shadow var(--afcn-hover-out),
+		background-color var(--afcn-hover-out),
+		border-color var(--afcn-hover-out);
+}
+
+.afcn-card:hover,
+.afcn-card:focus-within{
+	transform:translateY(var(--afcn-hover-lift));
+	background:var(--afcn-card-hover-bg);
+	box-shadow:var(--afcn-hover-shadow);
+	transition-duration:160ms;
+	transition-timing-function:cubic-bezier(.2,.8,.2,1);
+}
+
 .afcn-button{
 	transition:
 		transform var(--afcn-transition),
@@ -13,20 +39,13 @@
 		color var(--afcn-transition);
 }
 
-.afcn-card:hover,
-.afcn-card:focus-within{
-	transform:translateY(var(--afcn-hover-lift));
-	background:var(--afcn-surface);
-	box-shadow:var(--afcn-hover-shadow);
-}
-
 .afcn-button:hover,
 .afcn-button:focus-visible{
 	transform:translateY(var(--afcn-hover-lift));
 	box-shadow:var(--afcn-hover-shadow);
 }
 
-/* Shared tooltip. Default is a black tooltip with a gentle fade-up. */
+/* Shared tooltip. Default is black. Up/down variants keep the same restrained motion. */
 .afcn-tooltip{
 	position:relative;
 	display:inline-flex;
@@ -58,31 +77,29 @@
 	pointer-events:none;
 	visibility:hidden;
 	opacity:0;
-	transform:translateX(-50%);
+	transition:
+		opacity .16s ease,
+		transform .16s ease,
+		visibility 0s linear .16s;
 }
 
 .afcn-tooltip-up .afcn-tooltip-panel{
 	bottom:calc(100% + 9px);
+	transform:translate(-50%,6px);
 }
 
 .afcn-tooltip-down .afcn-tooltip-panel{
 	top:calc(100% + 9px);
+	transform:translate(-50%,-6px);
 }
 
 .afcn-tooltip:hover .afcn-tooltip-panel,
 .afcn-tooltip:focus-within .afcn-tooltip-panel{
 	visibility:visible;
 	pointer-events:auto;
-}
-
-.afcn-tooltip-up:hover .afcn-tooltip-panel,
-.afcn-tooltip-up:focus-within .afcn-tooltip-panel{
-	animation:afcn-tooltip-fade-up .16s ease both;
-}
-
-.afcn-tooltip-down:hover .afcn-tooltip-panel,
-.afcn-tooltip-down:focus-within .afcn-tooltip-panel{
-	animation:afcn-tooltip-fade-down .16s ease both;
+	opacity:1;
+	transform:translate(-50%,0);
+	transition-delay:0s;
 }
 
 .afcn-tooltip-light .afcn-tooltip-panel{
@@ -115,16 +132,6 @@
 	height:18px;
 }
 
-@keyframes afcn-tooltip-fade-up{
-	from{opacity:0;transform:translate(-50%,6px)}
-	to{opacity:1;transform:translate(-50%,0)}
-}
-
-@keyframes afcn-tooltip-fade-down{
-	from{opacity:0;transform:translate(-50%,-6px)}
-	to{opacity:1;transform:translate(-50%,0)}
-}
-
 @media (prefers-reduced-motion:reduce){
 	.afcn-card,
 	.afcn-button{
@@ -138,9 +145,7 @@
 		transform:none;
 	}
 
-	.afcn-tooltip:hover .afcn-tooltip-panel,
-	.afcn-tooltip:focus-within .afcn-tooltip-panel{
-		animation:none;
-		opacity:1;
+	.afcn-tooltip-panel{
+		transition:none;
 	}
 }
