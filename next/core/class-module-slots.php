@@ -76,25 +76,33 @@ class Module_Slots {
 		$grid       = ! empty( $args['grid'] );
 		$class_name = 'afcn-slot' . ( $grid ? ' afcn-grid' : '' );
 		if ( ! empty( $args['class'] ) ) {
-			$class_name .= ' ' . implode( ' ', array_map( 'sanitize_html_class', preg_split( '/\s+/', (string) $args['class'] ) ) );
+			$extra_classes = preg_split( '/\s+/', trim( (string) $args['class'] ) );
+			$extra_classes = is_array( $extra_classes ) ? array_filter( $extra_classes, 'strlen' ) : array();
+			if ( $extra_classes ) {
+				$class_name .= ' ' . implode( ' ', array_map( 'sanitize_html_class', $extra_classes ) );
+			}
 		}
 
 		ob_start();
 		?>
 		<div class="<?php echo esc_attr( trim( $class_name ) ); ?>" data-afcn-slot="<?php echo esc_attr( $slot ); ?>">
 			<?php foreach ( $contributions as $contribution ) : ?>
+				<?php
+				$item_class = 'afcn-slot-item';
+				if ( $grid ) {
+					$item_class .= ' afcn-col-' . max( 1, min( 12, $contribution['span'] ) );
+				}
+				$loading_label = sprintf( __( 'Loading %s', 'airfiber-centralized' ), $contribution['name'] );
+				?>
 				<div
-					class="afcn-slot-item<?php echo $grid ? ' afcn-col-' . esc_attr( max( 1, min( 12, $contribution['span'] ) ) ) : ''; ?>"
+					class="<?php echo esc_attr( $item_class ); ?>"
 					data-afcn-slot-item
 					data-afcn-slot-module="<?php echo esc_attr( $contribution['module'] ); ?>"
 					data-afcn-slot-chunk="<?php echo esc_attr( $contribution['chunk'] ); ?>"
 					data-afcn-slot-label="<?php echo esc_attr( $contribution['name'] ); ?>"
 				>
-					<div class="afcn-card afcn-slot-placeholder" aria-busy="true">
-						<div class="afcn-card-body">
-							<span class="afcn-spinner" aria-hidden="true"></span>
-							<span class="screen-reader-text"><?php echo esc_html( sprintf( __( 'Loading %s', 'airfiber-centralized' ), $contribution['name'] ) ); ?></span>
-						</div>
+					<div class="afcn-card afcn-slot-placeholder" aria-busy="true" aria-label="<?php echo esc_attr( $loading_label ); ?>">
+						<div class="afcn-card-body"><span class="afcn-spinner" aria-hidden="true"></span></div>
 					</div>
 				</div>
 			<?php endforeach; ?>
