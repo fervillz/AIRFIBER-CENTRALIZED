@@ -2,6 +2,8 @@
 
 ## Folder structure
 
+Regular installable add-on:
+
 ```text
 next/modules/example/
 ├── module.json
@@ -11,6 +13,14 @@ next/modules/example/
     ├── example.css   (optional)
     └── example.js    (optional)
 ```
+
+Must-use Core components live separately:
+
+```text
+next/modules/mu/<core-id>/
+```
+
+Only Core-owned components belong under `mu/`. The registry determines must-use status from the physical folder, so a normal add-on cannot promote itself by setting a manifest flag.
 
 Every PHP class/interface file uses the readable WordPress-style `class-` prefix. A filename must tell a developer what is inside it.
 
@@ -26,15 +36,20 @@ Every PHP class/interface file uses the readable WordPress-style `class-` prefix
   "position": 40,
   "icon": "box",
   "capability": "afcn_access",
-  "system": false,
   "default_enabled": true,
+  "settings": "example",
+  "updates": true,
   "assets": {"css": [], "js": []},
   "requires": {"core": ">=0.1.0"},
   "events": []
 }
 ```
 
-`position` works like WordPress menu numbering: lower values appear earlier. Third-party/future modules cannot mark themselves as Core system modules.
+`position` works like WordPress menu numbering: lower values appear earlier.
+
+`settings` is optional. When present, the Modules card can expose the shared gear action and open that module target.
+
+`updates` declares that an update provider may manage the add-on. Actual available versions are supplied through the `afcn_module_update_catalog` filter; Core does not hard-code an update server.
 
 ## Required module methods
 
@@ -67,6 +82,8 @@ A module may add these without changing Core:
 ## Shared Core services
 
 - `Airfiber\Next\UI` — shared fields/buttons/badges/notices.
+- `Airfiber\Next\Tooltip` — shared text/rich tooltips; default black, optional direction/background/action.
+- `Airfiber\Next\Icon` — dependency-free shared SVG icons.
 - `Airfiber\Next\Cache` — namespaced transient and stale/fresh caching.
 - `Airfiber\Next\Module_Options` — one namespaced settings store per module.
 - `Airfiber\Next\HTTP_Client` — measured remote HTTP requests.
@@ -91,11 +108,15 @@ Module JavaScript should use this API rather than inventing another AJAX layer.
 
 Use Core classes and markup: `.afcn-button`, `.afcn-input`, `.afcn-select`, `.afcn-card`, `.afcn-table`, `.afcn-dialog`, and `Airfiber\Next\UI`.
 
+Cards and buttons inherit the shared hover/lift language. Tooltips must use the shared Tooltip class instead of module-specific tooltip CSS.
+
 Only add module CSS when Core cannot express the feature.
 
 ## Lazy assets
 
 Declare optional assets in the manifest. Core does not send them on the initial app request; they load only when the module opens.
+
+MU/Core components follow the same lazy-asset rule. Being must-use does not mean their feature-specific CSS/JavaScript is sent on every Airfiber page.
 
 ## Generic forms/actions
 
