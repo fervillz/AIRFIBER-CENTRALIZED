@@ -5,11 +5,12 @@ namespace Airfiber\Next;
 defined( 'ABSPATH' ) || exit;
 
 class Capabilities {
-	const ACCESS          = 'afcn_access';
-	const MANAGE_USERS    = 'afcn_manage_users';
-	const MANAGE_MODULES  = 'afcn_manage_modules';
-	const MANAGE_SETTINGS = 'afcn_manage_settings';
-	const OPTION_VERSION  = 'afcn_roles_version';
+	const ACCESS             = 'afcn_access';
+	const MANAGE_USERS       = 'afcn_manage_users';
+	const MANAGE_MODULES     = 'afcn_manage_modules';
+	const MANAGE_SETTINGS    = 'afcn_manage_settings';
+	const MANAGE_CONNECTIONS = 'afcn_manage_connections';
+	const OPTION_VERSION     = 'afcn_roles_version';
 
 	public static function all() {
 		return array(
@@ -17,6 +18,7 @@ class Capabilities {
 			self::MANAGE_USERS,
 			self::MANAGE_MODULES,
 			self::MANAGE_SETTINGS,
+			self::MANAGE_CONNECTIONS,
 		);
 	}
 
@@ -26,11 +28,12 @@ class Capabilities {
 		}
 
 		$admin_caps = array(
-			'read'                  => true,
-			self::ACCESS            => true,
-			self::MANAGE_USERS      => true,
-			self::MANAGE_MODULES    => true,
-			self::MANAGE_SETTINGS   => true,
+			'read'                     => true,
+			self::ACCESS               => true,
+			self::MANAGE_USERS         => true,
+			self::MANAGE_MODULES       => true,
+			self::MANAGE_SETTINGS      => true,
+			self::MANAGE_CONNECTIONS   => true,
 		);
 		$operator_caps = array(
 			'read'       => true,
