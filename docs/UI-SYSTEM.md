@@ -35,6 +35,7 @@ Core CSS currently includes:
 - shared hover/lift behavior
 - shared tooltip styling and motion
 - shared SVG icon sizing
+- Module Manager tabs/search/card layout
 
 `Airfiber\Next\UI` provides basic PHP helpers for buttons, fields, selects, badges and notices.
 
@@ -56,7 +57,11 @@ The global interaction stylesheet respects `prefers-reduced-motion` and disables
 
 The Modules browser intentionally uses compact 150 × 150 px cards. This fixed size is specific to the module browser and is not a global card dimension.
 
+Module descriptions do not consume card space. Hovering/focusing the module name opens the shared Core tooltip containing the description. The health dot has its own performance tooltip.
+
 Card hover/focus reveals icon actions. MU/Core cards expose only Settings when a settings target exists. Normal module cards may expose Activate, Deactivate, Settings, Trash or Restore depending on state.
+
+The Module Manager visual rules live in Core at `next/assets/css/module-manager.css`. This prevents a Core management screen from flashing as unstyled content while its own lazy module assets are still loading. The Module Manager JavaScript remains module-owned and lazy.
 
 ## Rule for modules
 
@@ -64,4 +69,4 @@ A module inherits Core CSS automatically. Optional module CSS is lazy and should
 
 ## Performance note
 
-Only Source Serif 4 is fetched externally. Body typography intentionally uses the local/system stack to avoid a second webfont payload. Feature-specific UI such as the Modules browser keeps its CSS and JavaScript inside that module so those assets are lazy-loaded only when the feature is opened.
+Only Source Serif 4 is fetched externally. Body typography intentionally uses the local/system stack to avoid a second webfont payload. Normal add-on CSS/JavaScript remains lazy and is loaded only when that add-on is opened. Small styling needed to render must-use Core management surfaces without a flash of unstyled content may live in Core.
