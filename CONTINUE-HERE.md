@@ -8,7 +8,7 @@ Build Airfiber Next/BETA as an isolated, very fast application platform inside t
 
 BETA URL: `/airfiber-beta/`.
 
-Airfiber Next Core version: **0.3.4**.
+Airfiber Next Core version: **0.3.5**.
 
 ## Boundary
 
@@ -29,6 +29,33 @@ Classic stays in `includes/`, `templates/`, and `assets/`. Next/BETA lives in `n
 - performance budgets, bounded samples, p50/p95 and circuit-breaker isolation
 - Core MU components: Dashboard, Users, Modules, Settings
 - normal Connections add-on with Classic read-only connector bridge
+
+## Module developer experience
+
+GitHub Markdown is the documentation source of truth. Start at `docs/README.md` and `docs/MODULE-BASICS.md`.
+
+`module.json` is intentionally the Airfiber equivalent of a WordPress plugin header. Core detects `next/modules/*/module.json` without executing module PHP.
+
+As of Core 0.3.5, a convention-following module manifest only requires:
+
+```json
+{
+  "name": "Hello World"
+}
+```
+
+For folder `hello-world/`, Core infers:
+
+```text
+id        hello-world
+namespace Airfiber\Next\Modules\HelloWorld
+class     Hello_World_Module
+file      includes/class-hello-world-module.php
+```
+
+`Module_Naming` is the single source of truth for folder/namespace/class conventions. Explicit `id` and `class` remain supported, but normally are unnecessary. The registry cache schema is bumped so the convention metadata recompiles automatically.
+
+See `docs/MODULE-BASICS.md`, `docs/MODULE-SDK.md`, and the corresponding entry in `docs/DECISIONS.md`.
 
 ## Modules browser
 
@@ -88,12 +115,12 @@ Runtime ZIP installation and permanent filesystem deletion are not exposed yet. 
 
 Do NOT bulk-migrate Classic.
 
-Build the first real provider module: read-only **OLT**. Advertise OLT connector types through its manifest, use Core connection APIs, start with cached overview/list, then lazy per-OLT/PON/ONU chunks. Provisioning writes come only after the read-only path proves the SDK.
+Build the first real provider module: read-only **OLT**. Use the new convention-based module skeleton, advertise OLT connector types through its manifest, use Core connection APIs, start with cached overview/list, then lazy per-OLT/PON/ONU chunks. Provisioning writes come only after the read-only path proves the SDK.
 
-Before optimizing a module because of a performance warning, use the new separated telemetry to identify the actual phase first.
+Before optimizing a module because of a performance warning, use the separated telemetry to identify the actual phase first.
 
 ## New-chat handoff
 
 Tell ChatGPT:
 
-> Open `fervillz/AIRFIBER-CENTRALIZED`, read `CONTINUE-HERE.md`, `AGENTS.md`, `docs/ARCHITECTURE.md`, `docs/CONNECTORS.md`, `docs/MODULE-SDK.md` and `docs/PERFORMANCE-CONTRACT.md`, inspect current `main`, then continue Airfiber Next/BETA work.
+> Open `fervillz/AIRFIBER-CENTRALIZED`, read `CONTINUE-HERE.md`, `AGENTS.md`, `docs/README.md`, `docs/MODULE-BASICS.md`, `docs/ARCHITECTURE.md`, `docs/CONNECTORS.md`, `docs/MODULE-SDK.md` and `docs/PERFORMANCE-CONTRACT.md`, inspect current `main`, then continue Airfiber Next/BETA work.
