@@ -24,6 +24,42 @@ Open /airfiber-beta/
   -> deeper queries/chunks load only when requested
 ```
 
+Airfiber's runtime rule is stricter than the normal WordPress active-plugin model:
+
+> Installed does not mean loaded. Active does not mean loaded.
+
+A feature module should load only when a direct page, query, action, lazy chunk, shared slot, event or background task explicitly needs it.
+
+## Shared-page slots
+
+Core provides `Module_Slots` for lightweight contributions to shared pages such as Dashboard.
+
+A feature module advertises slot metadata in `module.json`:
+
+```json
+"slots": {
+  "dashboard.summary": {
+    "chunk": "dashboard-summary",
+    "priority": 20,
+    "span": 4
+  }
+}
+```
+
+A shared page exposes the slot:
+
+```php
+echo Module_Slots::render( 'dashboard.summary', array( 'grid' => true ) );
+```
+
+Core resolves eligible contributors from the compiled manifest registry without loading their PHP. The browser then uses visibility-based lazy loading to request each declared chunk only as it approaches the viewport.
+
+Chunk responses include the owning module's optional asset manifest. Core deduplicates and loads those assets before inserting the chunk, then emits `afcn:chunk:loaded`.
+
+The Dashboard exposes `dashboard.summary` as the first shared slot. This allows OLT, PPP, Billing and future modules to contribute small cached summary cards without making Dashboard depend on those modules.
+
+See `docs/MODULE-LOADING.md`.
+
 ## Module lifecycle and extension
 
 Modules implement `Module_Contract` and may optionally expose lazy query/chunk/background/lifecycle/event methods. Core provides generic routes, so a new module does not require edits to the REST router.
