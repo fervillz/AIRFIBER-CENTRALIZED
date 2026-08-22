@@ -51,6 +51,7 @@ class User_Manager {
 		$name     = isset( $payload['display_name'] ) ? sanitize_text_field( $payload['display_name'] ) : '';
 		$role     = isset( $payload['role'] ) ? sanitize_key( $payload['role'] ) : 'airfiber_operator';
 		$password = isset( $payload['password'] ) ? (string) $payload['password'] : '';
+		$roles    = Capabilities::assignable_roles();
 
 		if ( '' === $username || ! validate_username( $username ) ) {
 			return new \WP_Error( 'afcn_invalid_username', __( 'Enter a valid username.', 'airfiber-centralized' ), array( 'status' => 400 ) );
@@ -58,7 +59,7 @@ class User_Manager {
 		if ( '' === $email || ! is_email( $email ) ) {
 			return new \WP_Error( 'afcn_invalid_email', __( 'Enter a valid email address.', 'airfiber-centralized' ), array( 'status' => 400 ) );
 		}
-		if ( ! isset( Capabilities::assignable_roles()[ $role ] ) ) {
+		if ( ! isset( $roles[ $role ] ) ) {
 			return new \WP_Error( 'afcn_invalid_role', __( 'Choose a valid Airfiber role.', 'airfiber-centralized' ), array( 'status' => 400 ) );
 		}
 		if ( username_exists( $username ) || email_exists( $email ) ) {
@@ -107,6 +108,15 @@ class User_Manager {
 			return new \WP_Error( 'afcn_wp_admin_protected', __( 'WordPress administrators are managed from WordPress Users.', 'airfiber-centralized' ), array( 'status' => 400 ) );
 		}
 
+		$role = '';
+		if ( isset( $payload['role'] ) ) {
+			$role  = sanitize_key( $payload['role'] );
+			$roles = Capabilities::assignable_roles();
+			if ( ! isset( $roles[ $role ] ) ) {
+				return new \WP_Error( 'afcn_invalid_role', __( 'Choose a valid Airfiber role.', 'airfiber-centralized' ), array( 'status' => 400 ) );
+			}
+		}
+
 		$changes = array( 'ID' => (int) $user->ID );
 		if ( isset( $payload['display_name'] ) ) {
 			$changes['display_name'] = sanitize_text_field( $payload['display_name'] );
@@ -129,12 +139,7 @@ class User_Manager {
 		if ( is_wp_error( $updated ) ) {
 			return $updated;
 		}
-
-		if ( isset( $payload['role'] ) ) {
-			$role = sanitize_key( $payload['role'] );
-			if ( ! isset( Capabilities::assignable_roles()[ $role ] ) ) {
-				return new \WP_Error( 'afcn_invalid_role', __( 'Choose a valid Airfiber role.', 'airfiber-centralized' ), array( 'status' => 400 ) );
-			}
+		if ( $role ) {
 			$wp_user = new \WP_User( $user->ID );
 			$wp_user->set_role( $role );
 		}

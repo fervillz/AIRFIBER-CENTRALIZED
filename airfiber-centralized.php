@@ -14,6 +14,9 @@ define( 'AFC_FILE', __FILE__ );
 define( 'AFC_PATH', plugin_dir_path( __FILE__ ) );
 define( 'AFC_URL', plugin_dir_url( __FILE__ ) );
 
+// Airfiber Next/BETA is isolated under /next and registers only a lightweight bridge here.
+require_once AFC_PATH . 'next/bootstrap.php';
+
 require_once AFC_PATH . 'includes/class-afc-post-types.php';
 require_once AFC_PATH . 'includes/class-afc-mikrotik.php';
 require_once AFC_PATH . 'includes/class-afc-olt.php';

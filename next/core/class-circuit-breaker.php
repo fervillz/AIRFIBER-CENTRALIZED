@@ -5,13 +5,15 @@ namespace Airfiber\Next;
 defined( 'ABSPATH' ) || exit;
 
 class Circuit_Breaker {
-	const OPTION = 'afcn_module_circuit_v1';
+	const OPTION           = 'afcn_module_circuit_v1';
+	const VIOLATION_WINDOW = HOUR_IN_SECONDS;
 
 	public static function record_violation( $module, $sample, $reason ) {
 		$module = sanitize_key( $module );
 		$all    = get_option( self::OPTION, array() );
 		$state  = isset( $all[ $module ] ) && is_array( $all[ $module ] ) ? $all[ $module ] : array();
-		$count  = isset( $state['violations'] ) ? (int) $state['violations'] + 1 : 1;
+		$recent = isset( $state['last_violation'] ) && (int) $state['last_violation'] >= time() - self::VIOLATION_WINDOW;
+		$count  = $recent && isset( $state['violations'] ) ? (int) $state['violations'] + 1 : 1;
 		$status = 'healthy';
 		if ( $count >= 3 ) {
 			$status = 'warning';
