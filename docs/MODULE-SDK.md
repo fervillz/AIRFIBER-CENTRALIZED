@@ -1,5 +1,7 @@
 # Airfiber Next Module SDK
 
+Start with [Module Basics](MODULE-BASICS.md) if you are creating your first module. This document covers the fuller runtime contract and optional features.
+
 ## Folder structure
 
 Regular installable add-on:
@@ -26,13 +28,41 @@ Every PHP class/interface file uses the readable WordPress-style `class-` prefix
 
 ## Minimal manifest
 
+When the standard folder/class convention is followed, the only required manifest field is `name`:
+
 ```json
 {
-  "id": "example",
+  "name": "Example"
+}
+```
+
+For the folder `next/modules/example/`, Core infers:
+
+```text
+id        example
+namespace Airfiber\Next\Modules\Example
+class     Example_Module
+file      includes/class-example-module.php
+```
+
+For a multi-word folder such as `speed-test`, Core infers:
+
+```text
+id        speed-test
+namespace Airfiber\Next\Modules\SpeedTest
+class     Speed_Test_Module
+file      includes/class-speed-test-module.php
+```
+
+`id` and `class` may still be supplied explicitly when needed. An explicit `id` must match the folder name, and a custom class must stay inside the module namespace.
+
+## Typical manifest
+
+```json
+{
   "name": "Example",
   "description": "Example module.",
   "version": "1.0.0",
-  "class": "Airfiber\\Next\\Modules\\Example\\Example_Module",
   "position": 40,
   "icon": "box",
   "capability": "afcn_access",
@@ -41,7 +71,7 @@ Every PHP class/interface file uses the readable WordPress-style `class-` prefix
   "updates": true,
   "assets": {"css": [], "js": []},
   "connectors": [],
-  "requires": {"core": ">=0.3.0"},
+  "requires": {"core": ">=0.3.5"},
   "events": []
 }
 ```
@@ -149,7 +179,7 @@ array(
 );
 ```
 
-Do not put provider credentials in the manifest, normal connection config, debug logs or task payloads. See `docs/CONNECTORS.md`.
+Do not put provider credentials in the manifest, normal connection config, debug logs or task payloads. See [Connectors](CONNECTORS.md).
 
 ## Shared Core services
 
@@ -208,7 +238,7 @@ Core posts the form to the module action route, shows the result, and reloads on
 
 ```json
 "requires": {
-  "core": ">=0.3.0",
+  "core": ">=0.3.5",
   "modules": ["ppp"]
 }
 ```
@@ -217,7 +247,9 @@ Do not depend on the `connections` UI module merely to store/use a connection. G
 
 ## Performance rules
 
-Module bootstrap must be tiny. No broad database scans, remote OLT/MikroTik calls, or large data construction may happen because the module class was merely discovered or loaded.
+Module discovery reads manifest metadata without booting module PHP. Keep that advantage: module bootstrap must remain tiny.
+
+No broad database scans, remote OLT/MikroTik calls, or large data construction may happen because the module class was merely discovered or loaded.
 
 Connector metadata must be lightweight manifest metadata. Do not contact the remote provider to populate navigation, module discovery or the Connections page shell.
 
