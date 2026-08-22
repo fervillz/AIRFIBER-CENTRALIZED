@@ -278,11 +278,87 @@
 		}
 	}
 
+	function availableProvisioningUsers() {
+		return qa( '#afc-ppp-table tbody tr[data-user]' )
+			.map( function ( row ) { return parseUser( row ); } )
+			.filter( function ( user ) {
+				const optical = user && user.optical ? user.optical : {};
+				return user && user.imported && user.customer_id && ! optical.mapped;
+			} )
+			.sort( function ( first, second ) {
+				const firstName = first.customer_name || first.name || '';
+				const secondName = second.customer_name || second.name || '';
+				return firstName.localeCompare( secondName, undefined, { sensitivity: 'base' } );
+			} );
+	}
+
+	function chooseProvisioningUser() {
+		const rows = qa( '#afc-ppp-table tbody tr[data-user]' );
+		const users = availableProvisioningUsers();
+		if ( ! rows.length ) {
+			window.alert( 'PPP accounts are still loading, or the current filters show no customers. Try again after the customer list appears.' );
+			return;
+		}
+		if ( ! users.length ) {
+			window.alert( 'No imported PPP customer without an ONU mapping is visible. Import the customer first, or clear the current search/filter.' );
+			return;
+		}
+		if ( 1 === users.length ) {
+			prepareUser( users[0] );
+			return;
+		}
+
+		const chooser = document.createElement( 'dialog' );
+		chooser.className = 'afc-dialog afc-gpon-customer-dialog';
+		chooser.innerHTML =
+			'<form method="dialog">' +
+				'<div class="afc-dialog-header"><div><div class="text-secondary small">New GPON subscriber</div><h3 class="mb-0">Add ONU</h3></div>' +
+				'<button class="btn-close" value="cancel" aria-label="Close"></button></div>' +
+				'<div class="afc-dialog-body"><p class="text-secondary">Choose the PPP customer who will receive this ONU.</p>' +
+				'<label class="form-label" for="afc-gpon-new-customer">PPP customer</label>' +
+				'<select class="form-select" id="afc-gpon-new-customer" data-afc-gpon-customer-select></select>' +
+				'<p class="text-secondary small mt-2 mb-0">Only imported customers without an existing ONU mapping are listed.</p></div>' +
+				'<div class="afc-dialog-footer"><button class="btn btn-link" value="cancel">Cancel</button>' +
+				'<button class="btn btn-success" type="button" data-afc-gpon-customer-continue>Continue to ONU setup</button></div>' +
+			'</form>';
+		document.body.appendChild( chooser );
+
+		const select = q( '[data-afc-gpon-customer-select]', chooser );
+		users.forEach( function ( user, index ) {
+			const option = document.createElement( 'option' );
+			option.value = String( index );
+			option.textContent = ( user.customer_name || user.name || 'PPP customer' ) + ( user.name && user.customer_name ? ' · ' + user.name : '' );
+			select.appendChild( option );
+		} );
+		q( '[data-afc-gpon-customer-continue]', chooser ).addEventListener( 'click', function () {
+			const user = users[ Number( select.value ) ];
+			chooser.close();
+			if ( user ) prepareUser( user );
+		} );
+		chooser.addEventListener( 'close', function () { chooser.remove(); }, { once: true } );
+		chooser.showModal();
+	}
+
+	function installAddOnuButton() {
+		const refresh = q( '#afc-refresh-optical' );
+		if ( ! refresh || q( '#afc-add-onu' ) ) return;
+		const button = document.createElement( 'button' );
+		button.className = 'btn btn-outline-success';
+		button.id = 'afc-add-onu';
+		button.type = 'button';
+		button.title = 'Add GPON ONU';
+		button.setAttribute( 'aria-label', 'Add GPON ONU' );
+		button.innerHTML = '<span aria-hidden="true">+</span> Add ONU';
+		refresh.parentNode.insertBefore( button, refresh );
+		button.addEventListener( 'click', chooseProvisioningUser );
+	}
+
 	function boot() {
 		modal = q( '[data-afc-gpon-modal]' );
 		if ( ! modal || ! cfg.ajaxUrl || ! cfg.nonce ) return;
 		form = q( '[data-afc-gpon-form]', modal );
 		fillNodes();
+		installAddOnuButton();
 
 		document.addEventListener( 'click', function ( event ) {
 			const opener = event.target.closest( '.afc-onu-settings' );
