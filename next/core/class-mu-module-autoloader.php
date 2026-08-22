@@ -35,7 +35,7 @@ class MU_Module_Autoloader {
 			return;
 		}
 
-		$module = sanitize_key( strtolower( array_shift( $parts ) ) );
+		$module = Module_Naming::folder_from_namespace( array_shift( $parts ) );
 		$short  = array_pop( $parts );
 		$file   = 'class-' . strtolower( str_replace( '_', '-', $short ) ) . '.php';
 		$path   = AFCN_PATH . 'modules/mu/' . $module . '/includes/' . $file;
