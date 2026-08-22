@@ -27,16 +27,24 @@ It does not load feature modules.
 
 ## Module discovery
 
-Each module has a tiny `module.json`. Core reads manifests to build navigation and dependency information without requiring module PHP.
+Each module has a tiny `module.json`. Core compiles discovered manifests into a persistent registry option. Normal requests read that compiled registry instead of reopening every manifest file.
+
+The Modules system screen has **Refresh Registry** for newly deployed module folders. A future secure package installer must invalidate the registry automatically.
 
 Opening a module causes Core to autoload that module class and call its render method through the shared REST router.
+
+## Module lifecycle
+
+Non-system modules can optionally expose static `activate()` and `deactivate()` methods. They run only when the module state is intentionally changed, not during normal app boot.
+
+Module state changes also fire `afcn_module_state_changed` and the lazy `module_state_changed` Event Bus event.
 
 ## Request flow
 
 ```text
 Open /airfiber-beta/
   -> Core shell + Core CSS + Core JS
-  -> module manifests build navigation
+  -> cached module registry builds navigation
   -> browser asks REST for current module
   -> Core loads only that module PHP
   -> optional module CSS/JS is returned as a lazy manifest
@@ -68,4 +76,4 @@ The platform uses three forms of extension:
 
 ## Fault isolation
 
-Each module is profiled independently. Non-system modules with repeated clustered budget violations can be quarantined without bringing down Core or unrelated modules.
+Each module is profiled independently. Non-system modules with repeated clustered code/query/memory/asset budget violations can be quarantined without bringing down Core or unrelated modules. External device/API latency is reported separately and cannot quarantine a module by itself.

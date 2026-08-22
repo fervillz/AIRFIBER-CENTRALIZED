@@ -20,8 +20,9 @@ class Modules_Module implements Module_Contract {
 		<div class="afcn-page-head">
 			<div>
 				<h1 class="afcn-page-title"><?php esc_html_e( 'Modules', 'airfiber-centralized' ); ?></h1>
-				<p class="afcn-page-description"><?php esc_html_e( 'Only module manifests are discovered at startup. Module PHP, CSS, JavaScript and data load when the module is opened.', 'airfiber-centralized' ); ?></p>
+				<p class="afcn-page-description"><?php esc_html_e( 'Core reads a compiled manifest registry. Module PHP, CSS, JavaScript and data load only when that module is opened.', 'airfiber-centralized' ); ?></p>
 			</div>
+			<form data-afcn-action="refresh-registry" data-afcn-module="modules"><button type="submit" class="afcn-button afcn-button-secondary"><?php esc_html_e( 'Refresh Registry', 'airfiber-centralized' ); ?></button></form>
 		</div>
 		<div class="afcn-module-list">
 			<?php foreach ( $statuses as $id => $status ) :
@@ -91,7 +92,8 @@ class Modules_Module implements Module_Contract {
 		}
 		if ( 'refresh-registry' === $action ) {
 			Module_Registry::invalidate();
-			return array( 'message' => __( 'Module registry refreshed.', 'airfiber-centralized' ) );
+			Module_Registry::all( true );
+			return array( 'message' => __( 'Module registry refreshed from disk.', 'airfiber-centralized' ) );
 		}
 		return new \WP_Error( 'afcn_unknown_action', __( 'Unknown module action.', 'airfiber-centralized' ), array( 'status' => 400 ) );
 	}

@@ -5,6 +5,9 @@ namespace Airfiber\Next;
 defined( 'ABSPATH' ) || exit;
 
 class Module_Registry {
+	const OPTION_CACHE = 'afcn_module_registry_v1';
+	const CACHE_SCHEMA = 1;
+
 	private static $modules = null;
 
 	public static function all( $refresh = false ) {
@@ -12,6 +15,47 @@ class Module_Registry {
 			return self::$modules;
 		}
 
+		if ( ! $refresh ) {
+			$cached = get_option( self::OPTION_CACHE, array() );
+			if (
+				is_array( $cached )
+				&& isset( $cached['schema'], $cached['core_version'], $cached['modules'] )
+				&& self::CACHE_SCHEMA === (int) $cached['schema']
+				&& (string) AFCN_VERSION === (string) $cached['core_version']
+				&& is_array( $cached['modules'] )
+			) {
+				self::$modules = $cached['modules'];
+				return self::$modules;
+			}
+		}
+
+		$modules = self::discover_from_disk();
+		update_option(
+			self::OPTION_CACHE,
+			array(
+				'schema'       => self::CACHE_SCHEMA,
+				'core_version' => AFCN_VERSION,
+				'built_at'     => time(),
+				'modules'      => $modules,
+			),
+			false
+		);
+		self::$modules = $modules;
+		return $modules;
+	}
+
+	public static function get( $id ) {
+		$id      = sanitize_key( $id );
+		$modules = self::all();
+		return isset( $modules[ $id ] ) ? $modules[ $id ] : null;
+	}
+
+	public static function invalidate() {
+		self::$modules = null;
+		delete_option( self::OPTION_CACHE );
+	}
+
+	private static function discover_from_disk() {
 		$modules = array();
 		$files   = glob( AFCN_PATH . 'modules/*/module.json' );
 		if ( ! is_array( $files ) ) {
@@ -46,19 +90,7 @@ class Module_Registry {
 				return $left['position'] < $right['position'] ? -1 : 1;
 			}
 		);
-
-		self::$modules = $modules;
 		return $modules;
-	}
-
-	public static function get( $id ) {
-		$id      = sanitize_key( $id );
-		$modules = self::all();
-		return isset( $modules[ $id ] ) ? $modules[ $id ] : null;
-	}
-
-	public static function invalidate() {
-		self::$modules = null;
 	}
 
 	private static function normalize( $data, $folder ) {
@@ -73,6 +105,8 @@ class Module_Registry {
 		}
 
 		$assets = isset( $data['assets'] ) && is_array( $data['assets'] ) ? $data['assets'] : array();
+		$file   = AFCN_PATH . 'modules/' . $folder . '/module.json';
+		$real   = realpath( $file );
 		return array(
 			'id'              => $id,
 			'name'            => $name,
@@ -90,7 +124,7 @@ class Module_Registry {
 			),
 			'requires'        => isset( $data['requires'] ) && is_array( $data['requires'] ) ? $data['requires'] : array(),
 			'events'          => isset( $data['events'] ) && is_array( $data['events'] ) ? array_values( array_map( 'sanitize_key', $data['events'] ) ) : array(),
-			'path'            => dirname( realpath( dirname( __DIR__ ) . '/modules/' . $folder . '/module.json' ) ?: AFCN_PATH . 'modules/' . $folder . '/module.json' ),
+			'path'            => dirname( $real ? $real : $file ),
 		);
 	}
 }

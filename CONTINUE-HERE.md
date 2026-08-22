@@ -36,14 +36,15 @@ The page is managed automatically by `Airfiber\Next\Bootstrap`.
 - Classic → **Try BETA** bridge and BETA → **Back to Classic** link
 - Core UI design tokens, fields, buttons, cards, tables, dialogs and transitions
 - Source Serif 4 headings and system/Inter UI stack
-- manifest-based module discovery
+- manifest-based module discovery with a persistent compiled registry cache
+- manual registry refresh for newly deployed modules
 - numeric module menu positions
 - lazy module PHP autoloading
 - AJAX/REST module rendering
 - lazy per-module CSS/JavaScript manifests
 - generic module actions/forms
 - module dependencies
-- module enable/disable state
+- module enable/disable state plus optional `activate()` / `deactivate()` lifecycle methods
 - lazy event bus for declared module events
 - namespaced cache helper with stale/fresh envelopes
 - measured HTTP client for external requests
@@ -71,7 +72,7 @@ They are system modules and cannot be disabled from BETA.
 
 ## Performance contract
 
-An enabled module that has not been opened should cost almost nothing beyond reading its small `module.json` manifest.
+An enabled module that has not been opened should cost almost nothing beyond reading its cached manifest metadata.
 
 Default budgets:
 

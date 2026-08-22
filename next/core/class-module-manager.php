@@ -47,7 +47,9 @@ class Module_Manager {
 	}
 
 	public static function set_enabled( $id, $enabled ) {
-		$module = Module_Registry::get( $id );
+		$id      = sanitize_key( $id );
+		$module  = Module_Registry::get( $id );
+		$enabled = (bool) $enabled;
 		if ( ! $module ) {
 			return new \WP_Error( 'afcn_module_missing', __( 'Module not found.', 'airfiber-centralized' ), array( 'status' => 404 ) );
 		}
@@ -57,10 +59,46 @@ class Module_Manager {
 		if ( ! current_user_can( 'manage_options' ) && ! current_user_can( Capabilities::MANAGE_MODULES ) ) {
 			return new \WP_Error( 'afcn_forbidden', __( 'You cannot manage modules.', 'airfiber-centralized' ), array( 'status' => 403 ) );
 		}
+
+		$current = self::is_enabled( $id, $module );
+		if ( $current === $enabled ) {
+			return array( 'module' => $id, 'enabled' => $enabled );
+		}
+
+		if ( ! $enabled ) {
+			$loaded = self::load( $id );
+			if ( ! is_wp_error( $loaded ) && method_exists( $loaded['class'], 'deactivate' ) ) {
+				$result = call_user_func( array( $loaded['class'], 'deactivate' ) );
+				if ( is_wp_error( $result ) ) {
+					return $result;
+				}
+			}
+		}
+
 		$map        = get_option( self::OPTION_ENABLED, array() );
-		$map[ $id ] = (bool) $enabled;
+		$map[ $id ] = $enabled;
 		update_option( self::OPTION_ENABLED, $map, false );
-		return array( 'module' => $id, 'enabled' => (bool) $enabled );
+
+		if ( $enabled ) {
+			$loaded = self::load( $id );
+			if ( is_wp_error( $loaded ) ) {
+				$map[ $id ] = false;
+				update_option( self::OPTION_ENABLED, $map, false );
+				return $loaded;
+			}
+			if ( method_exists( $loaded['class'], 'activate' ) ) {
+				$result = call_user_func( array( $loaded['class'], 'activate' ) );
+				if ( is_wp_error( $result ) ) {
+					$map[ $id ] = false;
+					update_option( self::OPTION_ENABLED, $map, false );
+					return $result;
+				}
+			}
+		}
+
+		do_action( 'afcn_module_state_changed', $id, $enabled );
+		Event_Bus::dispatch( 'module_state_changed', $id, $enabled );
+		return array( 'module' => $id, 'enabled' => $enabled );
 	}
 
 	public static function dependencies_met( $module ) {
