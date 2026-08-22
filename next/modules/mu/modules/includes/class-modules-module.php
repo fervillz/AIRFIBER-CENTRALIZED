@@ -152,7 +152,7 @@ class Modules_Module implements Module_Contract {
 			$health['max_queries']
 		);
 		?>
-		<article class="<?php echo esc_attr( implode( ' ', $classes ) ); ?>" data-afcn-module-card data-afcn-groups="<?php echo esc_attr( $groups ); ?>" data-afcn-search="<?php echo esc_attr( $search ); ?>">
+		<article class="<?php echo esc_attr( implode( ' ', $classes ) ); ?>" data-afcn-module-card data-afcn-groups="<?php echo esc_attr( $groups ); ?>" data-afcn-search="<?php echo esc_attr( $search ); ?>"<?php echo $is_mu ? ' hidden' : ''; ?>>
 			<div class="afcn-module-card-head">
 				<?php
 				$health_dot = '<span class="afcn-module-card-health is-' . esc_attr( sanitize_html_class( $health['status'] ) ) . '" aria-hidden="true"></span>';
