@@ -10,7 +10,7 @@ class Module_Manager {
 	public static function navigation() {
 		$items = array();
 		foreach ( Module_Registry::all() as $id => $module ) {
-			if ( ! self::is_enabled( $id, $module ) || ! self::dependencies_met( $module ) || ! self::user_can( $module ) ) {
+			if ( Module_Trash::is_trashed( $id ) || ! self::is_enabled( $id, $module ) || ! self::dependencies_met( $module ) || ! self::user_can( $module ) ) {
 				continue;
 			}
 			$items[] = array( 'id' => $id, 'name' => $module['name'], 'icon' => $module['icon'], 'position' => $module['position'] );
@@ -26,6 +26,7 @@ class Module_Manager {
 		$module = $module ? $module : Module_Registry::get( $id );
 		if ( ! $module ) { return false; }
 		if ( ! empty( $module['system'] ) ) { return true; }
+		if ( Module_Trash::is_trashed( $id ) ) { return false; }
 		$enabled = get_option( self::OPTION_ENABLED, array() );
 		return isset( $enabled[ $id ] ) ? (bool) $enabled[ $id ] : ! empty( $module['default_enabled'] );
 	}
@@ -35,7 +36,8 @@ class Module_Manager {
 		$module  = Module_Registry::get( $id );
 		$enabled = (bool) $enabled;
 		if ( ! $module ) { return new \WP_Error( 'afcn_module_missing', __( 'Module not found.', 'airfiber-centralized' ), array( 'status' => 404 ) ); }
-		if ( ! empty( $module['system'] ) ) { return new \WP_Error( 'afcn_system_module', __( 'Core system modules cannot be disabled.', 'airfiber-centralized' ), array( 'status' => 400 ) ); }
+		if ( ! empty( $module['system'] ) ) { return new \WP_Error( 'afcn_system_module', __( 'Core MU modules cannot be disabled.', 'airfiber-centralized' ), array( 'status' => 400 ) ); }
+		if ( $enabled && Module_Trash::is_trashed( $id ) ) { return new \WP_Error( 'afcn_module_trashed', __( 'Restore this module from Trash before activating it.', 'airfiber-centralized' ), array( 'status' => 409 ) ); }
 		if ( ! current_user_can( 'manage_options' ) && ! current_user_can( Capabilities::MANAGE_MODULES ) ) { return new \WP_Error( 'afcn_forbidden', __( 'You cannot manage modules.', 'airfiber-centralized' ), array( 'status' => 403 ) ); }
 
 		$current = self::is_enabled( $id, $module );
@@ -100,6 +102,7 @@ class Module_Manager {
 		$id     = sanitize_key( $id );
 		$module = Module_Registry::get( $id );
 		if ( ! $module ) { return new \WP_Error( 'afcn_module_missing', __( 'Module not found.', 'airfiber-centralized' ), array( 'status' => 404 ) ); }
+		if ( empty( $module['system'] ) && Module_Trash::is_trashed( $id ) ) { return new \WP_Error( 'afcn_module_trashed', __( 'This module is in Trash.', 'airfiber-centralized' ), array( 'status' => 410 ) ); }
 		if ( ! self::is_enabled( $id, $module ) ) { return new \WP_Error( 'afcn_module_disabled', __( 'This module is disabled.', 'airfiber-centralized' ), array( 'status' => 403 ) ); }
 		if ( ! self::dependencies_met( $module ) ) { return new \WP_Error( 'afcn_dependency_missing', __( 'This module has an unavailable dependency.', 'airfiber-centralized' ), array( 'status' => 409 ) ); }
 		if ( $check_user && ! self::user_can( $module ) ) { return new \WP_Error( 'afcn_module_forbidden', __( 'You do not have permission to use this module.', 'airfiber-centralized' ), array( 'status' => 403 ) ); }
@@ -168,7 +171,13 @@ class Module_Manager {
 	public static function statuses() {
 		$output = array();
 		foreach ( Module_Registry::all() as $id => $module ) {
-			$output[ $id ] = array( 'meta' => $module, 'enabled' => self::is_enabled( $id, $module ), 'dependencies' => self::dependencies_met( $module ), 'health' => Module_Health::summary( $id ) );
+			$output[ $id ] = array(
+				'meta'         => $module,
+				'enabled'      => self::is_enabled( $id, $module ),
+				'trashed'      => empty( $module['system'] ) && Module_Trash::is_trashed( $id ),
+				'dependencies' => self::dependencies_met( $module ),
+				'health'       => Module_Health::summary( $id ),
+			);
 		}
 		return $output;
 	}
