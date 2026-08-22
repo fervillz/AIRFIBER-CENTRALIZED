@@ -4,46 +4,66 @@ namespace Airfiber\Next\Modules\Dashboard;
 
 use Airfiber\Next\Module_Contract;
 use Airfiber\Next\Module_Manager;
+use Airfiber\Next\Module_Registry;
 use Airfiber\Next\Performance_Monitor;
-use Airfiber\Next\Task_Queue;
+use Airfiber\Next\UI;
+use Airfiber\Next\User_Manager;
 
 defined( 'ABSPATH' ) || exit;
 
 class Dashboard_Module implements Module_Contract {
 	public static function render( $context = array() ) {
-		$statuses = Module_Manager::statuses();
-		$healthy  = 0;
-		$warning  = 0;
+		$statuses    = Module_Manager::statuses();
+		$total       = count( $statuses );
+		$enabled     = 0;
+		$quarantined = 0;
+		$warnings    = 0;
 		foreach ( $statuses as $status ) {
-			if ( 'healthy' === $status['health']['status'] ) {
-				$healthy++;
-			} else {
-				$warning++;
+			if ( ! empty( $status['enabled'] ) ) {
+				$enabled++;
+			}
+			$health = isset( $status['health']['status'] ) ? $status['health']['status'] : 'healthy';
+			if ( 'quarantined' === $health ) {
+				$quarantined++;
+			} elseif ( in_array( $health, array( 'warning', 'degraded' ), true ) ) {
+				$warnings++;
 			}
 		}
-		$queue = Task_Queue::stats();
-		$core  = Performance_Monitor::core_summary();
+		$user    = User_Manager::current_user_summary();
+		$budgets = Performance_Monitor::budgets();
 		ob_start();
 		?>
 		<div class="afcn-page-head">
 			<div>
-				<h1 class="afcn-page-title"><?php esc_html_e( 'Dashboard', 'airfiber-centralized' ); ?></h1>
-				<p class="afcn-page-description"><?php esc_html_e( 'Airfiber Next loads a small Core first, then opens modules only when you ask for them.', 'airfiber-centralized' ); ?></p>
+				<h1 class="afcn-page-title"><?php esc_html_e( 'Airfiber Next', 'airfiber-centralized' ); ?></h1>
+				<p class="afcn-page-description"><?php esc_html_e( 'Fast by design. Modules stay dormant until they are actually needed.', 'airfiber-centralized' ); ?></p>
 			</div>
-			<span class="afcn-badge afcn-badge-beta">BETA</span>
+			<?php echo UI::badge( AFCN_VERSION, 'info' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
 		</div>
-		<div class="afcn-grid afcn-grid-stats">
-			<div class="afcn-card afcn-stat-card"><span><?php esc_html_e( 'Core p50', 'airfiber-centralized' ); ?></span><strong><?php echo esc_html( $core['p50_ms'] ); ?> ms</strong></div>
-			<div class="afcn-card afcn-stat-card"><span><?php esc_html_e( 'Core p95', 'airfiber-centralized' ); ?></span><strong><?php echo esc_html( $core['p95_ms'] ); ?> ms</strong></div>
-			<div class="afcn-card afcn-stat-card"><span><?php esc_html_e( 'Healthy modules', 'airfiber-centralized' ); ?></span><strong><?php echo esc_html( $healthy ); ?></strong></div>
-			<div class="afcn-card afcn-stat-card"><span><?php esc_html_e( 'Needs attention', 'airfiber-centralized' ); ?></span><strong><?php echo esc_html( $warning ); ?></strong></div>
-		</div>
-		<div class="afcn-card">
-			<div class="afcn-card-header"><div><h2><?php esc_html_e( 'Fast by design', 'airfiber-centralized' ); ?></h2><p><?php esc_html_e( 'Unopened feature modules stay out of the request path. Remote devices and integrations should refresh in the background and render cached data first.', 'airfiber-centralized' ); ?></p></div></div>
-			<div class="afcn-grid afcn-grid-stats">
-				<div class="afcn-stat-inline"><span><?php esc_html_e( 'Queued jobs', 'airfiber-centralized' ); ?></span><strong><?php echo esc_html( $queue['queued'] ); ?></strong></div>
-				<div class="afcn-stat-inline"><span><?php esc_html_e( 'Failed jobs', 'airfiber-centralized' ); ?></span><strong><?php echo esc_html( $queue['failed'] ); ?></strong></div>
-				<div class="afcn-stat-inline"><span><?php esc_html_e( 'Running jobs', 'airfiber-centralized' ); ?></span><strong><?php echo esc_html( $queue['running'] ); ?></strong></div>
+		<div class="afcn-grid">
+			<div class="afcn-card afcn-col-3"><div class="afcn-card-body"><div class="afcn-stat"><?php echo esc_html( $total ); ?></div><div class="afcn-stat-label"><?php esc_html_e( 'Discovered modules', 'airfiber-centralized' ); ?></div></div></div>
+			<div class="afcn-card afcn-col-3"><div class="afcn-card-body"><div class="afcn-stat"><?php echo esc_html( $enabled ); ?></div><div class="afcn-stat-label"><?php esc_html_e( 'Enabled modules', 'airfiber-centralized' ); ?></div></div></div>
+			<div class="afcn-card afcn-col-3"><div class="afcn-card-body"><div class="afcn-stat"><?php echo esc_html( $warnings ); ?></div><div class="afcn-stat-label"><?php esc_html_e( 'Performance warnings', 'airfiber-centralized' ); ?></div></div></div>
+			<div class="afcn-card afcn-col-3"><div class="afcn-card-body"><div class="afcn-stat"><?php echo esc_html( $quarantined ); ?></div><div class="afcn-stat-label"><?php esc_html_e( 'Quarantined modules', 'airfiber-centralized' ); ?></div></div></div>
+			<div class="afcn-card afcn-col-8">
+				<div class="afcn-card-header"><h2><?php esc_html_e( 'Performance contract', 'airfiber-centralized' ); ?></h2></div>
+				<div class="afcn-card-body">
+					<p><?php esc_html_e( 'An unopened module should have near-zero runtime cost. PHP, assets, data and external calls are loaded on demand.', 'airfiber-centralized' ); ?></p>
+					<div class="afcn-health-metrics">
+						<span>Bootstrap ≤ <?php echo esc_html( $budgets['bootstrap_ms'] ); ?> ms</span>
+						<span>Render ≤ <?php echo esc_html( $budgets['render_ms'] ); ?> ms</span>
+						<span>Action ≤ <?php echo esc_html( $budgets['action_ms'] ); ?> ms</span>
+						<span>Queries ≤ <?php echo esc_html( $budgets['db_queries'] ); ?></span>
+						<span>Memory ≤ <?php echo esc_html( $budgets['memory_mb'] ); ?> MB</span>
+					</div>
+				</div>
+			</div>
+			<div class="afcn-card afcn-col-4">
+				<div class="afcn-card-header"><h2><?php esc_html_e( 'Signed in', 'airfiber-centralized' ); ?></h2></div>
+				<div class="afcn-card-body">
+					<strong><?php echo esc_html( $user['display_name'] ); ?></strong>
+					<p class="afcn-page-description"><?php echo esc_html( $user['email'] ); ?></p>
+				</div>
 			</div>
 		</div>
 		<?php
@@ -51,6 +71,6 @@ class Dashboard_Module implements Module_Contract {
 	}
 
 	public static function handle_action( $action, $payload = array() ) {
-		return new \WP_Error( 'afcn_dashboard_read_only', __( 'Dashboard has no write actions.', 'airfiber-centralized' ), array( 'status' => 400 ) );
+		return new \WP_Error( 'afcn_dashboard_action', __( 'Dashboard has no direct actions.', 'airfiber-centralized' ), array( 'status' => 400 ) );
 	}
 }
