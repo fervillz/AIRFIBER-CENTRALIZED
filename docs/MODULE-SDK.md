@@ -40,7 +40,8 @@ Every PHP class/interface file uses the readable WordPress-style `class-` prefix
   "settings": "example",
   "updates": true,
   "assets": {"css": [], "js": []},
-  "requires": {"core": ">=0.1.0"},
+  "connectors": [],
+  "requires": {"core": ">=0.3.0"},
   "events": []
 }
 ```
@@ -79,6 +80,77 @@ A module may add these without changing Core:
 - `activate()` / `deactivate()` — lifecycle when module state changes.
 - `on_event()` / `filter_event()` — lazy event subscriptions declared by the manifest.
 
+## Connector types
+
+A module that owns an external device/service can advertise connector types directly in `module.json`. This metadata is compiled into the module registry, so the Connections Hub can discover it without loading the module PHP.
+
+Example:
+
+```json
+"connectors": [
+  {
+    "id": "example-api",
+    "name": "Example API",
+    "description": "Connect Airfiber to the Example service.",
+    "group": "cloud",
+    "icon": "cloud",
+    "test_action": "test-connection",
+    "fields": [
+      {
+        "key": "endpoint",
+        "label": "Endpoint",
+        "type": "url",
+        "required": true,
+        "display": "endpoint"
+      },
+      {
+        "key": "account",
+        "label": "Account",
+        "type": "text",
+        "display": "meta"
+      },
+      {
+        "key": "api_key",
+        "label": "API key",
+        "type": "password",
+        "required": true,
+        "secret": true
+      }
+    ]
+  }
+]
+```
+
+Supported field types: `text`, `password`, `number`, `email`, `url`, `select`, `checkbox`.
+
+Supported card display hints for non-secret fields: `endpoint`, `meta`.
+
+A provider test action receives:
+
+```php
+array( 'connection_id' => $connection_id )
+```
+
+The provider can then read:
+
+```php
+$connection = \Airfiber\Next\Connection_Store::get( $connection_id );
+$api_key    = \Airfiber\Next\Secret_Store::get( $connection_id, 'api_key' );
+```
+
+and may return:
+
+```php
+array(
+    'state'      => 'online',
+    'message'    => 'Connected.',
+    'latency_ms' => 35.4,
+    'details'    => array( 'version' => '1.2' ),
+);
+```
+
+Do not put provider credentials in the manifest, normal connection config, debug logs or task payloads. See `docs/CONNECTORS.md`.
+
 ## Shared Core services
 
 - `Airfiber\Next\UI` — shared fields/buttons/badges/notices.
@@ -90,6 +162,10 @@ A module may add these without changing Core:
 - `Airfiber\Next\Task_Queue` — background work; queue IDs/small payloads, not large datasets or secrets.
 - `Airfiber\Next\Event_Bus` — lazy cross-module events/filters.
 - `Airfiber\Next\Audit_Log` — bounded administrative audit events.
+- `Airfiber\Next\Connector_Registry` — lightweight connector-type metadata compiled from manifests.
+- `Airfiber\Next\Connection_Store` — generic non-secret configured endpoint records.
+- `Airfiber\Next\Secret_Store` — encrypted connection credentials; no plaintext fallback.
+- `Airfiber\Next\Connection_Health` — cached status/latency/last-check state separate from configuration.
 
 ## Browser API
 
@@ -108,7 +184,7 @@ Module JavaScript should use this API rather than inventing another AJAX layer.
 
 Use Core classes and markup: `.afcn-button`, `.afcn-input`, `.afcn-select`, `.afcn-card`, `.afcn-table`, `.afcn-dialog`, and `Airfiber\Next\UI`.
 
-Cards and buttons inherit the shared hover/lift language. Tooltips must use the shared Tooltip class instead of module-specific tooltip CSS.
+Cards inherit the Core hover behavior: `#e7f0fb`, `translateY(-10px)`, shared shadow, fast hover-in and slow hover-out. Tooltips must use the shared Tooltip class instead of module-specific tooltip CSS.
 
 Only add module CSS when Core cannot express the feature.
 
@@ -132,13 +208,17 @@ Core posts the form to the module action route, shows the result, and reloads on
 
 ```json
 "requires": {
-  "core": ">=0.1.0",
+  "core": ">=0.3.0",
   "modules": ["ppp"]
 }
 ```
 
+Do not depend on the `connections` UI module merely to store/use a connection. Generic connection storage is a Core service. The Connections add-on is the central management/overview UI.
+
 ## Performance rules
 
 Module bootstrap must be tiny. No broad database scans, remote OLT/MikroTik calls, or large data construction may happen because the module class was merely discovered or loaded.
+
+Connector metadata must be lightweight manifest metadata. Do not contact the remote provider to populate navigation, module discovery or the Connections page shell.
 
 If a logical module becomes large, split it into lazy queries/chunks/background tasks rather than many tightly coupled modules.
