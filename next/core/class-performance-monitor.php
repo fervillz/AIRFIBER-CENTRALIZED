@@ -5,12 +5,15 @@ namespace Airfiber\Next;
 defined( 'ABSPATH' ) || exit;
 
 class Performance_Monitor {
-	const OPTION_BUDGETS = 'afcn_performance_budgets_v1';
+	const OPTION_BUDGETS       = 'afcn_performance_budgets_v1';
+	const OPTION_METRIC_SCHEMA = 'afcn_performance_metric_schema';
+	const METRIC_SCHEMA        = 2;
 
-	private static $samples       = array();
-	private static $hooked        = false;
-	private static $force_flush   = false;
-	private static $budget_cache  = null;
+	private static $samples      = array();
+	private static $hooked       = false;
+	private static $force_flush  = false;
+	private static $budget_cache = null;
+	private static $migrated     = false;
 
 	public static function budgets() {
 		if ( null !== self::$budget_cache ) {
@@ -18,17 +21,20 @@ class Performance_Monitor {
 		}
 
 		$defaults = array(
-			'bootstrap_ms' => 30,
-			'render_ms'    => 120,
-			'query_ms'     => 180,
-			'action_ms'    => 250,
-			'background_ms'=> 1000,
-			'client_ms'    => 160,
-			'external_ms'  => 800,
-			'memory_mb'    => 8,
-			'db_queries'   => 15,
-			'css_kb'       => 40,
-			'js_kb'        => 100,
+			'bootstrap_ms'  => 30,
+			'render_ms'     => 120,
+			'query_ms'      => 180,
+			'action_ms'     => 250,
+			'background_ms' => 1000,
+			'client_ms'     => 160,
+			'transport_ms'  => 500,
+			'asset_load_ms' => 250,
+			'navigation_ms' => 650,
+			'external_ms'   => 800,
+			'memory_mb'     => 8,
+			'db_queries'    => 15,
+			'css_kb'        => 40,
+			'js_kb'         => 100,
 		);
 		$saved = get_option( self::OPTION_BUDGETS, array() );
 
@@ -58,6 +64,28 @@ class Performance_Monitor {
 		self::$budget_cache = null;
 		Audit_Log::record( 'performance_budgets_updated', 'core' );
 		return self::budgets();
+	}
+
+	/**
+	 * Version 1 called the complete REST round trip "client" time. That made
+	 * network/server latency look like browser work and could incorrectly mark a
+	 * healthy module as warning/degraded. Clear only that invalid legacy state.
+	 */
+	public static function migrate_metrics() {
+		if ( self::$migrated ) {
+			return;
+		}
+		self::$migrated = true;
+
+		$schema = absint( get_option( self::OPTION_METRIC_SCHEMA, 1 ) );
+		if ( $schema >= self::METRIC_SCHEMA ) {
+			return;
+		}
+
+		Circuit_Breaker::reset_legacy_client_states();
+		Module_Health::purge_phase_samples( 'client' );
+		Debug_Logger::purge_legacy_client_warnings();
+		update_option( self::OPTION_METRIC_SCHEMA, self::METRIC_SCHEMA, false );
 	}
 
 	public static function start( $module, $phase ) {
@@ -94,11 +122,28 @@ class Performance_Monitor {
 	}
 
 	public static function record_client( $module, $duration_ms ) {
+		self::record_browser_metric( $module, 'client', $duration_ms );
+	}
+
+	/**
+	 * Browser metrics are deliberately separated:
+	 * client = DOM insertion/wiring through the next paint (actionable code)
+	 * transport = REST request + WordPress/network delivery (diagnostic only)
+	 * asset_load = optional CSS/JS delivery (diagnostic only)
+	 * navigation = complete uncached module navigation (diagnostic only)
+	 */
+	public static function record_browser_metric( $module, $metric, $duration_ms ) {
+		$metric  = sanitize_key( $metric );
+		$allowed = array( 'client', 'transport', 'asset_load', 'navigation' );
+		if ( ! in_array( $metric, $allowed, true ) ) {
+			return;
+		}
+
 		self::ensure_shutdown();
 		self::capture(
 			array(
 				'module'      => sanitize_key( $module ),
-				'phase'       => 'client',
+				'phase'       => $metric,
 				'duration_ms' => round( max( 0, (float) $duration_ms ), 2 ),
 				'memory_mb'   => 0,
 				'db_queries'  => 0,
@@ -147,11 +192,6 @@ class Performance_Monitor {
 		}
 	}
 
-	/**
-	 * Return every budget exceeded by a sample. Keeping all reasons makes the
-	 * diagnostics useful when, for example, a render is slow because it also
-	 * performs too many database queries.
-	 */
 	public static function violation_reasons( $sample ) {
 		$budgets = self::budgets();
 		$phase   = isset( $sample['phase'] ) ? sanitize_key( $sample['phase'] ) : '';
@@ -174,7 +214,7 @@ class Performance_Monitor {
 		if ( isset( $sample['duration_ms'], $budgets[ $key ] ) && (float) $sample['duration_ms'] > (float) $budgets[ $key ] ) {
 			$reasons[] = sprintf(
 				'%s took %.2f ms (budget %.2f ms)',
-				$phase,
+				self::phase_label( $phase ),
 				(float) $sample['duration_ms'],
 				(float) $budgets[ $key ]
 			);
@@ -197,17 +237,49 @@ class Performance_Monitor {
 		return $reasons;
 	}
 
+	private static function phase_label( $phase ) {
+		$labels = array(
+			'client'     => 'client apply',
+			'transport'  => 'module request',
+			'asset_load' => 'asset load',
+			'navigation' => 'module navigation',
+			'external'   => 'external request',
+		);
+		return isset( $labels[ $phase ] ) ? $labels[ $phase ] : str_replace( '_', ' ', $phase );
+	}
+
+	private static function is_diagnostic_phase( $phase ) {
+		return in_array( $phase, array( 'transport', 'asset_load', 'navigation', 'external' ), true );
+	}
+
 	private static function capture( $sample ) {
 		self::$samples[] = $sample;
 		$reasons         = self::violation_reasons( $sample );
-		$phase           = isset( $sample['phase'] ) ? $sample['phase'] : '';
+		$phase           = isset( $sample['phase'] ) ? sanitize_key( $sample['phase'] ) : '';
+		$module          = isset( $sample['module'] ) ? sanitize_key( $sample['module'] ) : 'core';
 
-		if ( ! empty( $reasons ) && 'core' !== $sample['module'] ) {
-			self::$force_flush = true;
-			if ( 'external' !== $phase ) {
-				Circuit_Breaker::record_violation( $sample['module'], $sample, implode( '; ', $reasons ) );
-			}
+		if ( empty( $reasons ) || 'core' === $module ) {
+			return;
 		}
+
+		self::$force_flush = true;
+		$reason            = implode( '; ', $reasons );
+
+		if ( self::is_diagnostic_phase( $phase ) ) {
+			if ( 'external' !== $phase ) {
+				Debug_Logger::warning(
+					'Module delivery performance budget exceeded.',
+					array(
+						'module' => $module,
+						'phase'  => $phase,
+						'reason' => $reason,
+					)
+				);
+			}
+			return;
+		}
+
+		Circuit_Breaker::record_violation( $module, $sample, $reason );
 	}
 
 	private static function ensure_shutdown() {
