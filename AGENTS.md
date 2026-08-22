@@ -28,9 +28,14 @@ A developer should be able to understand the file's purpose from its filename.
 - Do not migrate Classic files merely to make folders look cleaner.
 - Core owns the visual system and shared runtime services.
 - Modules use Core components first; module-specific CSS/JS should be the exception.
+- **Installed does not mean loaded. Active does not mean loaded.**
 - Unopened modules must have near-zero runtime cost.
 - Module PHP, optional CSS/JS, data and external network work are lazy/on-demand.
 - Module manifests are metadata only and must not execute application logic.
+- Do not add broad feature-module hooks that make every active module participate in every Airfiber request.
+- Use explicit loading triggers: direct module page, query, action, lazy chunk, manifest slot, declared event, or background task.
+- Shared-page contributions should use `Airfiber\Next\Module_Slots`; the host page must not hard-code knowledge of contributing feature modules.
+- Slot chunks should stay small/cache-first. A Dashboard slot must not secretly bootstrap a full OLT/Billing/PPP workflow or fan out to external devices.
 - Expensive remote calls should use `Airfiber\Next\HTTP_Client` so external latency is measured separately.
 - Repeated performance budget violations can quarantine a non-system module.
 
