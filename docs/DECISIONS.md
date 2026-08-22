@@ -79,3 +79,11 @@ Decision: keep `module.json` as the lightweight registration marker, but infer t
 Reason: this gives Airfiber the drop-in simplicity of WordPress plugin discovery without scanning or executing module PHP. Metadata remains cheap to compile, and multi-word folders map predictably to namespaces/classes.
 
 Example: `speed-test/` maps to `Airfiber\Next\Modules\SpeedTest\Speed_Test_Module` in `includes/class-speed-test-module.php`.
+
+## 2026-08-23 — Active does not mean loaded
+
+Decision: activating an Airfiber module only makes it eligible for use. Core must not load its PHP, optional assets, data or external connections on unrelated Airfiber pages.
+
+Reason: Airfiber should decide what a request needs before loading module code. This avoids the normal WordPress pattern where every active plugin participates in every request.
+
+Direct pages, queries, actions, lazy chunks, declared events and background tasks are explicit loading triggers. Shared-page contributions use manifest-declared slots. Core resolves slot contributors from cached metadata, then the browser requests each chunk only when its placeholder approaches the viewport.
