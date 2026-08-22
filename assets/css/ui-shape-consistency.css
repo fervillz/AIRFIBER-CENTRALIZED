@@ -1,0 +1,48 @@
+/* Shared UI shape tokens for the Airfiber app.
+ * Keep action controls gently rounded and dialogs less pill-like.
+ */
+:root {
+	--afc-button-radius: 9px;
+	--afc-popup-radius: 14px;
+}
+
+/* Standard action buttons across the frontend app and plugin admin page. */
+body.afc-frontend-page .btn,
+body.afc-frontend-page button:not(.btn-close):not(.afc-ios-icon-button):not(.afc-ios-next-button),
+body.toplevel_page_airfiber-centralized .btn,
+body.toplevel_page_airfiber-centralized button:not(.btn-close):not(.afc-ios-icon-button):not(.afc-ios-next-button),
+.afc-olt-btn,
+.afc-olt-card-action {
+	border-radius: var(--afc-button-radius) !important;
+}
+
+/* The Basic/Advanced segmented control should follow the same shape language. */
+body.afc-frontend-page .afc-frontend-mode-toggle,
+body.afc-frontend-page .afc-frontend-mode-toggle button {
+	border-radius: var(--afc-button-radius) !important;
+}
+
+/* Dialogs and popup surfaces: rounded, but not fully pill/Apple-sheet rounded. */
+dialog.afc-dialog,
+body.afc-frontend-page dialog.afc-dialog,
+body.toplevel_page_airfiber-centralized dialog.afc-dialog,
+.afc-olt-dialog,
+.modal-content {
+	border-radius: var(--afc-popup-radius) !important;
+}
+
+/* Keep internal dialog form/surfaces clipped to the same outer radius. */
+dialog.afc-dialog > form,
+dialog.afc-dialog .afc-dialog-body:first-child,
+dialog.afc-dialog .afc-dialog-body:last-child {
+	border-radius: inherit;
+}
+
+/* Intentional circular controls stay circular. */
+.btn-close,
+.afc-ios-icon-button,
+.afc-ios-next-button,
+.afc-ios-success-icon,
+.afc-olt-help-toggle {
+	border-radius: 50% !important;
+}
