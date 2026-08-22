@@ -6,7 +6,7 @@ defined( 'ABSPATH' ) || exit;
 
 class Module_Registry {
 	const OPTION_CACHE = 'afcn_module_registry_v1';
-	const CACHE_SCHEMA = 1;
+	const CACHE_SCHEMA = 2;
 
 	private static $modules = null;
 
@@ -57,28 +57,49 @@ class Module_Registry {
 
 	private static function discover_from_disk() {
 		$modules = array();
-		$files   = glob( AFCN_PATH . 'modules/*/module.json' );
-		if ( ! is_array( $files ) ) {
-			$files = array();
-		}
+		$sources = array(
+			array(
+				'type'    => 'mu',
+				'pattern' => AFCN_PATH . 'modules/mu/*/module.json',
+			),
+			array(
+				'type'    => 'module',
+				'pattern' => AFCN_PATH . 'modules/*/module.json',
+			),
+		);
 
-		foreach ( $files as $file ) {
-			$raw = file_get_contents( $file );
-			if ( false === $raw ) {
+		foreach ( $sources as $source ) {
+			$files = glob( $source['pattern'] );
+			if ( ! is_array( $files ) ) {
 				continue;
 			}
-			$data = json_decode( $raw, true );
-			if ( ! is_array( $data ) ) {
-				Debug_Logger::warning( 'Invalid module manifest JSON.', array( 'file' => basename( dirname( $file ) ) ) );
-				continue;
+
+			foreach ( $files as $file ) {
+				$raw = file_get_contents( $file );
+				if ( false === $raw ) {
+					continue;
+				}
+
+				$data = json_decode( $raw, true );
+				if ( ! is_array( $data ) ) {
+					Debug_Logger::warning( 'Invalid module manifest JSON.', array( 'file' => basename( dirname( $file ) ) ) );
+					continue;
+				}
+
+				$folder = sanitize_key( basename( dirname( $file ) ) );
+				$module = self::normalize( $data, $folder, $source['type'], $file );
+				if ( is_wp_error( $module ) ) {
+					Debug_Logger::warning( 'Module manifest rejected.', array( 'module' => $folder, 'reason' => $module->get_error_message() ) );
+					continue;
+				}
+
+				if ( isset( $modules[ $module['id'] ] ) ) {
+					Debug_Logger::warning( 'Duplicate module id ignored.', array( 'module' => $module['id'], 'source' => $source['type'] ) );
+					continue;
+				}
+
+				$modules[ $module['id'] ] = $module;
 			}
-			$folder = sanitize_key( basename( dirname( $file ) ) );
-			$module = self::normalize( $data, $folder );
-			if ( is_wp_error( $module ) ) {
-				Debug_Logger::warning( 'Module manifest rejected.', array( 'module' => $folder, 'reason' => $module->get_error_message() ) );
-				continue;
-			}
-			$modules[ $module['id'] ] = $module;
 		}
 
 		uasort(
@@ -90,28 +111,31 @@ class Module_Registry {
 				return $left['position'] < $right['position'] ? -1 : 1;
 			}
 		);
+
 		return $modules;
 	}
 
-	private static function normalize( $data, $folder ) {
+	private static function normalize( $data, $folder, $source, $file ) {
 		$id    = isset( $data['id'] ) ? sanitize_key( $data['id'] ) : '';
 		$name  = isset( $data['name'] ) ? sanitize_text_field( $data['name'] ) : '';
 		$class = isset( $data['class'] ) ? ltrim( sanitize_text_field( $data['class'] ), '\\' ) : '';
+
 		if ( '' === $id || $id !== $folder ) {
 			return new \WP_Error( 'afcn_manifest_id', 'Manifest id must match its folder name.' );
 		}
 		if ( '' === $name || '' === $class ) {
 			return new \WP_Error( 'afcn_manifest_required', 'Manifest name and class are required.' );
 		}
+
 		$expected_class = __NAMESPACE__ . '\\Modules\\' . str_replace( ' ', '', ucwords( str_replace( '-', ' ', $folder ) ) ) . '\\';
 		if ( 0 !== strpos( $class, $expected_class ) ) {
 			return new \WP_Error( 'afcn_manifest_class', 'Module class must live inside its Airfiber Next module namespace.' );
 		}
 
-		$assets  = isset( $data['assets'] ) && is_array( $data['assets'] ) ? $data['assets'] : array();
-		$file    = AFCN_PATH . 'modules/' . $folder . '/module.json';
-		$real    = realpath( $file );
-		$systems = array( 'dashboard', 'users', 'modules', 'settings' );
+		$assets = isset( $data['assets'] ) && is_array( $data['assets'] ) ? $data['assets'] : array();
+		$real   = realpath( $file );
+		$is_mu  = 'mu' === $source;
+
 		return array(
 			'id'              => $id,
 			'name'            => $name,
@@ -121,8 +145,11 @@ class Module_Registry {
 			'position'        => isset( $data['position'] ) ? (int) $data['position'] : 100,
 			'icon'            => isset( $data['icon'] ) ? sanitize_key( $data['icon'] ) : 'box',
 			'capability'      => isset( $data['capability'] ) ? sanitize_key( $data['capability'] ) : Capabilities::ACCESS,
-			'system'          => ! empty( $data['system'] ) && in_array( $id, $systems, true ),
+			'system'          => $is_mu,
+			'source'          => $is_mu ? 'mu' : 'module',
 			'default_enabled' => ! isset( $data['default_enabled'] ) || (bool) $data['default_enabled'],
+			'settings'        => isset( $data['settings'] ) ? sanitize_key( $data['settings'] ) : '',
+			'updates'         => ! empty( $data['updates'] ),
 			'assets'          => array(
 				'css' => isset( $assets['css'] ) && is_array( $assets['css'] ) ? array_values( array_map( 'sanitize_text_field', $assets['css'] ) ) : array(),
 				'js'  => isset( $assets['js'] ) && is_array( $assets['js'] ) ? array_values( array_map( 'sanitize_text_field', $assets['js'] ) ) : array(),
@@ -130,6 +157,7 @@ class Module_Registry {
 			'requires'        => isset( $data['requires'] ) && is_array( $data['requires'] ) ? $data['requires'] : array(),
 			'events'          => isset( $data['events'] ) && is_array( $data['events'] ) ? array_values( array_map( 'sanitize_key', $data['events'] ) ) : array(),
 			'path'            => dirname( $real ? $real : $file ),
+			'url_path'        => $is_mu ? 'modules/mu/' . $folder : 'modules/' . $folder,
 		);
 	}
 }
