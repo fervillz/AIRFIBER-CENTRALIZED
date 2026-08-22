@@ -97,8 +97,8 @@ class Modules_Module implements Module_Contract {
 			$filter = 'all';
 		}
 
-		$statuses = self::decorate_statuses( Module_Manager::statuses() );
-		$result   = self::browser_page( $statuses, $filter, $search, $page );
+		$statuses       = self::decorate_statuses( Module_Manager::statuses() );
+		$result         = self::browser_page( $statuses, $filter, $search, $page );
 		$result['html'] = self::render_cards_html( $result['items'] );
 		unset( $result['items'] );
 		return $result;
@@ -206,6 +206,7 @@ class Modules_Module implements Module_Contract {
 		$groups  = implode( ' ', $status['groups'] );
 		$search  = strtolower( $module['name'] . ' ' . $module['description'] . ' ' . $id );
 		$classes = array( 'afcn-module-card' );
+		$icon    = ! empty( $module['icon'] ) ? sanitize_key( $module['icon'] ) : 'modules';
 
 		if ( $is_mu ) {
 			$classes[] = 'is-mu';
@@ -215,10 +216,11 @@ class Modules_Module implements Module_Contract {
 			$classes[] = 'is-inactive';
 		}
 
+		$health_text  = ucfirst( (string) $health['status'] );
 		$health_label = sprintf(
 			/* translators: 1: health state, 2: p50 milliseconds, 3: p95 milliseconds, 4: max queries */
 			__( '%1$s · p50 %2$s ms · p95 %3$s ms · %4$s max queries', 'airfiber-centralized' ),
-			ucfirst( $health['status'] ),
+			$health_text,
 			$health['p50_ms'],
 			$health['p95_ms'],
 			$health['max_queries']
@@ -226,12 +228,19 @@ class Modules_Module implements Module_Contract {
 		?>
 		<article class="<?php echo esc_attr( implode( ' ', $classes ) ); ?>" data-afcn-module-card data-afcn-groups="<?php echo esc_attr( $groups ); ?>" data-afcn-search="<?php echo esc_attr( $search ); ?>"<?php echo $hide_mu_initially && $is_mu ? ' hidden' : ''; ?>>
 			<div class="afcn-module-card-head">
-				<?php
-				$health_dot = '<span class="afcn-module-card-health is-' . esc_attr( sanitize_html_class( $health['status'] ) ) . '" aria-hidden="true"></span>';
-				echo Tooltip::render( $health_dot, $health_label, array( 'direction' => 'down' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
-				?>
+				<div class="afcn-module-card-icon" aria-hidden="true">
+					<?php echo Icon::svg( $icon ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+				</div>
 				<div class="afcn-module-card-badges">
-					<?php if ( $is_mu ) : ?><span class="afcn-module-card-badge is-mu"><?php esc_html_e( 'MU', 'airfiber-centralized' ); ?></span><?php endif; ?>
+					<?php if ( $is_mu ) : ?>
+						<span class="afcn-module-card-badge is-mu"><?php esc_html_e( 'MU', 'airfiber-centralized' ); ?></span>
+					<?php elseif ( $trashed ) : ?>
+						<span class="afcn-module-card-badge is-trash"><?php esc_html_e( 'Trash', 'airfiber-centralized' ); ?></span>
+					<?php elseif ( $enabled ) : ?>
+						<span class="afcn-module-card-badge is-active"><?php esc_html_e( 'Active', 'airfiber-centralized' ); ?></span>
+					<?php else : ?>
+						<span class="afcn-module-card-badge is-inactive"><?php esc_html_e( 'Inactive', 'airfiber-centralized' ); ?></span>
+					<?php endif; ?>
 					<?php if ( ! empty( $status['update_available'] ) ) : ?><span class="afcn-module-card-badge is-update"><?php esc_html_e( 'Update', 'airfiber-centralized' ); ?></span><?php endif; ?>
 				</div>
 			</div>
@@ -246,11 +255,6 @@ class Modules_Module implements Module_Contract {
 				}
 				?>
 			</h3>
-
-			<div class="afcn-module-card-meta">
-				<span>v<?php echo esc_html( $module['version'] ); ?></span>
-				<span><?php echo $is_mu ? esc_html__( 'Core', 'airfiber-centralized' ) : ( $trashed ? esc_html__( 'Trash', 'airfiber-centralized' ) : ( $enabled ? esc_html__( 'Active', 'airfiber-centralized' ) : esc_html__( 'Inactive', 'airfiber-centralized' ) ) ); ?></span>
-			</div>
 
 			<div class="afcn-module-card-actions" aria-label="<?php echo esc_attr( sprintf( __( '%s actions', 'airfiber-centralized' ), $module['name'] ) ); ?>">
 				<?php
@@ -276,6 +280,14 @@ class Modules_Module implements Module_Contract {
 					}
 				}
 				?>
+			</div>
+
+			<div class="afcn-module-card-meta">
+				<?php
+				$health_summary = '<span class="afcn-module-card-health-summary"><span class="afcn-module-card-health is-' . esc_attr( sanitize_html_class( $health['status'] ) ) . '" aria-hidden="true"></span><span>' . esc_html( $health_text ) . '</span></span>';
+				echo Tooltip::render( $health_summary, $health_label, array( 'direction' => 'up' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+				?>
+				<span>v<?php echo esc_html( $module['version'] ); ?></span>
 			</div>
 		</article>
 		<?php
