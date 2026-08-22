@@ -12,7 +12,7 @@ Classic stays in `includes/`, `templates/`, and `assets/`. Next/BETA lives in `n
 
 BETA URL: `/airfiber-beta/`.
 
-Airfiber Next Core version: **0.3.1**.
+Airfiber Next Core version: **0.3.2**.
 
 ## Core platform completed
 
@@ -43,11 +43,24 @@ Airfiber Next Core version: **0.3.1**.
 - reusable Core SVG icons and tooltip API
 - shared card hover language: `#e7f0fb` hover background, -10px lift and `0 10px 40px 0 rgba(0,0,0,.1)` shadow
 - shared card timing: fast hover-in (~160ms) and slow 5s hover-out; reduced-motion is respected
-- Module Manager CSS is Core-owned to prevent a flash of unstyled controls; its JavaScript remains lazy
-- shared `next/assets/css/browser.css` now owns the common filter-tab/search/browser treatment used by Modules and Connections
+- Module Manager CSS is Core-owned to prevent a flash of unstyled controls
+- shared `next/assets/css/browser.css` owns the common filter-tab/search/browser treatment used by Modules and Connections
+- shared `next/assets/js/browser.js` owns reliable filter/search behavior for Modules and Connections; feature modules do not duplicate this browser logic
 - native `[hidden]` state is enforced over card `display` rules, so All/Active/Inactive/MU filtering cannot be visually overridden by card CSS
 - module descriptions live in the shared black tooltip on the module title instead of occupying 150 × 150 card space
 - Module Manager action wrappers are visual-free/layout-only and actions are icon-only with tooltip labels
+- cached module views now emit the same `afcn:module:loaded` lifecycle event as fresh views, so Core/feature wiring remains consistent when navigating back to a cached screen
+
+## Modules browser performance rule
+
+The Modules browser is intentionally hybrid rather than AJAX-only:
+
+- **60 modules or fewer:** render the lightweight cards once and filter/search instantly in the browser with no extra network request. This is faster than REST/AJAX for normal Airfiber installations.
+- **more than 60 modules:** the browser automatically switches to the existing Airfiber REST query path. Filters/search fetch only **30 cards per request**, with Load More for the next page.
+- search is debounced; stale REST responses are ignored.
+- AJAX-inserted module cards are passed back through the Core action/dialog wiring so Activate, Deactivate, Trash, Restore and Settings controls remain functional.
+
+MU modules only belong to the MU group; they are not counted or displayed in All/Active/Inactive/update/trash views.
 
 ## Connector/Connections foundation completed
 
