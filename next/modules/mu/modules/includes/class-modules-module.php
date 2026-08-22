@@ -16,9 +16,18 @@ defined( 'ABSPATH' ) || exit;
 
 class Modules_Module implements Module_Contract {
 
+	const AJAX_THRESHOLD = 60;
+	const PAGE_SIZE      = 30;
+
 	public static function render( $context = array() ) {
 		$statuses = self::decorate_statuses( Module_Manager::statuses() );
 		$counts   = self::counts( $statuses );
+		$use_ajax = count( $statuses ) > self::AJAX_THRESHOLD;
+		$initial  = $use_ajax ? self::browser_page( $statuses, 'all', '', 1 ) : array(
+			'items'    => $statuses,
+			'total'    => count( $statuses ),
+			'has_more' => false,
+		);
 		$filters  = array(
 			'all'           => __( 'All', 'airfiber-centralized' ),
 			'active'        => __( 'Active', 'airfiber-centralized' ),
@@ -41,11 +50,11 @@ class Modules_Module implements Module_Contract {
 			</form>
 		</div>
 
-		<div class="afcn-plugin-browser" data-afcn-module-browser>
+		<div class="afcn-plugin-browser" data-afcn-module-browser data-afcn-ajax="<?php echo $use_ajax ? '1' : '0'; ?>" data-afcn-page-size="<?php echo esc_attr( self::PAGE_SIZE ); ?>">
 			<div class="afcn-plugin-toolbar">
 				<nav class="afcn-plugin-filters" aria-label="<?php esc_attr_e( 'Filter modules', 'airfiber-centralized' ); ?>">
 					<?php foreach ( $filters as $filter_id => $label ) : ?>
-						<button type="button" class="afcn-plugin-filter<?php echo 'all' === $filter_id ? ' is-active' : ''; ?>" data-afcn-module-filter="<?php echo esc_attr( $filter_id ); ?>">
+						<button type="button" class="afcn-plugin-filter<?php echo 'all' === $filter_id ? ' is-active' : ''; ?>" data-afcn-module-filter="<?php echo esc_attr( $filter_id ); ?>" aria-pressed="<?php echo 'all' === $filter_id ? 'true' : 'false'; ?>">
 							<?php echo esc_html( $label ); ?>
 							<span class="afcn-plugin-filter-count">(<?php echo esc_html( isset( $counts[ $filter_id ] ) ? $counts[ $filter_id ] : 0 ); ?>)</span>
 						</button>
@@ -58,18 +67,45 @@ class Modules_Module implements Module_Contract {
 				</label>
 			</div>
 
-			<div class="afcn-module-grid">
-				<?php foreach ( $statuses as $id => $status ) : ?>
-					<?php self::render_card( $id, $status ); ?>
+			<div class="afcn-module-grid" data-afcn-module-grid>
+				<?php foreach ( $initial['items'] as $id => $status ) : ?>
+					<?php self::render_card( $id, $status, ! $use_ajax ); ?>
 				<?php endforeach; ?>
 			</div>
 
-			<div class="afcn-module-empty" data-afcn-module-empty hidden>
+			<div class="afcn-module-browser-footer">
+				<button type="button" class="afcn-button afcn-button-secondary afcn-module-load-more" data-afcn-module-load-more<?php echo empty( $initial['has_more'] ) ? ' hidden' : ''; ?>><?php esc_html_e( 'Load more', 'airfiber-centralized' ); ?></button>
+			</div>
+
+			<div class="afcn-module-empty" data-afcn-module-empty<?php echo empty( $initial['total'] ) ? '' : ' hidden'; ?>>
 				<?php esc_html_e( 'No modules match this view.', 'airfiber-centralized' ); ?>
 			</div>
 		</div>
 		<?php
 		return ob_get_clean();
+	}
+
+	public static function handle_query( $query, $payload = array() ) {
+		if ( 'browser' !== $query ) {
+			return new \WP_Error( 'afcn_modules_query', __( 'Unknown modules query.', 'airfiber-centralized' ), array( 'status' => 404 ) );
+		}
+
+		$filter = isset( $payload['filter'] ) ? sanitize_key( $payload['filter'] ) : 'all';
+		$search = isset( $payload['search'] ) ? sanitize_text_field( wp_unslash( $payload['search'] ) ) : '';
+		$page   = isset( $payload['page'] ) ? max( 1, absint( $payload['page'] ) ) : 1;
+		if ( ! in_array( $filter, self::filter_ids(), true ) ) {
+			$filter = 'all';
+		}
+
+		$statuses = self::decorate_statuses( Module_Manager::statuses() );
+		$result   = self::browser_page( $statuses, $filter, $search, $page );
+		$result['html'] = self::render_cards_html( $result['items'] );
+		unset( $result['items'] );
+		return $result;
+	}
+
+	private static function filter_ids() {
+		return array( 'all', 'active', 'inactive', 'update', 'auto-disabled', 'trash', 'mu' );
 	}
 
 	private static function decorate_statuses( $statuses ) {
@@ -125,7 +161,43 @@ class Modules_Module implements Module_Contract {
 		return $counts;
 	}
 
-	private static function render_card( $id, $status ) {
+	private static function browser_page( $statuses, $filter, $search, $page ) {
+		$matched = array();
+		$search  = strtolower( trim( (string) $search ) );
+		foreach ( $statuses as $id => $status ) {
+			if ( ! in_array( $filter, $status['groups'], true ) ) {
+				continue;
+			}
+			if ( '' !== $search ) {
+				$module   = $status['meta'];
+				$haystack = strtolower( $id . ' ' . $module['name'] . ' ' . $module['description'] );
+				if ( false === strpos( $haystack, $search ) ) {
+					continue;
+				}
+			}
+			$matched[ $id ] = $status;
+		}
+
+		$total  = count( $matched );
+		$offset = max( 0, ( $page - 1 ) * self::PAGE_SIZE );
+		$items  = array_slice( $matched, $offset, self::PAGE_SIZE, true );
+		return array(
+			'items'    => $items,
+			'total'    => $total,
+			'page'     => $page,
+			'has_more' => $offset + count( $items ) < $total,
+		);
+	}
+
+	private static function render_cards_html( $statuses ) {
+		ob_start();
+		foreach ( $statuses as $id => $status ) {
+			self::render_card( $id, $status, false );
+		}
+		return ob_get_clean();
+	}
+
+	private static function render_card( $id, $status, $hide_mu_initially = false ) {
 		$module  = $status['meta'];
 		$health  = $status['health'];
 		$is_mu   = ! empty( $module['system'] );
@@ -152,7 +224,7 @@ class Modules_Module implements Module_Contract {
 			$health['max_queries']
 		);
 		?>
-		<article class="<?php echo esc_attr( implode( ' ', $classes ) ); ?>" data-afcn-module-card data-afcn-groups="<?php echo esc_attr( $groups ); ?>" data-afcn-search="<?php echo esc_attr( $search ); ?>"<?php echo $is_mu ? ' hidden' : ''; ?>>
+		<article class="<?php echo esc_attr( implode( ' ', $classes ) ); ?>" data-afcn-module-card data-afcn-groups="<?php echo esc_attr( $groups ); ?>" data-afcn-search="<?php echo esc_attr( $search ); ?>"<?php echo $hide_mu_initially && $is_mu ? ' hidden' : ''; ?>>
 			<div class="afcn-module-card-head">
 				<?php
 				$health_dot = '<span class="afcn-module-card-health is-' . esc_attr( sanitize_html_class( $health['status'] ) ) . '" aria-hidden="true"></span>';
