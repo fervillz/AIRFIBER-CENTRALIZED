@@ -132,6 +132,25 @@ class AFC_MikroTik {
 		return self::api_command( $settings, $password, $command );
 	}
 
+	/**
+	 * Return the saved router login for trusted, server-side integrations.
+	 *
+	 * The value is never localized to JavaScript or returned by an AJAX route.
+	 * OLT management can reuse it when the operator explicitly selects the
+	 * "main router login" credential source.
+	 */
+	public static function get_internal_credentials() {
+		$settings = self::get_settings();
+		$password = self::decrypt_password( isset( $settings['password'] ) ? $settings['password'] : '' );
+		if ( empty( $settings['username'] ) || '' === $password ) {
+			return new WP_Error( 'afc_missing_shared_credentials', __( 'The saved main-router login is incomplete.', 'airfiber-centralized' ) );
+		}
+		return array(
+			'username' => (string) $settings['username'],
+			'password' => $password,
+		);
+	}
+
 	private static function api_command( $settings, $password, $command ) {
 		$ssl     = 'api-ssl' === $settings['protocol'];
 		$context = stream_context_create(

@@ -33,6 +33,9 @@
 
 	function opticalHtml( user ) {
 		const optical = user.optical || {};
+		const onuSettings = function ( label ) {
+			return '<button class="btn btn-link btn-sm p-0 ms-2 afc-onu-settings" type="button">' + label + '</button>';
+		};
 		if ( ! user.imported ) {
 			return '<span class="badge bg-secondary-lt">Import first</span>';
 		}
@@ -44,9 +47,9 @@
 				return '<span class="badge bg-azure-lt">' + label + '</span>' +
 					'<div class="small text-secondary">' + escapeHtml( suggestion.olt_name ? suggestion.olt_name + ' · ' : '' ) + 'PON ' + escapeHtml( suggestion.pon ) + ' · ONU ' + escapeHtml( suggestion.onu ) + confidence + '</div>' +
 					( suggestion.description ? '<div class="small text-secondary">' + escapeHtml( suggestion.description ) + '</div>' : '' ) +
-					'<button class="btn btn-link btn-sm p-0 afc-map-onu" type="button">Review mapping</button>';
+					'<button class="btn btn-link btn-sm p-0 afc-map-onu" type="button">Review mapping</button>' + onuSettings( 'Prepare GPON' );
 			}
-			return '<span class="badge bg-secondary-lt">Not mapped</span><div><button class="btn btn-link btn-sm p-0 afc-map-onu" type="button">Map ONU</button></div>';
+			return '<span class="badge bg-secondary-lt">Not mapped</span><div><button class="btn btn-link btn-sm p-0 afc-map-onu" type="button">Map ONU</button>' + onuSettings( 'Prepare GPON' ) + '</div>';
 		}
 
 		const classes = {
@@ -82,12 +85,15 @@
 			optical.message || ''
 		].filter( Boolean ).join( '\n' );
 		const auto = optical.auto_matched ? '<div class="small text-success">Matched automatically by MAC</div>' : '';
+		const settingsButton = String( optical.technology || '' ).toUpperCase() === 'GPON'
+			? onuSettings( 'ONU Settings' )
+			: '';
 
 		return '<div title="' + escapeAttr( title ) + '">' + reading +
 			' <span class="badge ' + ( classes[ status ] || classes.unavailable ) + '">' + escapeHtml( labels[ status ] || labels.unavailable ) + '</span>' +
 			'<div class="small text-secondary">' + escapeHtml( optical.olt_name ? optical.olt_name + ' · ' : '' ) + 'PON ' + escapeHtml( optical.pon ) + ' · ONU ' + escapeHtml( optical.onu ) + '</div>' +
 			auto +
-			'<button class="btn btn-link btn-sm p-0 afc-map-onu" type="button">Edit mapping</button></div>';
+			'<button class="btn btn-link btn-sm p-0 afc-map-onu" type="button">Edit mapping</button>' + settingsButton + '</div>';
 	}
 
 	function renderSummary( summary ) {

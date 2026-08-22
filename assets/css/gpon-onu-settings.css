@@ -1,0 +1,50 @@
+body.afc-gpon-modal-open { overflow: hidden; }
+.afc-gpon-modal { position: fixed; inset: 0; z-index: 100090; display: grid; place-items: center; padding: 24px; opacity: 0; transition: opacity .18s ease; }
+.afc-gpon-modal.is-open { opacity: 1; }
+.afc-gpon-backdrop { position: absolute; inset: 0; background: rgba(15, 25, 40, .48); backdrop-filter: blur(4px); }
+.afc-gpon-dialog { position: relative; width: min(1120px, 96vw); max-height: 92vh; overflow: hidden; border: 1px solid #dce5ef; border-radius: 22px; background: #f7f9fc; box-shadow: 0 30px 90px rgba(24, 39, 65, .22); color: #223047; transform: translateY(10px) scale(.99); transition: transform .18s ease; }
+.afc-gpon-modal.is-open .afc-gpon-dialog { transform: translateY(0) scale(1); }
+.afc-gpon-header { display: flex; align-items: flex-start; justify-content: space-between; padding: 22px 26px 16px; background: #fff; border-bottom: 1px solid #e4eaf1; }
+.afc-gpon-header h2 { margin: 2px 0 3px; font: 600 25px/1.2 ui-serif, Georgia, serif; color: #1f2b3d; }
+.afc-gpon-header p { margin: 0; color: #718096; font-size: 13px; }
+.afc-gpon-eyebrow { color: #2374cc; font-size: 11px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; }
+.afc-gpon-close { width: 36px; height: 36px; border: 0; border-radius: 50%; background: #f0f4f8; color: #6c7b8f; font-size: 24px; line-height: 1; cursor: pointer; }
+.afc-gpon-status { display: flex; gap: 10px; align-items: center; margin: 14px 24px 0; padding: 10px 13px; border: 1px solid #dce5ef; border-radius: 12px; background: #fff; }
+.afc-gpon-status > span { width: 9px; height: 9px; flex: 0 0 auto; border-radius: 50%; background: #8391a4; }
+.afc-gpon-status p { margin: 0; font-size: 13px; color: #506078; }
+.afc-gpon-status.is-success { border-color: #bee5cc; background: #f2fbf5; }.afc-gpon-status.is-success > span { background: #2ca45c; }
+.afc-gpon-status.is-warning { border-color: #ecd9a9; background: #fffaf0; }.afc-gpon-status.is-warning > span { background: #d89a19; }
+.afc-gpon-status.is-error { border-color: #efc2c7; background: #fff5f6; }.afc-gpon-status.is-error > span { background: #d64555; }
+.afc-gpon-status.is-loading > span { background: #2374cc; animation: afc-gpon-pulse 1s ease infinite; }
+@keyframes afc-gpon-pulse { 50% { transform: scale(1.7); opacity: .45; } }
+.afc-gpon-tabs { display: flex; gap: 6px; padding: 14px 24px 0; }
+.afc-gpon-tabs button { border: 1px solid transparent; border-radius: 10px 10px 0 0; background: transparent; padding: 10px 14px; color: #65758a; font-size: 13px; font-weight: 600; cursor: pointer; }
+.afc-gpon-tabs button.is-active { background: #fff; border-color: #dce5ef; border-bottom-color: #fff; color: #1769bd; }
+.afc-gpon-body { height: min(660px, calc(92vh - 185px)); overflow: auto; border-top: 1px solid #dce5ef; background: #fff; padding: 22px 24px 28px; }
+[data-afc-gpon-panel] { display: none; }[data-afc-gpon-panel].is-active { display: block; }
+.afc-gpon-summary { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin-bottom: 18px; }
+.afc-gpon-summary > div { padding: 14px 16px; border: 1px solid #e0e7ef; border-radius: 14px; background: #f8fafc; }
+.afc-gpon-summary span { display: block; margin-bottom: 4px; color: #8290a3; font-size: 11px; text-transform: uppercase; letter-spacing: .05em; }
+.afc-gpon-summary strong { display: block; overflow: hidden; color: #27364b; font-size: 14px; text-overflow: ellipsis; white-space: nowrap; }
+.afc-gpon-data-card { border: 1px solid #dfe7f0; border-radius: 16px; background: #fff; overflow: hidden; }
+.afc-gpon-data-card > h3, .afc-gpon-card-title { margin: 0; padding: 14px 16px; border-bottom: 1px solid #e8edf3; }
+.afc-gpon-data-card h3 { margin: 0; color: #26364a; font-size: 14px; }
+.afc-gpon-card-title { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.afc-gpon-card-title p { margin: 3px 0 0; color: #8190a2; font-size: 12px; }
+.afc-gpon-card-title button { border: 1px solid #bdd5ee; border-radius: 9px; background: #f3f8fd; padding: 7px 12px; color: #1769bd; cursor: pointer; }
+.afc-gpon-key-values { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); padding: 6px 16px 16px; }
+.afc-gpon-key-values > div { display: grid; grid-template-columns: minmax(110px, .8fr) minmax(0, 1.2fr); gap: 12px; padding: 9px 4px; border-bottom: 1px solid #edf1f5; }
+.afc-gpon-key-values span { color: #78879a; font-size: 12px; text-transform: capitalize; }.afc-gpon-key-values strong { overflow-wrap: anywhere; color: #2d3b50; font-size: 12px; }
+.afc-gpon-line-grid { display: grid; gap: 16px; }
+.afc-gpon-table-wrap { max-width: 100%; overflow: auto; }.afc-gpon-table-wrap table { width: 100%; border-collapse: collapse; font-size: 12px; }.afc-gpon-table-wrap th { background: #f7f9fc; color: #66758a; text-align: left; text-transform: capitalize; }.afc-gpon-table-wrap th,.afc-gpon-table-wrap td { padding: 9px 12px; border-bottom: 1px solid #e9eef4; white-space: nowrap; }
+.afc-gpon-provision-layout { display: grid; grid-template-columns: minmax(300px, .75fr) minmax(420px, 1.25fr); gap: 20px; align-items: start; }
+.afc-gpon-provision-layout form { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; padding: 18px; border: 1px solid #dfe7f0; border-radius: 16px; background: #f9fbfd; }
+.afc-gpon-field { display: grid; gap: 6px; }.afc-gpon-field.is-wide { grid-column: 1 / -1; }.afc-gpon-field label { color: #34445a; font-size: 12px; font-weight: 600; }.afc-gpon-field small { color: #7c8999; font-size: 11px; line-height: 1.4; }
+.afc-gpon-field input,.afc-gpon-field select,.afc-gpon-confirm input { width: 100%; min-height: 40px; box-sizing: border-box; border: 1px solid #ced9e5; border-radius: 9px; background: #fff; padding: 8px 11px; color: #26364a; }
+.afc-gpon-primary,.afc-gpon-danger { border: 0; border-radius: 9px; padding: 10px 16px; color: #fff; font-weight: 700; cursor: pointer; }.afc-gpon-primary { grid-column: 1 / -1; background: #1572cf; }.afc-gpon-danger { background: #c83c4d; }.afc-gpon-primary:disabled,.afc-gpon-danger:disabled { opacity: .5; cursor: wait; }
+.afc-gpon-plan { min-height: 250px; border: 1px solid #dfe7f0; border-radius: 16px; background: #fff; overflow: hidden; }
+.afc-gpon-empty { padding: 28px; color: #748397; text-align: center; }.afc-gpon-empty strong { color: #405068; }.afc-gpon-empty p { margin: 7px 0 0; font-size: 12px; line-height: 1.5; }
+.afc-gpon-plan-head { display: flex; justify-content: space-between; gap: 14px; padding: 14px 16px; border-bottom: 1px solid #e7edf3; background: #f8fafc; }.afc-gpon-plan-head span { display: block; color: #78879a; font-size: 10px; text-transform: uppercase; }.afc-gpon-plan-head strong,.afc-gpon-plan-head b { color: #26364a; font-size: 12px; }
+.afc-gpon-plan ol { list-style: none; margin: 0; padding: 8px 16px; }.afc-gpon-plan li { display: grid; grid-template-columns: 24px minmax(0, 1fr) auto; gap: 10px; align-items: start; padding: 10px 0; border-bottom: 1px solid #edf1f5; }.afc-gpon-plan li > span { display: grid; place-items: center; width: 21px; height: 21px; border-radius: 50%; background: #e5f1fd; color: #1769bd; font-weight: 700; }.afc-gpon-plan li.is-reuse > span { background: #e5f6eb; color: #27814a; }.afc-gpon-plan li strong { color: #34445a; font-size: 12px; }.afc-gpon-plan li p { margin: 2px 0 0; color: #78879a; font-size: 11px; }.afc-gpon-plan li em { color: #6e7d91; font-size: 10px; font-style: normal; text-transform: uppercase; }
+.afc-gpon-confirm { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; padding: 14px 16px 16px; background: #fff8f8; }.afc-gpon-confirm label,.afc-gpon-confirm small { grid-column: 1 / -1; color: #6e5960; font-size: 11px; }.afc-gpon-confirm code { color: #a82d3d; font-weight: 700; }
+@media (max-width: 800px) { .afc-gpon-modal { padding: 8px; }.afc-gpon-dialog { width: 100%; max-height: 96vh; border-radius: 16px; }.afc-gpon-body { height: calc(96vh - 190px); padding: 16px; }.afc-gpon-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); }.afc-gpon-key-values { grid-template-columns: 1fr; }.afc-gpon-provision-layout { grid-template-columns: 1fr; }.afc-gpon-tabs { overflow-x: auto; }.afc-gpon-tabs button { white-space: nowrap; } }

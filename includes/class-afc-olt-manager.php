@@ -118,6 +118,9 @@ class AFC_OLT_Manager {
 			'timeout_ms'         => 2500,
 			'retries'            => 1,
 			'technology'         => 'GPON',
+			'management_credential_source' => 'router',
+			'management_username' => '',
+			'management_password' => '',
 		);
 	}
 
@@ -521,6 +524,11 @@ class AFC_OLT_Manager {
 		);
 	}
 
+	/** Internal-only helper for integrations that consume encrypted OLT fields. */
+	public static function decrypt_managed_secret( $stored ) {
+		return self::decrypt_secret( $stored );
+	}
+
 	private static function secret_value( $input, $key, $current ) {
 		$value = isset( $input[ $key ] ) ? (string) wp_unslash( $input[ $key ] ) : '';
 		if ( '' === $value || self::SAVED_SECRET_MASK === $value ) {
@@ -560,6 +568,9 @@ class AFC_OLT_Manager {
 			'timeout_ms'         => min( 10000, max( 500, isset( $input['timeout_ms'] ) ? absint( $input['timeout_ms'] ) : (int) $current['timeout_ms'] ) ),
 			'retries'            => min( 2, isset( $input['retries'] ) ? absint( $input['retries'] ) : (int) $current['retries'] ),
 			'technology'         => $technology,
+			'management_credential_source' => isset( $input['management_credential_source'] ) && 'custom' === $input['management_credential_source'] ? 'custom' : 'router',
+			'management_username' => isset( $input['management_username'] ) ? sanitize_text_field( $input['management_username'] ) : $current['management_username'],
+			'management_password' => self::secret_value( $input, 'management_password', $current ),
 		);
 	}
 
@@ -649,6 +660,10 @@ class AFC_OLT_Manager {
 				'timeout_ms'         => (int) $config['timeout_ms'],
 				'retries'            => (int) $config['retries'],
 				'technology'         => self::normalize_technology( $config['technology'] ),
+				'management_credential_source' => isset( $config['management_credential_source'] ) ? $config['management_credential_source'] : 'router',
+				'management_username' => isset( $config['management_username'] ) ? $config['management_username'] : '',
+				'management_password' => ! empty( $config['management_password'] ) ? self::SAVED_SECRET_MASK : '',
+				'has_management_password' => ! empty( $config['management_password'] ),
 			),
 			'device'      => $device,
 			'primary'     => (bool) get_post_meta( $post_id, self::PRIMARY_META, true ),
