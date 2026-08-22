@@ -1,6 +1,6 @@
 # AIRFIBER-CENTRALIZED — Continue Here
 
-Updated: 2026-08-22
+Updated: 2026-08-23
 
 ## Current goal
 
@@ -35,16 +35,39 @@ BETA URL: `/airfiber-beta/`.
 - bounded debug diagnostics and bounded administrative Audit Log
 - Airfiber users backed by WordPress users (`airfiber_admin`, `airfiber_operator`)
 - user create/update/delete UI
-- Dashboard, Users, Modules and Settings Core modules
+- Dashboard, Users, Modules and Settings must-use Core components
 - Modules health screen and Settings diagnostics/performance screen
+- WordPress-like Modules browser with All, Active, Inactive, Update Available, Auto-updates Disabled, Trash and MU views
+- reusable Core SVG icons and tooltip API
+- shared card/button hover language: -10px lift and `0 10px 40px 0 rgba(0,0,0,.1)` shadow
+
+## Module folders
+
+Must-use Core components live in:
+
+`next/modules/mu/<id>/`
+
+They are always active and cannot be deactivated or trashed. Only settings may be exposed when declared.
+
+Normal installable add-ons live in:
+
+`next/modules/<id>/`
+
+Regular modules can be activated/deactivated, moved to Trash, restored and can declare a settings target.
+
+The registry determines MU status from the physical folder, not from a module-controlled manifest flag.
+
+## Updates
+
+Update UI is provider-ready through the `afcn_module_update_catalog` filter. No package/update service is connected yet, so Update Available and Auto-updates Disabled may show zero until a provider is built.
 
 ## Core safety rules
 
-An unopened module costs almost nothing beyond cached manifest metadata. External device latency cannot quarantine a module. Non-system modules can be quarantined after repeated code/performance failures. Only built-in Core IDs may declare themselves system modules.
+An unopened module costs almost nothing beyond cached manifest metadata. External device latency cannot quarantine a module. Non-MU modules can be quarantined after repeated code/performance failures. MU/Core components are protected from disable/trash actions.
 
-## Intentionally deferred from Core 0.1
+## Intentionally deferred from Core 0.2
 
-Runtime ZIP install/delete is not exposed yet. Modules are deployed under `next/modules/` and then the registry is refreshed. This avoids filesystem/package-execution risk until the SDK is proven with real feature modules.
+Runtime ZIP install and permanent filesystem delete are not exposed yet. Modules are deployed under `next/modules/` and then the registry is refreshed. Trash is currently safe soft-state. This avoids filesystem/package-execution risk until the SDK is proven with real feature modules.
 
 ## Next work after Core
 
