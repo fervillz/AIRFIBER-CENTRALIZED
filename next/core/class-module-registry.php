@@ -6,7 +6,7 @@ defined( 'ABSPATH' ) || exit;
 
 class Module_Registry {
 	const OPTION_CACHE = 'afcn_module_registry_v1';
-	const CACHE_SCHEMA = 2;
+	const CACHE_SCHEMA = 3;
 
 	private static $modules = null;
 
@@ -53,6 +53,9 @@ class Module_Registry {
 	public static function invalidate() {
 		self::$modules = null;
 		delete_option( self::OPTION_CACHE );
+		if ( class_exists( __NAMESPACE__ . '\\Connector_Registry', false ) ) {
+			Connector_Registry::invalidate();
+		}
 	}
 
 	private static function discover_from_disk() {
@@ -154,10 +157,90 @@ class Module_Registry {
 				'css' => isset( $assets['css'] ) && is_array( $assets['css'] ) ? array_values( array_map( 'sanitize_text_field', $assets['css'] ) ) : array(),
 				'js'  => isset( $assets['js'] ) && is_array( $assets['js'] ) ? array_values( array_map( 'sanitize_text_field', $assets['js'] ) ) : array(),
 			),
+			'connectors'      => self::normalize_connectors( isset( $data['connectors'] ) ? $data['connectors'] : array(), isset( $data['icon'] ) ? $data['icon'] : 'plug' ),
 			'requires'        => isset( $data['requires'] ) && is_array( $data['requires'] ) ? $data['requires'] : array(),
 			'events'          => isset( $data['events'] ) && is_array( $data['events'] ) ? array_values( array_map( 'sanitize_key', $data['events'] ) ) : array(),
 			'path'            => dirname( $real ? $real : $file ),
 			'url_path'        => $is_mu ? 'modules/mu/' . $folder : 'modules/' . $folder,
 		);
+	}
+
+	private static function normalize_connectors( $connectors, $fallback_icon ) {
+		if ( ! is_array( $connectors ) ) {
+			return array();
+		}
+
+		$output = array();
+		foreach ( array_slice( $connectors, 0, 20 ) as $connector ) {
+			if ( ! is_array( $connector ) ) {
+				continue;
+			}
+			$id   = isset( $connector['id'] ) ? sanitize_key( $connector['id'] ) : '';
+			$name = isset( $connector['name'] ) ? sanitize_text_field( $connector['name'] ) : '';
+			if ( ! $id || ! $name ) {
+				continue;
+			}
+
+			$output[] = array(
+				'id'          => $id,
+				'name'        => $name,
+				'description' => isset( $connector['description'] ) ? sanitize_text_field( $connector['description'] ) : '',
+				'group'       => isset( $connector['group'] ) ? sanitize_key( $connector['group'] ) : 'other',
+				'icon'        => isset( $connector['icon'] ) ? sanitize_key( $connector['icon'] ) : sanitize_key( $fallback_icon ),
+				'test_action' => isset( $connector['test_action'] ) ? sanitize_key( $connector['test_action'] ) : '',
+				'fields'      => self::normalize_connector_fields( isset( $connector['fields'] ) ? $connector['fields'] : array() ),
+			);
+		}
+		return $output;
+	}
+
+	private static function normalize_connector_fields( $fields ) {
+		if ( ! is_array( $fields ) ) {
+			return array();
+		}
+
+		$allowed_types    = array( 'text', 'password', 'number', 'email', 'url', 'select', 'checkbox' );
+		$allowed_displays = array( '', 'endpoint', 'meta' );
+		$output           = array();
+
+		foreach ( array_slice( $fields, 0, 30 ) as $field ) {
+			if ( ! is_array( $field ) ) {
+				continue;
+			}
+			$key   = isset( $field['key'] ) ? sanitize_key( $field['key'] ) : '';
+			$label = isset( $field['label'] ) ? sanitize_text_field( $field['label'] ) : '';
+			$type  = isset( $field['type'] ) ? sanitize_key( $field['type'] ) : 'text';
+			if ( ! $key || ! $label ) {
+				continue;
+			}
+			if ( ! in_array( $type, $allowed_types, true ) ) {
+				$type = 'text';
+			}
+
+			$display = isset( $field['display'] ) ? sanitize_key( $field['display'] ) : '';
+			if ( ! in_array( $display, $allowed_displays, true ) ) {
+				$display = '';
+			}
+
+			$options = array();
+			if ( 'select' === $type && isset( $field['options'] ) && is_array( $field['options'] ) ) {
+				foreach ( array_slice( $field['options'], 0, 50, true ) as $value => $caption ) {
+					$options[ sanitize_text_field( (string) $value ) ] = sanitize_text_field( (string) $caption );
+				}
+			}
+
+			$output[] = array(
+				'key'         => $key,
+				'label'       => $label,
+				'type'        => $type,
+				'required'    => ! empty( $field['required'] ),
+				'secret'      => ! empty( $field['secret'] ) || 'password' === $type,
+				'placeholder' => isset( $field['placeholder'] ) ? sanitize_text_field( $field['placeholder'] ) : '',
+				'display'     => $display,
+				'options'     => $options,
+			);
+		}
+
+		return $output;
 	}
 }
