@@ -5,6 +5,7 @@ Airfiber Next/BETA is an internal application platform inside Airfiber Centraliz
 ## Start here
 
 - [Module Basics](MODULE-BASICS.md) — build your first Airfiber module with the minimum required files.
+- [Module Loading](MODULE-LOADING.md) — how Airfiber keeps active modules dormant until a route, slot, query, action, event or task needs them.
 - [Module SDK](MODULE-SDK.md) — actions, queries, lazy chunks, settings, assets, connectors and shared Core services.
 - [Architecture](ARCHITECTURE.md) — Core/module boundaries and runtime design.
 - [UI System](UI-SYSTEM.md) — shared visual components, cards, dialogs, tooltips and interaction rules.
