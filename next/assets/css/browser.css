@@ -134,9 +134,10 @@
 	font-size:12px;
 }
 
-/* Native hidden must always win over card/grid display rules. */
+/* Native hidden must always win over card/grid/button display rules. */
 .afcn-module-card[hidden],
 .afcn-module-empty[hidden],
+.afcn-module-load-more[hidden],
 .afcn-connection-card[hidden],
 .afcn-connection-group[hidden],
 .afcn-connections-empty[hidden],
