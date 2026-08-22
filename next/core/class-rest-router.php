@@ -31,8 +31,12 @@ class Rest_Router {
 	public static function client_metric( $request ) {
 		$payload  = $request->get_json_params();
 		$module   = isset( $payload['module'] ) ? sanitize_key( $payload['module'] ) : 'core';
+		$metric   = isset( $payload['metric'] ) ? sanitize_key( $payload['metric'] ) : 'client';
 		$duration = isset( $payload['duration_ms'] ) ? (float) $payload['duration_ms'] : 0;
-		if ( $duration > 0 && $duration < 60000 ) { Performance_Monitor::record_client( $module, $duration ); }
+
+		if ( $duration > 0 && $duration < 60000 ) {
+			Performance_Monitor::record_browser_metric( $module, $metric, $duration );
+		}
 		return rest_ensure_response( array( 'accepted' => true ) );
 	}
 
