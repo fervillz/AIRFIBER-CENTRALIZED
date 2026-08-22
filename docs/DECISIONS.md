@@ -71,3 +71,11 @@ Reason: remote latency should not define Airfiber UI latency.
 Decision: existing Classic OLT, MikroTik and Google Sheets configuration can appear as read-only CLASSIC cards in BETA. Credentials are not copied until the owning feature is intentionally migrated.
 
 Reason: users keep infrastructure visibility in BETA without creating two writable sources of truth.
+
+## 2026-08-23 — `module.json` is the Airfiber plugin header
+
+Decision: keep `module.json` as the lightweight registration marker, but infer the module ID and main class from the folder convention. A convention-following module therefore needs only a `name` in its manifest plus its main class file.
+
+Reason: this gives Airfiber the drop-in simplicity of WordPress plugin discovery without scanning or executing module PHP. Metadata remains cheap to compile, and multi-word folders map predictably to namespaces/classes.
+
+Example: `speed-test/` maps to `Airfiber\Next\Modules\SpeedTest\Speed_Test_Module` in `includes/class-speed-test-module.php`.
