@@ -8,7 +8,7 @@ Classic continues to use the existing files. Next uses the `Airfiber\Next` names
 
 ## Core runtime
 
-`next/bootstrap.php` loads only `next/core/class-bootstrap.php`. Bootstrap registers the autoloader, protected BETA page, REST router and background queue hook. It does not load feature modules.
+`next/bootstrap.php` loads only the Airfiber Next bootstrap/autoload foundation. Bootstrap registers the protected BETA page, REST router and background queue hook. It does not load feature modules.
 
 Module manifests compile into a persistent registry option, so normal requests do not reopen dozens of JSON files. The Modules page can rebuild the registry after a deployment.
 
@@ -30,6 +30,53 @@ Modules implement `Module_Contract` and may optionally expose lazy query/chunk/b
 
 Cross-module behavior can use `Event_Bus` or normal `afcn_*` WordPress hooks. Module state changes publish both.
 
+## Modules vs MU components
+
+Must-use Core management components live in:
+
+```text
+next/modules/mu/<id>/
+```
+
+Normal installable feature add-ons live in:
+
+```text
+next/modules/<id>/
+```
+
+MU status is determined by physical location. Normal modules cannot promote themselves to Core through manifest metadata.
+
+## Connections architecture
+
+Connections are intentionally separate from Modules.
+
+- **Modules** answers: what Airfiber software is installed/active?
+- **Connections** answers: what real devices/services/accounts/endpoints are configured?
+
+Generic connector infrastructure belongs to Core:
+
+```text
+Connector_Registry
+Connection_Store
+Secret_Store
+Connection_Health
+HTTP_Client
+Cache
+Task_Queue
+```
+
+Vendor/business knowledge belongs to feature modules. Core must not contain VSOL commands, RouterOS behavior, ONU provisioning, Google API behavior or similar provider-specific logic.
+
+Feature modules advertise lightweight connector types in `module.json`. Because that metadata is compiled into the module registry, the Connections Hub can discover provider types without booting the provider PHP.
+
+The normal `connections` add-on supplies the central grouped card UI. It does not own provider logic and is not required merely to store/use a connection; `Connection_Store` and related services are Core APIs.
+
+Connection credentials are stored separately through `Secret_Store`. Connection configuration and cached health are separate records so status refreshes never rewrite credentials/settings.
+
+While Classic remains active, the BETA Connections Hub exposes existing Classic OLT, MikroTik and Google Sheets entries as read-only CLASSIC cards. No credentials are copied and management links back to Classic until the relevant feature has a native BETA module.
+
+See `docs/CONNECTORS.md` for the provider contract and security rules.
+
 ## Background work
 
 `Task_Queue` stores a small bounded queue and wakes through WP-Cron. Only the module attached to a due task is loaded. Jobs retry with bounded exponential backoff. Payloads are size-limited and should contain identifiers, never large datasets/secrets.
@@ -40,9 +87,13 @@ The queue contract is intentionally runner-agnostic so a dedicated worker can re
 
 Use `Cache` for cache-first/stale-while-refresh behavior, `Module_Options` for per-module settings, and `HTTP_Client` so remote latency is measured separately from PHP performance.
 
+Connection pages should render from stored/cached state first. Opening a page must not fan out to every OLT, MikroTik or cloud API.
+
 ## Users
 
 Airfiber uses WordPress authentication underneath with `airfiber_admin` and `airfiber_operator` roles. WordPress administrators automatically receive Airfiber capabilities.
+
+Airfiber administrators can manage Connections through `afcn_manage_connections`; operators remain view/access oriented unless a later role policy grants more.
 
 ## Fault isolation
 
@@ -52,4 +103,6 @@ External device/API latency is diagnostic and never quarantines a module by itse
 
 ## Security boundaries
 
-Only the built-in Dashboard, Users, Modules and Settings IDs can be marked as Core system modules. Module class namespaces and lazy asset paths are validated before loading.
+Only physical MU modules are Core/must-use components. Module class namespaces and lazy asset paths are validated before loading.
+
+Secrets do not belong in module manifests, connection config, browser bootstrap data, logs or background task payloads. `Secret_Store` uses site-derived encryption and has no plaintext fallback.
