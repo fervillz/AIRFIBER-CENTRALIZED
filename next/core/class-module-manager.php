@@ -145,7 +145,9 @@ class Module_Manager {
 		$chunk  = sanitize_key( $chunk );
 		$result = self::run( $id, 'render', $loaded, array( $loaded['class'], 'render_chunk' ), $chunk, is_array( $payload ) ? $payload : array() );
 		if ( is_wp_error( $result ) ) { return $result; }
-		return array( 'id' => $id, 'chunk' => $chunk, 'html' => (string) $result );
+		$assets = Assets::module_manifest( $loaded['meta'] );
+		Performance_Monitor::record_assets( $id, $assets );
+		return array( 'id' => $id, 'chunk' => $chunk, 'html' => (string) $result, 'assets' => $assets );
 	}
 
 	public static function handle_query( $id, $query, $payload = array() ) {
