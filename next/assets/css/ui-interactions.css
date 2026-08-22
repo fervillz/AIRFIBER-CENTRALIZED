@@ -1,0 +1,146 @@
+:root{
+	--afcn-hover-shadow:0 10px 40px 0 rgba(0,0,0,.1);
+	--afcn-hover-lift:-10px;
+}
+
+.afcn-card,
+.afcn-button{
+	transition:
+		transform var(--afcn-transition),
+		box-shadow var(--afcn-transition),
+		background-color var(--afcn-transition),
+		border-color var(--afcn-transition),
+		color var(--afcn-transition);
+}
+
+.afcn-card:hover,
+.afcn-card:focus-within{
+	transform:translateY(var(--afcn-hover-lift));
+	background:var(--afcn-surface);
+	box-shadow:var(--afcn-hover-shadow);
+}
+
+.afcn-button:hover,
+.afcn-button:focus-visible{
+	transform:translateY(var(--afcn-hover-lift));
+	box-shadow:var(--afcn-hover-shadow);
+}
+
+/* Shared tooltip. Default is a black tooltip with a gentle fade-up. */
+.afcn-tooltip{
+	position:relative;
+	display:inline-flex;
+	vertical-align:middle;
+}
+
+.afcn-tooltip-trigger{
+	display:inline-flex;
+}
+
+.afcn-tooltip-panel{
+	position:absolute;
+	z-index:1200;
+	left:50%;
+	display:flex;
+	min-width:max-content;
+	max-width:260px;
+	align-items:center;
+	gap:8px;
+	padding:7px 9px;
+	border:1px solid rgba(255,255,255,.12);
+	border-radius:7px;
+	background:#111827;
+	box-shadow:0 10px 30px rgba(0,0,0,.18);
+	color:#fff;
+	font-size:11px;
+	font-weight:500;
+	line-height:1.35;
+	pointer-events:none;
+	visibility:hidden;
+	opacity:0;
+	transform:translateX(-50%);
+}
+
+.afcn-tooltip-up .afcn-tooltip-panel{
+	bottom:calc(100% + 9px);
+}
+
+.afcn-tooltip-down .afcn-tooltip-panel{
+	top:calc(100% + 9px);
+}
+
+.afcn-tooltip:hover .afcn-tooltip-panel,
+.afcn-tooltip:focus-within .afcn-tooltip-panel{
+	visibility:visible;
+	pointer-events:auto;
+}
+
+.afcn-tooltip-up:hover .afcn-tooltip-panel,
+.afcn-tooltip-up:focus-within .afcn-tooltip-panel{
+	animation:afcn-tooltip-fade-up .16s ease both;
+}
+
+.afcn-tooltip-down:hover .afcn-tooltip-panel,
+.afcn-tooltip-down:focus-within .afcn-tooltip-panel{
+	animation:afcn-tooltip-fade-down .16s ease both;
+}
+
+.afcn-tooltip-light .afcn-tooltip-panel{
+	border-color:var(--afcn-border);
+	background:#fff;
+	color:var(--afcn-text);
+}
+
+.afcn-tooltip-info .afcn-tooltip-panel{background:#174f83}
+.afcn-tooltip-success .afcn-tooltip-panel{background:#176b2b}
+.afcn-tooltip-warning .afcn-tooltip-panel{background:#725100}
+.afcn-tooltip-danger .afcn-tooltip-panel{background:#8f1f1f}
+
+.afcn-tooltip-action{
+	padding:0;
+	border:0;
+	background:transparent;
+	color:inherit;
+	font:inherit;
+	font-weight:700;
+	text-decoration:underline;
+	text-underline-offset:2px;
+	cursor:pointer;
+	white-space:nowrap;
+}
+
+.afcn-icon{
+	display:block;
+	width:18px;
+	height:18px;
+}
+
+@keyframes afcn-tooltip-fade-up{
+	from{opacity:0;transform:translate(-50%,6px)}
+	to{opacity:1;transform:translate(-50%,0)}
+}
+
+@keyframes afcn-tooltip-fade-down{
+	from{opacity:0;transform:translate(-50%,-6px)}
+	to{opacity:1;transform:translate(-50%,0)}
+}
+
+@media (prefers-reduced-motion:reduce){
+	.afcn-card,
+	.afcn-button{
+		transition:none;
+	}
+
+	.afcn-card:hover,
+	.afcn-card:focus-within,
+	.afcn-button:hover,
+	.afcn-button:focus-visible{
+		transform:none;
+	}
+
+	.afcn-tooltip:hover .afcn-tooltip-panel,
+	.afcn-tooltip:focus-within .afcn-tooltip-panel{
+		animation:none;
+		opacity:1;
+	}
+}
