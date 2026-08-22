@@ -74,12 +74,12 @@ class Modules_Module implements Module_Contract {
 
 	private static function decorate_statuses( $statuses ) {
 		foreach ( $statuses as $id => &$status ) {
-			$module                         = $status['meta'];
-			$status['trashed']              = empty( $module['system'] ) && Module_Trash::is_trashed( $id );
-			$status['supports_updates']     = Module_Updates::supports_updates( $module );
-			$status['update_available']     = empty( $module['system'] ) && Module_Updates::has_update( $module );
-			$status['auto_update_enabled']  = $status['supports_updates'] ? Module_Updates::auto_update_enabled( $id ) : false;
-			$status['groups']               = self::groups_for( $status );
+			$module                        = $status['meta'];
+			$status['trashed']             = empty( $module['system'] ) && Module_Trash::is_trashed( $id );
+			$status['supports_updates']    = Module_Updates::supports_updates( $module );
+			$status['update_available']    = empty( $module['system'] ) && Module_Updates::has_update( $module );
+			$status['auto_update_enabled'] = $status['supports_updates'] ? Module_Updates::auto_update_enabled( $id ) : false;
+			$status['groups']              = self::groups_for( $status );
 		}
 		unset( $status );
 		return $statuses;
@@ -126,14 +126,14 @@ class Modules_Module implements Module_Contract {
 	}
 
 	private static function render_card( $id, $status ) {
-		$module   = $status['meta'];
-		$health   = $status['health'];
-		$is_mu    = ! empty( $module['system'] );
-		$trashed  = ! empty( $status['trashed'] );
-		$enabled  = ! empty( $status['enabled'] );
-		$groups   = implode( ' ', $status['groups'] );
-		$search   = strtolower( $module['name'] . ' ' . $module['description'] . ' ' . $id );
-		$classes  = array( 'afcn-module-card' );
+		$module  = $status['meta'];
+		$health  = $status['health'];
+		$is_mu   = ! empty( $module['system'] );
+		$trashed = ! empty( $status['trashed'] );
+		$enabled = ! empty( $status['enabled'] );
+		$groups  = implode( ' ', $status['groups'] );
+		$search  = strtolower( $module['name'] . ' ' . $module['description'] . ' ' . $id );
+		$classes = array( 'afcn-module-card' );
 
 		if ( $is_mu ) {
 			$classes[] = 'is-mu';
@@ -164,8 +164,17 @@ class Modules_Module implements Module_Contract {
 				</div>
 			</div>
 
-			<h3><?php echo esc_html( $module['name'] ); ?></h3>
-			<p class="afcn-module-card-description"><?php echo esc_html( $module['description'] ); ?></p>
+			<h3 class="afcn-module-card-title">
+				<?php
+				$title = '<span class="afcn-module-card-title-text">' . esc_html( $module['name'] ) . '</span>';
+				if ( ! empty( $module['description'] ) ) {
+					echo Tooltip::render( $title, $module['description'], array( 'direction' => 'down' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+				} else {
+					echo $title; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+				}
+				?>
+			</h3>
+
 			<div class="afcn-module-card-meta">
 				<span>v<?php echo esc_html( $module['version'] ); ?></span>
 				<span><?php echo $is_mu ? esc_html__( 'Core', 'airfiber-centralized' ) : ( $trashed ? esc_html__( 'Trash', 'airfiber-centralized' ) : ( $enabled ? esc_html__( 'Active', 'airfiber-centralized' ) : esc_html__( 'Inactive', 'airfiber-centralized' ) ) ); ?></span>
@@ -201,9 +210,9 @@ class Modules_Module implements Module_Contract {
 	}
 
 	private static function action_form( $module_id, $action, $icon, $label, $fields = array(), $class = '' ) {
-		$button  = '<button type="submit" class="afcn-module-action ' . esc_attr( $class ) . '" aria-label="' . esc_attr( $label ) . '">' . Icon::svg( $icon ) . '</button>';
-		$html    = '<form data-afcn-action="' . esc_attr( $action ) . '" data-afcn-module="modules">';
-		$html   .= '<input type="hidden" name="module_id" value="' . esc_attr( $module_id ) . '">';
+		$button = '<button type="submit" class="afcn-module-action ' . esc_attr( $class ) . '" aria-label="' . esc_attr( $label ) . '">' . Icon::svg( $icon ) . '</button>';
+		$html   = '<form data-afcn-action="' . esc_attr( $action ) . '" data-afcn-module="modules">';
+		$html  .= '<input type="hidden" name="module_id" value="' . esc_attr( $module_id ) . '">';
 		foreach ( $fields as $name => $value ) {
 			$html .= '<input type="hidden" name="' . esc_attr( $name ) . '" value="' . esc_attr( $value ) . '">';
 		}
