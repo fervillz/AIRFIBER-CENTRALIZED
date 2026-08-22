@@ -4,7 +4,7 @@ namespace Airfiber\Next\Modules\Dashboard;
 
 use Airfiber\Next\Module_Contract;
 use Airfiber\Next\Module_Manager;
-use Airfiber\Next\Module_Registry;
+use Airfiber\Next\Module_Slots;
 use Airfiber\Next\Performance_Monitor;
 use Airfiber\Next\UI;
 use Airfiber\Next\User_Manager;
@@ -66,6 +66,7 @@ class Dashboard_Module implements Module_Contract {
 				</div>
 			</div>
 		</div>
+		<?php echo Module_Slots::render( 'dashboard.summary', array( 'grid' => true ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
 		<?php
 		return ob_get_clean();
 	}
