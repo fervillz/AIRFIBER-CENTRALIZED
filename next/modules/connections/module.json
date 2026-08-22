@@ -6,7 +6,7 @@
   "class": "Airfiber\\Next\\Modules\\Connections\\Connections_Module",
   "position": 20,
   "icon": "connections",
-  "capability": "afcn_access",
+  "capability": "afcn_manage_connections",
   "default_enabled": true,
   "settings": "connections",
   "updates": false,
