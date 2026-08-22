@@ -37,7 +37,7 @@ class Bootstrap {
 		$short    = array_pop( $parts );
 		$file     = 'class-' . strtolower( str_replace( '_', '-', $short ) ) . '.php';
 		if ( isset( $parts[0] ) && 'Modules' === $parts[0] && isset( $parts[1] ) ) {
-			$module = sanitize_key( strtolower( $parts[1] ) );
+			$module = Module_Naming::folder_from_namespace( $parts[1] );
 			$path   = AFCN_PATH . 'modules/' . $module . '/includes/' . $file;
 		} else {
 			$path = AFCN_PATH . 'core/' . $file;
