@@ -38,7 +38,7 @@ class Module_Manager {
 		if ( ! $module ) { return new \WP_Error( 'afcn_module_missing', __( 'Module not found.', 'airfiber-centralized' ), array( 'status' => 404 ) ); }
 		if ( ! empty( $module['system'] ) ) { return new \WP_Error( 'afcn_system_module', __( 'Core MU modules cannot be disabled.', 'airfiber-centralized' ), array( 'status' => 400 ) ); }
 		if ( $enabled && Module_Trash::is_trashed( $id ) ) { return new \WP_Error( 'afcn_module_trashed', __( 'Restore this module from Trash before activating it.', 'airfiber-centralized' ), array( 'status' => 409 ) ); }
-		if ( ! current_user_can( 'manage_options' ) && ! current_user_can( Capabilities::MANAGE_MODULES ) ) { return new \WP_Error( 'afcn_forbidden', __( 'You cannot manage modules.', 'airfiber-centralized' ), array( 'status' => 403 ) ); }
+		if ( ! Capabilities::is_super_admin_user() && ! current_user_can( 'manage_options' ) && ! current_user_can( Capabilities::MANAGE_MODULES ) ) { return new \WP_Error( 'afcn_forbidden', __( 'You cannot manage modules.', 'airfiber-centralized' ), array( 'status' => 403 ) ); }
 
 		$current = self::is_enabled( $id, $module );
 		if ( $current === $enabled ) { return array( 'module' => $id, 'enabled' => $enabled ); }
@@ -94,8 +94,20 @@ class Module_Manager {
 	}
 
 	public static function user_can( $module ) {
+		if ( ! is_array( $module ) ) {
+			return false;
+		}
+		if ( Capabilities::is_super_admin_user() ) {
+			return true;
+		}
+
 		$capability = isset( $module['capability'] ) ? $module['capability'] : Capabilities::ACCESS;
-		return current_user_can( 'manage_options' ) || current_user_can( $capability );
+		$allowed    = current_user_can( 'manage_options' ) || current_user_can( $capability );
+		if ( ! $allowed ) {
+			return false;
+		}
+
+		return User_Access::can_view_module( get_current_user_id(), $module );
 	}
 
 	public static function load( $id, $check_user = true ) {
