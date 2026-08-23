@@ -6,7 +6,7 @@ defined( 'ABSPATH' ) || exit;
 
 class Module_Registry {
 	const OPTION_CACHE = 'afcn_module_registry_v1';
-	const CACHE_SCHEMA = 6;
+	const CACHE_SCHEMA = 7;
 
 	private static $modules = null;
 
@@ -137,9 +137,13 @@ class Module_Registry {
 			return new \WP_Error( 'afcn_manifest_class', 'Module class must live inside its Airfiber Next module namespace.' );
 		}
 
-		$assets = isset( $data['assets'] ) && is_array( $data['assets'] ) ? $data['assets'] : array();
-		$real   = realpath( $file );
-		$is_mu  = 'mu' === $source;
+		$assets       = isset( $data['assets'] ) && is_array( $data['assets'] ) ? $data['assets'] : array();
+		$real         = realpath( $file );
+		$is_mu        = 'mu' === $source;
+		$presentation = isset( $data['presentation'] ) ? sanitize_key( $data['presentation'] ) : 'page';
+		if ( ! in_array( $presentation, array( 'page', 'drawer' ), true ) ) {
+			$presentation = 'page';
+		}
 
 		return array(
 			'id'              => $id,
@@ -150,6 +154,8 @@ class Module_Registry {
 			'position'        => isset( $data['position'] ) ? (int) $data['position'] : 100,
 			'icon'            => isset( $data['icon'] ) ? sanitize_key( $data['icon'] ) : 'box',
 			'capability'      => isset( $data['capability'] ) ? sanitize_key( $data['capability'] ) : Capabilities::ACCESS,
+			'parent'          => isset( $data['parent'] ) ? sanitize_key( $data['parent'] ) : '',
+			'presentation'    => $presentation,
 			'system'          => $is_mu,
 			'source'          => $is_mu ? 'mu' : 'module',
 			'default_enabled' => ! isset( $data['default_enabled'] ) || (bool) $data['default_enabled'],
