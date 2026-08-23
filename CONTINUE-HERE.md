@@ -8,7 +8,7 @@ Build Airfiber Next/BETA as an isolated, very fast application platform inside t
 
 BETA URL: `/airfiber-beta/`.
 
-Airfiber Next Core version: **0.4.1**.
+Airfiber Next Core version: **0.4.2**.
 
 ## Boundary
 
@@ -27,7 +27,7 @@ Classic stays in `includes/`, `templates/`, and `assets/`. Next/BETA lives in `n
 - cache helpers, event bus/hooks, task queue, HTTP client, audit/debug logging
 - WordPress-backed Airfiber users/roles/capabilities
 - performance budgets, bounded samples, p50/p95 and circuit-breaker isolation
-- Core MU components: Dashboard, Users, Modules, Settings
+- Core/MU components: Dashboard, Users, Modules, Settings, Tools
 - normal Connections add-on with Classic read-only connector bridge
 - generic nested navigation (`parent`) and utility presentation (`presentation: drawer`)
 - Super-Admin-only Tools developer console and performance FIX workflow
@@ -65,9 +65,11 @@ The first-run setup disappears after an owner exists and the owner claim uses an
 
 See `docs/USER-ACCESS.md` and `docs/DECISIONS.md`.
 
-## Tools developer console — Core 0.4.0
+## Tools developer console — Core 0.4.2
 
-`next/modules/tools/` is a **normal lazy module**, not MU/Core. It declares:
+`next/modules/mu/tools/` is a **must-use lazy module**. It is physically MU because developer diagnostics are part of the Airfiber control plane and must not be activatable, deactivatable, trashed or deleted like customer feature modules.
+
+It declares:
 
 ```json
 {
@@ -77,7 +79,7 @@ See `docs/USER-ACCESS.md` and `docs/DECISIONS.md`.
 }
 ```
 
-Core only owns the generic navigation hierarchy and fixed right-side utility drawer. The Tools PHP/CSS/JS remains module-owned and lazy.
+Core only owns the generic navigation hierarchy and fixed right-side utility drawer. The Tools PHP/CSS/JS remains module-owned and lazy despite MU status.
 
 For the explicit Super Admin:
 
@@ -86,8 +88,9 @@ For the explicit Super Admin:
 - Settings → Recent performance warnings shows **FIX** for module warnings.
 - Clicking FIX automatically opens Tools and runs an AJAX diagnostic session in the console.
 - The session inspects health/budgets/assets, warms the compiled registry, runs a controlled module render, retests the module REST request, then prints recommendations.
+- Modules → MU includes Tools with the other protected components.
 
-Normal customer/Admin sessions do not receive the Tools submenu, Tools inventory entry, FIX buttons, utility drawer runtime, or Tools assets.
+Normal customer/Admin sessions do not receive the Tools submenu, MU inventory, FIX buttons, utility drawer runtime, or Tools assets.
 
 Automatic FIX is intentionally conservative: it does not rewrite live PHP/JS/CSS, database schema, customer data, SSH settings or firewall configuration. Structural changes are recommendations for the normal Git/development workflow.
 
@@ -112,7 +115,7 @@ GitHub Markdown is the documentation source of truth. Start at `docs/README.md` 
 
 `module.json` is the Airfiber equivalent of a WordPress plugin header. A convention-following module can use only a `name`; Core infers folder ID, namespace, class and class filename without executing module PHP.
 
-Core 0.4.0 also recognizes generic optional navigation/presentation metadata:
+Core recognizes generic optional navigation/presentation metadata:
 
 ```json
 {
@@ -129,6 +132,8 @@ Default presentation remains `page`.
 
 Feature module PHP/assets/data are loaded only when a direct page, query, action, lazy chunk, declared event, background task or shared-page slot explicitly needs them.
 
+MU also does not mean eagerly loaded. MU modules are lifecycle-protected, but their PHP/assets can still remain lazy when the module contract allows it.
+
 `Module_Slots` resolves shared-page contributors from cached manifest metadata. Dashboard exposes `dashboard.summary`; the browser requests each contribution only as it approaches the viewport. Lazy chunk assets are deduplicated and loaded only when that chunk is requested.
 
 See `docs/MODULE-LOADING.md`.
@@ -137,7 +142,7 @@ See `docs/MODULE-LOADING.md`.
 
 Normal add-ons live in `next/modules/<id>/`. MU components live in `next/modules/mu/<id>/`.
 
-Normal Admins see only normal add-on inventory they are authorized to know about. Super Admin additionally sees the MU inventory and developer-authority modules such as Tools. The browser remains hybrid: local filtering up to 60 modules; above that it switches to REST/AJAX pages of 30.
+Normal Admins see only normal add-on inventory they are authorized to know about. Super Admin additionally sees the MU inventory, including Tools. MU components have no activate/deactivate/delete lifecycle actions. The browser remains hybrid: local filtering up to 60 modules; above that it switches to REST/AJAX pages of 30.
 
 ## Performance telemetry
 
@@ -175,7 +180,7 @@ Nested business-module/sub-feature permission checkboxes remain deferred until a
 
 Do NOT bulk-migrate Classic.
 
-First verify Core 0.4.1 owner setup by opening Users as the current WordPress Administrator and promoting that account. After reload it should show **Super Admin**, Modules should expose MU, Settings should expose Tools, and performance warnings should expose FIX.
+Verify Core 0.4.2 by promoting the current WordPress Administrator through Users if no owner exists. After reload it should show **Super Admin**, Modules should expose **MU (5)** including Tools, Settings should expose Tools, and performance warnings should expose FIX.
 
 After that verification, build the first real provider module: read-only **OLT**. Use the convention-based module skeleton, advertise OLT connector types, contribute a small cache-first `dashboard.summary` slot, then build cached overview/list and lazy per-OLT/PON/ONU chunks. Provisioning writes come only after the read-only path proves the SDK.
 
