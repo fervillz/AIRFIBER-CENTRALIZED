@@ -14,6 +14,7 @@ class Assets {
 		$browser        = AFCN_PATH . 'assets/css/browser.css';
 		$js             = AFCN_PATH . 'assets/js/app.js';
 		$browser_js     = AFCN_PATH . 'assets/js/browser.js';
+		$utility_js     = AFCN_PATH . 'assets/js/utility.js';
 
 		wp_enqueue_style(
 			'afcn-source-serif-4',
@@ -27,6 +28,13 @@ class Assets {
 		wp_enqueue_style( 'afcn-browser', AFCN_URL . 'assets/css/browser.css', array( 'afcn-module-manager' ), file_exists( $browser ) ? (string) filemtime( $browser ) : AFCN_VERSION );
 		wp_enqueue_script( 'afcn-app', AFCN_URL . 'assets/js/app.js', array(), file_exists( $js ) ? (string) filemtime( $js ) : AFCN_VERSION, true );
 		wp_enqueue_script( 'afcn-browser', AFCN_URL . 'assets/js/browser.js', array( 'afcn-app' ), file_exists( $browser_js ) ? (string) filemtime( $browser_js ) : AFCN_VERSION, true );
+
+		// Utility drawers are a Super-Admin shell feature. Normal customer/admin
+		// sessions do not download this runtime at all.
+		if ( Capabilities::is_super_admin_user() && is_readable( $utility_js ) ) {
+			wp_enqueue_script( 'afcn-utility', AFCN_URL . 'assets/js/utility.js', array( 'afcn-app' ), (string) filemtime( $utility_js ), true );
+		}
+
 		wp_localize_script(
 			'afcn-app',
 			'afcnApp',
