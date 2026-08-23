@@ -8,7 +8,7 @@ Build Airfiber Next/BETA as an isolated, very fast application platform inside t
 
 BETA URL: `/airfiber-beta/`.
 
-Airfiber Next Core version: **0.4.2**.
+Airfiber Next Core version: **0.4.3**.
 
 ## Boundary
 
@@ -30,7 +30,7 @@ Classic stays in `includes/`, `templates/`, and `assets/`. Next/BETA lives in `n
 - Core/MU components: Dashboard, Users, Modules, Settings, Tools
 - normal Connections add-on with Classic read-only connector bridge
 - generic nested navigation (`parent`) and utility presentation (`presentation: drawer`)
-- Super-Admin-only Tools developer console and performance FIX workflow
+- Super-Admin-only Tools developer console and resilient performance FIX workflow
 - safe one-time Airfiber Owner/Super Admin setup in Users
 
 ## User access model
@@ -65,7 +65,7 @@ The first-run setup disappears after an owner exists and the owner claim uses an
 
 See `docs/USER-ACCESS.md` and `docs/DECISIONS.md`.
 
-## Tools developer console — Core 0.4.2
+## Tools developer console — Core 0.4.3
 
 `next/modules/mu/tools/` is a **must-use lazy module**. It is physically MU because developer diagnostics are part of the Airfiber control plane and must not be activatable, deactivatable, trashed or deleted like customer feature modules.
 
@@ -87,6 +87,8 @@ For the explicit Super Admin:
 - Tools opens in a fixed right-side drawer with slide-in/slide-out animation, without replacing the main page.
 - Settings → Recent performance warnings shows **FIX** for module warnings.
 - Clicking FIX automatically opens Tools and runs an AJAX diagnostic session in the console.
+- The built-in console now sends diagnostic commands through the required module action endpoint instead of depending on optional query support.
+- If one diagnostic stage fails, the console logs the problem and continues with safe warm-up / REST retest when possible instead of immediately stopping the entire FIX run.
 - The session inspects health/budgets/assets, warms the compiled registry, runs a controlled module render, retests the module REST request, then prints recommendations.
 - Modules → MU includes Tools with the other protected components.
 
@@ -180,7 +182,7 @@ Nested business-module/sub-feature permission checkboxes remain deferred until a
 
 Do NOT bulk-migrate Classic.
 
-Verify Core 0.4.2 by promoting the current WordPress Administrator through Users if no owner exists. After reload it should show **Super Admin**, Modules should expose **MU (5)** including Tools, Settings should expose Tools, and performance warnings should expose FIX.
+Verify Core 0.4.3 by running FIX again against the Users warning. The console should proceed past **1/4** and continue through warm-up and the REST retest even if an individual diagnostic stage reports a recoverable warning.
 
 After that verification, build the first real provider module: read-only **OLT**. Use the convention-based module skeleton, advertise OLT connector types, contribute a small cache-first `dashboard.summary` slot, then build cached overview/list and lazy per-OLT/PON/ONU chunks. Provisioning writes come only after the read-only path proves the SDK.
 
