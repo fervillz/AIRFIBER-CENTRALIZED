@@ -104,10 +104,6 @@
 		openDrawer();
 
 		if (!force && current === id && currentHtml) {
-			if (stage.innerHTML !== currentHtml) {
-				stage.innerHTML = currentHtml;
-				window.AirfiberNext.wire(stage);
-			}
 			dispatchOpened(id, context, { cached: true });
 			return;
 		}
