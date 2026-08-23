@@ -112,14 +112,13 @@ class Olt_Module implements Module_Contract {
 			return new \WP_Error( 'afcn_olt_forbidden', __( 'You cannot test OLT connections.', 'airfiber-centralized' ), array( 'status' => 403 ) );
 		}
 
-		$connection_id = isset( $payload['connection_id'] ) ? sanitize_text_field( $payload['connection_id'] ) : '';
-		$record        = Connection_Store::get( $connection_id );
-		if ( ! $record || 'olt' !== ( isset( $record['module'] ) ? $record['module'] : '' ) || 'olt-snmp' !== ( isset( $record['type'] ) ? $record['type'] : '' ) ) {
-			return new \WP_Error( 'afcn_olt_connection_missing', __( 'The native OLT connection could not be found.', 'airfiber-centralized' ), array( 'status' => 404 ) );
+		$context = self::test_context( $payload );
+		if ( is_wp_error( $context ) ) {
+			return $context;
 		}
 
 		$started = microtime( true );
-		$result  = Olt_SNMP_Client::test( $record );
+		$result  = Olt_SNMP_Client::test( $context['record'], $context['secrets'] );
 		$latency = round( ( microtime( true ) - $started ) * 1000, 2 );
 		Performance_Monitor::record_external( 'olt', $latency, 'SNMP OLT test' );
 
@@ -128,6 +127,39 @@ class Olt_Module implements Module_Contract {
 		}
 		$result['latency_ms'] = $latency;
 		return $result;
+	}
+
+	/**
+	 * A Connections form probe supplies a sanitized temporary record and only the
+	 * secrets typed in the form. Blank edit secrets fall back to Secret_Store in
+	 * Olt_SNMP_Client. Normal card tests continue to load the persisted record.
+	 */
+	private static function test_context( $payload ) {
+		$is_probe = ! empty( $payload['probe'] );
+		if ( $is_probe ) {
+			$record = isset( $payload['record'] ) && is_array( $payload['record'] ) ? $payload['record'] : array();
+			if ( 'olt-snmp' !== ( isset( $record['type'] ) ? sanitize_key( $record['type'] ) : '' ) ) {
+				return new \WP_Error( 'afcn_olt_probe_invalid', __( 'The OLT probe configuration is invalid.', 'airfiber-centralized' ), array( 'status' => 400 ) );
+			}
+
+			$record['id']     = isset( $payload['connection_id'] ) ? sanitize_text_field( $payload['connection_id'] ) : '';
+			$record['module'] = 'olt';
+			$secrets          = array();
+			$provided         = isset( $payload['secrets'] ) && is_array( $payload['secrets'] ) ? $payload['secrets'] : array();
+			foreach ( array( 'community', 'auth_passphrase', 'privacy_passphrase' ) as $key ) {
+				if ( isset( $provided[ $key ] ) && is_scalar( $provided[ $key ] ) && '' !== (string) $provided[ $key ] ) {
+					$secrets[ $key ] = (string) $provided[ $key ];
+				}
+			}
+			return array( 'record' => $record, 'secrets' => $secrets );
+		}
+
+		$connection_id = isset( $payload['connection_id'] ) ? sanitize_text_field( $payload['connection_id'] ) : '';
+		$record        = Connection_Store::get( $connection_id );
+		if ( ! $record || 'olt' !== ( isset( $record['module'] ) ? $record['module'] : '' ) || 'olt-snmp' !== ( isset( $record['type'] ) ? $record['type'] : '' ) ) {
+			return new \WP_Error( 'afcn_olt_connection_missing', __( 'The native OLT connection could not be found.', 'airfiber-centralized' ), array( 'status' => 404 ) );
+		}
+		return array( 'record' => $record, 'secrets' => array() );
 	}
 
 	private static function can_manage_connections() {
