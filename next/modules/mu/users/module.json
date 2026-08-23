@@ -2,7 +2,7 @@
   "id": "users",
   "name": "Users",
   "description": "Manage Airfiber administrators, operators and per-user module visibility using WordPress users underneath.",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "class": "Airfiber\\Next\\Modules\\Users\\Users_Module",
   "position": 70,
   "icon": "users",
@@ -13,6 +13,6 @@
     "css": ["assets/users.css"],
     "js": ["assets/users.js"]
   },
-  "requires": {"core": ">=0.3.7"},
+  "requires": {"core": ">=0.3.8"},
   "events": []
 }
