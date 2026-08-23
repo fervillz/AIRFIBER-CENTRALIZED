@@ -50,8 +50,8 @@ class Assets {
 	 *
 	 * Modules may declare assets in module.json, but convention-based
 	 * assets/<module-id>.css and assets/<module-id>.js are also discovered here.
-	 * Discovery happens only after the module is requested, so it keeps unrelated
-	 * pages free from feature CSS/JS while making simple modules harder to misconfigure.
+	 * Discovery happens only after the module is requested, so unrelated pages
+	 * remain free from feature CSS/JS.
 	 */
 	public static function module_manifest( $module ) {
 		$out       = array( 'css' => array(), 'js' => array() );
@@ -60,18 +60,26 @@ class Assets {
 			return $out;
 		}
 
-		$base_real = trailingslashit( $base_real );
+		// Normalize before containment checks. realpath() returns backslashes on
+		// Windows while WordPress paths commonly contain forward slashes; comparing
+		// those raw strings caused valid lazy assets to be rejected on Windows hosts.
+		$base_real = trailingslashit( wp_normalize_path( $base_real ) );
 		$url_path  = self::module_url_path( $module );
 
 		foreach ( array( 'css', 'js' ) as $type ) {
 			foreach ( self::asset_paths( $module, $type ) as $relative ) {
-				$relative = ltrim( str_replace( '\\', '/', (string) $relative ), '/' );
+				$relative = ltrim( wp_normalize_path( (string) $relative ), '/' );
 				if ( false !== strpos( $relative, '..' ) || strtolower( pathinfo( $relative, PATHINFO_EXTENSION ) ) !== $type ) {
 					continue;
 				}
 
 				$file = realpath( $base_real . $relative );
-				if ( ! $file || 0 !== strpos( $file, $base_real ) || ! is_readable( $file ) ) {
+				if ( ! $file ) {
+					continue;
+				}
+
+				$file_normalized = wp_normalize_path( $file );
+				if ( 0 !== strpos( $file_normalized, $base_real ) || ! is_readable( $file ) ) {
 					continue;
 				}
 
@@ -123,7 +131,7 @@ class Assets {
 
 	private static function module_url_path( $module ) {
 		if ( ! empty( $module['url_path'] ) ) {
-			return trim( $module['url_path'], '/' );
+			return trim( wp_normalize_path( $module['url_path'] ), '/' );
 		}
 
 		$id    = isset( $module['id'] ) ? sanitize_key( $module['id'] ) : '';
