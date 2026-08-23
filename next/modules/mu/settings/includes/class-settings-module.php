@@ -6,6 +6,7 @@ use Airfiber\Next\Audit_Log;
 use Airfiber\Next\Capabilities;
 use Airfiber\Next\Debug_Logger;
 use Airfiber\Next\Module_Contract;
+use Airfiber\Next\Module_Manager;
 use Airfiber\Next\Module_Registry;
 use Airfiber\Next\Performance_Monitor;
 use Airfiber\Next\Task_Queue;
@@ -20,7 +21,11 @@ class Settings_Module implements Module_Contract {
 		$events  = array_slice( Debug_Logger::recent(), 0, 12 );
 		$audit   = Audit_Log::recent( 12 );
 		$queue   = Task_Queue::stats();
-		$can_fix = Capabilities::is_super_admin_user();
+		$tools   = Module_Registry::get( 'tools' );
+		$can_fix = Capabilities::is_super_admin_user()
+			&& $tools
+			&& Module_Manager::is_enabled( 'tools', $tools )
+			&& Module_Manager::dependencies_met( $tools );
 
 		ob_start();
 		?>
