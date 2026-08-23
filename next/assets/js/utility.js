@@ -78,6 +78,7 @@
 	function contextFrom(element) {
 		return {
 			action: element.dataset.afcnUtilityAction || '',
+			warning: element.dataset.afcnUtilityWarning || '',
 			module: element.dataset.afcnUtilityModuleTarget || '',
 			phase: element.dataset.afcnUtilityPhase || '',
 			cause: element.dataset.afcnUtilityCause || ''
