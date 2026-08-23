@@ -97,6 +97,10 @@ class User_Access {
 
 	/**
 	 * Persist a normal user's feature-module allow list.
+	 *
+	 * Selecting every currently available module clears the stored policy instead
+	 * of freezing a list. That keeps the default "all normal modules" behavior
+	 * future-proof when new modules are installed later.
 	 */
 	public static function set_visible_modules( $user_id, $module_ids ) {
 		$user_id = absint( $user_id );
@@ -112,6 +116,15 @@ class User_Access {
 		$wanted  = is_array( $module_ids ) ? $module_ids : array();
 		$wanted  = array_values( array_unique( array_filter( array_map( 'sanitize_key', $wanted ) ) ) );
 		$wanted  = array_values( array_intersect( $wanted, $allowed ) );
+
+		$sorted_allowed = $allowed;
+		$sorted_wanted  = $wanted;
+		sort( $sorted_allowed, SORT_STRING );
+		sort( $sorted_wanted, SORT_STRING );
+		if ( $sorted_allowed === $sorted_wanted ) {
+			self::clear_policy( $user_id );
+			return true;
+		}
 
 		update_user_meta(
 			$user_id,
