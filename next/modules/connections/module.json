@@ -2,7 +2,7 @@
   "id": "connections",
   "name": "Connections",
   "description": "Central hub for routers, OLTs, cloud services and other configured endpoints.",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "class": "Airfiber\\Next\\Modules\\Connections\\Connections_Module",
   "position": 20,
   "icon": "connections",
