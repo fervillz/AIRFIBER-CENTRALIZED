@@ -8,7 +8,7 @@ Build Airfiber Next/BETA as an isolated, very fast application platform inside t
 
 BETA URL: `/airfiber-beta/`.
 
-Airfiber Next Core version: **0.4.3**.
+Airfiber Next Core version: **0.4.4**.
 
 ## Boundary
 
@@ -31,6 +31,7 @@ Classic stays in `includes/`, `templates/`, and `assets/`. Next/BETA lives in `n
 - normal Connections add-on with Classic read-only connector bridge
 - generic nested navigation (`parent`) and utility presentation (`presentation: drawer`)
 - Super-Admin-only Tools developer console and resilient performance FIX workflow
+- resolved-warning lifecycle that keeps history but removes successfully remediated warnings from the active table
 - safe one-time Airfiber Owner/Super Admin setup in Users
 
 ## User access model
@@ -65,7 +66,7 @@ The first-run setup disappears after an owner exists and the owner claim uses an
 
 See `docs/USER-ACCESS.md` and `docs/DECISIONS.md`.
 
-## Tools developer console — Core 0.4.3
+## Tools developer console — Core 0.4.4
 
 `next/modules/mu/tools/` is a **must-use lazy module**. It is physically MU because developer diagnostics are part of the Airfiber control plane and must not be activatable, deactivatable, trashed or deleted like customer feature modules.
 
@@ -87,9 +88,11 @@ For the explicit Super Admin:
 - Tools opens in a fixed right-side drawer with slide-in/slide-out animation, without replacing the main page.
 - Settings → Recent performance warnings shows **FIX** for module warnings.
 - Clicking FIX automatically opens Tools and runs an AJAX diagnostic session in the console.
-- The built-in console now sends diagnostic commands through the required module action endpoint instead of depending on optional query support.
+- The built-in console sends diagnostic commands through the required module action endpoint instead of depending on optional query support.
 - If one diagnostic stage fails, the console logs the problem and continues with safe warm-up / REST retest when possible instead of immediately stopping the entire FIX run.
 - The session inspects health/budgets/assets, warms the compiled registry, runs a controlled module render, retests the module REST request, then prints recommendations.
+- When the retest succeeds within budget, the original warning is marked resolved, removed from the Settings table immediately, and retained only in bounded debug history.
+- If the same issue happens again, Performance Monitor writes a fresh warning and it becomes active again automatically.
 - Modules → MU includes Tools with the other protected components.
 
 Normal customer/Admin sessions do not receive the Tools submenu, MU inventory, FIX buttons, utility drawer runtime, or Tools assets.
@@ -150,7 +153,9 @@ Normal Admins see only normal add-on inventory they are authorized to know about
 
 Browser client apply is separated from diagnostic transport, asset-load and full-navigation timing. External provider latency is separate. Only actionable code/server/client violations feed the circuit breaker.
 
-Diagnostic transport/navigation warnings can now be handed to the Super Admin Tools console for safe runtime analysis rather than blindly increasing the budget.
+Diagnostic transport/navigation warnings can be handed to the Super Admin Tools console for safe runtime analysis rather than blindly increasing the budget.
+
+Active Settings warnings are unresolved events only. A successful in-budget FIX marks the old event resolved instead of deleting it. The original event remains available in the bounded debug history, while any recurrence creates a fresh active warning.
 
 See `docs/PERFORMANCE-CONTRACT.md` and `docs/TOOLS-CONSOLE.md`.
 
@@ -182,7 +187,7 @@ Nested business-module/sub-feature permission checkboxes remain deferred until a
 
 Do NOT bulk-migrate Classic.
 
-Verify Core 0.4.3 by running FIX again against the Users warning. The console should proceed past **1/4** and continue through warm-up and the REST retest even if an individual diagnostic stage reports a recoverable warning.
+Verify Core 0.4.4 by running FIX against an existing Users warning. If the REST retest comes back inside budget, that warning row should disappear immediately without reloading Settings. If Users is still over budget, the row should remain and the console should explicitly say why.
 
 After that verification, build the first real provider module: read-only **OLT**. Use the convention-based module skeleton, advertise OLT connector types, contribute a small cache-first `dashboard.summary` slot, then build cached overview/list and lazy per-OLT/PON/ONU chunks. Provisioning writes come only after the read-only path proves the SDK.
 
