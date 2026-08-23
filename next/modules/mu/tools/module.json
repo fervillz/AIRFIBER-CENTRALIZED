@@ -1,7 +1,7 @@
 {
   "name": "Tools",
   "description": "Super Admin developer console, diagnostics and safe performance optimization tools.",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "position": 95,
   "icon": "activity",
   "capability": "afcn_super_admin",
@@ -9,6 +9,6 @@
   "presentation": "drawer",
   "default_enabled": true,
   "requires": {
-    "core": ">=0.4.2"
+    "core": ">=0.4.3"
   }
 }
