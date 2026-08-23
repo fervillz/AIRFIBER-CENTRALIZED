@@ -9,18 +9,20 @@ defined( 'ABSPATH' ) || exit;
 /**
  * Small read-only SNMP client for the first native OLT slice.
  *
- * The defaults intentionally mirror the proven Classic OLT settings. Vendor-
- * specific inventory/provisioning belongs in later OLT classes once the native
- * read-only connection path is proven.
+ * The transport behavior intentionally mirrors the proven Classic OLT path.
+ * Some GPON firmware answers GET/GETNEXT reliably but stalls on GETBULK walks,
+ * so GPON SNMPv2c uses a bounded GETNEXT walker before real_walk().
  */
 class Olt_SNMP_Client {
-	const SYS_NAME_OID  = '1.3.6.1.2.1.1.5.0';
-	const SYS_DESCR_OID = '1.3.6.1.2.1.1.1.0';
-	const EPON_RX_OID   = '1.3.6.1.4.1.37950.1.1.5.12.2.1.8.1.7';
-	const GPON_RX_OID   = '1.3.6.1.4.1.37950.1.1.6.1.1.3.1.7';
+	const SYS_NAME_OID          = '1.3.6.1.2.1.1.5.0';
+	const SYS_DESCR_OID         = '1.3.6.1.2.1.1.1.0';
+	const EPON_RX_OID           = '1.3.6.1.4.1.37950.1.1.5.12.2.1.8.1.7';
+	const GPON_RX_OID           = '1.3.6.1.4.1.37950.1.1.6.1.1.3.1.7';
+	const GETNEXT_ROW_LIMIT     = 4096;
+	const GETNEXT_FAILURE_LIMIT = 5;
 
-	public static function test( $record ) {
-		if ( ! is_array( $record ) || empty( $record['id'] ) ) {
+	public static function test( $record, $secret_overrides = array() ) {
+		if ( ! is_array( $record ) ) {
 			return new \WP_Error( 'afcn_olt_connection_missing', __( 'The OLT connection record is invalid.', 'airfiber-centralized' ) );
 		}
 
@@ -29,7 +31,8 @@ class Olt_SNMP_Client {
 			return new \WP_Error( 'afcn_olt_host_missing', __( 'Enter the OLT IP address or hostname first.', 'airfiber-centralized' ) );
 		}
 
-		$credentials = self::credentials( $record['id'], $config['version'], $config['security_name'] );
+		$connection_id = isset( $record['id'] ) ? sanitize_text_field( (string) $record['id'] ) : '';
+		$credentials   = self::credentials( $connection_id, $config['version'], $config['security_name'], $secret_overrides );
 		if ( is_wp_error( $credentials ) ) {
 			return $credentials;
 		}
@@ -98,17 +101,17 @@ class Olt_SNMP_Client {
 		);
 	}
 
-	private static function credentials( $connection_id, $version, $security_name ) {
+	private static function credentials( $connection_id, $version, $security_name, $overrides = array() ) {
 		if ( '2c' === $version ) {
-			$community = Secret_Store::get( $connection_id, 'community', '' );
+			$community = self::secret_value( $connection_id, 'community', $overrides );
 			if ( '' === $community ) {
-				return new \WP_Error( 'afcn_olt_community_missing', __( 'Enter and save the read-only SNMPv2c community first.', 'airfiber-centralized' ) );
+				return new \WP_Error( 'afcn_olt_community_missing', __( 'Enter the read-only SNMPv2c community first.', 'airfiber-centralized' ) );
 			}
 			return array( 'community' => $community );
 		}
 
-		$auth    = Secret_Store::get( $connection_id, 'auth_passphrase', '' );
-		$privacy = Secret_Store::get( $connection_id, 'privacy_passphrase', '' );
+		$auth    = self::secret_value( $connection_id, 'auth_passphrase', $overrides );
+		$privacy = self::secret_value( $connection_id, 'privacy_passphrase', $overrides );
 		if ( '' === $security_name || '' === $auth || '' === $privacy ) {
 			return new \WP_Error( 'afcn_olt_credentials_missing', __( 'Enter the SNMPv3 username, SHA passphrase and DES privacy passphrase first.', 'airfiber-centralized' ) );
 		}
@@ -117,6 +120,13 @@ class Olt_SNMP_Client {
 			'auth'          => $auth,
 			'privacy'       => $privacy,
 		);
+	}
+
+	private static function secret_value( $connection_id, $key, $overrides ) {
+		if ( is_array( $overrides ) && isset( $overrides[ $key ] ) && '' !== (string) $overrides[ $key ] ) {
+			return (string) $overrides[ $key ];
+		}
+		return $connection_id ? Secret_Store::get( $connection_id, $key, '' ) : '';
 	}
 
 	private static function get( $config, $credentials, $oid ) {
@@ -144,21 +154,109 @@ class Olt_SNMP_Client {
 		$timeout = $config['timeout_ms'] * 1000;
 		$retries = $config['retries'];
 
+		if ( function_exists( 'snmp_set_oid_output_format' ) && defined( 'SNMP_OID_OUTPUT_NUMERIC' ) ) {
+			@snmp_set_oid_output_format( SNMP_OID_OUTPUT_NUMERIC );
+		}
+
+		/* Match Classic: GPON v2c firmware may time out on GETBULK but answer GETNEXT. */
+		$getnext_error = null;
+		if ( '2c' === $config['version'] && 'GPON' === $config['technology'] ) {
+			$getnext = self::walk_getnext( $config, $credentials, $oid );
+			if ( ! is_wp_error( $getnext ) && $getnext ) {
+				return $getnext;
+			}
+			$getnext_error = $getnext;
+		}
+
+		$rows = false;
 		if ( '2c' === $config['version'] ) {
-			if ( ! function_exists( 'snmp2_real_walk' ) ) {
-				return new \WP_Error( 'afcn_olt_snmp_missing', __( 'PHP SNMPv2 walk support is not available on this server.', 'airfiber-centralized' ) );
+			if ( function_exists( 'snmp2_real_walk' ) ) {
+				$rows = @snmp2_real_walk( $target, $credentials['community'], $oid, $timeout, $retries );
 			}
-			$rows = @snmp2_real_walk( $target, $credentials['community'], $oid, $timeout, $retries );
-		} else {
-			if ( ! function_exists( 'snmp3_real_walk' ) ) {
-				return new \WP_Error( 'afcn_olt_snmp_missing', __( 'PHP SNMPv3 walk support is not available on this server.', 'airfiber-centralized' ) );
-			}
+		} elseif ( function_exists( 'snmp3_real_walk' ) ) {
 			$rows = @snmp3_real_walk( $target, $credentials['security_name'], 'authPriv', 'SHA', $credentials['auth'], 'DES', $credentials['privacy'], $oid, $timeout, $retries );
 		}
 
-		return false === $rows || ! is_array( $rows )
-			? new \WP_Error( 'afcn_olt_snmp_walk_failed', __( 'The OLT answered, but the configured RX OID could not be read.', 'airfiber-centralized' ) )
-			: $rows;
+		if ( false !== $rows && is_array( $rows ) && $rows ) {
+			return $rows;
+		}
+
+		if ( ! ( '2c' === $config['version'] && 'GPON' === $config['technology'] ) ) {
+			$getnext = self::walk_getnext( $config, $credentials, $oid );
+			if ( ! is_wp_error( $getnext ) && $getnext ) {
+				return $getnext;
+			}
+			$getnext_error = $getnext;
+		}
+
+		return is_wp_error( $getnext_error )
+			? $getnext_error
+			: new \WP_Error( 'afcn_olt_snmp_walk_failed', __( 'The OLT answered, but the configured RX OID could not be read.', 'airfiber-centralized' ) );
+	}
+
+	private static function walk_getnext( $config, $credentials, $oid ) {
+		if ( ! class_exists( '\\SNMP' ) ) {
+			return new \WP_Error( 'afcn_olt_snmp_walk_failed', __( 'The PHP SNMP session API is not available on this server.', 'airfiber-centralized' ) );
+		}
+
+		$timeout_us = min( 10000000, max( 500000, (int) $config['timeout_ms'] * 1000 ) );
+		$session    = null;
+
+		try {
+			if ( '2c' === $config['version'] ) {
+				$session = new \SNMP( \SNMP::VERSION_2c, $config['host'] . ':' . $config['port'], $credentials['community'], $timeout_us, 0 );
+			} else {
+				$session = new \SNMP( \SNMP::VERSION_3, $config['host'] . ':' . $config['port'], $credentials['security_name'], $timeout_us, 0 );
+				$session->setSecurity( 'authPriv', 'SHA', $credentials['auth'], 'DES', $credentials['privacy'] );
+			}
+
+			if ( defined( 'SNMP_OID_OUTPUT_NUMERIC' ) ) {
+				$session->oid_output_format = SNMP_OID_OUTPUT_NUMERIC;
+			}
+
+			$root                 = trim( preg_replace( '/[^0-9.]/', '', (string) $oid ), '.' );
+			$current              = $root;
+			$rows                 = array();
+			$consecutive_failures = 0;
+
+			for ( $iteration = 0; $iteration < self::GETNEXT_ROW_LIMIT; $iteration++ ) {
+				set_error_handler( function () { return true; } );
+				try {
+					$result = $session->getnext( array( $current ) );
+				} catch ( \Throwable $error ) {
+					$result = false;
+				}
+				restore_error_handler();
+
+				if ( ! is_array( $result ) || ! $result ) {
+					$consecutive_failures++;
+					if ( $consecutive_failures < self::GETNEXT_FAILURE_LIMIT ) {
+						continue;
+					}
+					return new \WP_Error( 'afcn_olt_snmp_getnext_failed', __( 'The OLT stopped responding before the SNMP table was complete.', 'airfiber-centralized' ) );
+				}
+
+				$next_oid = trim( preg_replace( '/[^0-9.]/', '', (string) array_key_first( $result ) ), '.' );
+				if ( '' === $next_oid || $next_oid === $current ) {
+					return new \WP_Error( 'afcn_olt_snmp_getnext_stalled', __( 'The OLT returned an invalid SNMP table cursor.', 'airfiber-centralized' ) );
+				}
+				if ( 0 !== strpos( $next_oid, $root . '.' ) ) {
+					return $rows;
+				}
+
+				$rows[ $next_oid ]   = reset( $result );
+				$current              = $next_oid;
+				$consecutive_failures = 0;
+			}
+
+			return new \WP_Error( 'afcn_olt_snmp_getnext_limit', __( 'The SNMP table exceeded the safe polling limit.', 'airfiber-centralized' ) );
+		} catch ( \Throwable $error ) {
+			return new \WP_Error( 'afcn_olt_snmp_getnext_failed', __( 'The SNMP GETNEXT fallback failed.', 'airfiber-centralized' ) );
+		} finally {
+			if ( $session instanceof \SNMP ) {
+				$session->close();
+			}
+		}
 	}
 
 	private static function target( $config ) {
