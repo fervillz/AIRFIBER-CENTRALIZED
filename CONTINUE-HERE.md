@@ -8,7 +8,7 @@ Build Airfiber Next/BETA as an isolated, very fast application platform inside t
 
 BETA URL: `/airfiber-beta/`.
 
-Airfiber Next Core version: **0.4.0**.
+Airfiber Next Core version: **0.4.1**.
 
 ## Boundary
 
@@ -31,6 +31,7 @@ Classic stays in `includes/`, `templates/`, and `assets/`. Next/BETA lives in `n
 - normal Connections add-on with Classic read-only connector bridge
 - generic nested navigation (`parent`) and utility presentation (`presentation: drawer`)
 - Super-Admin-only Tools developer console and performance FIX workflow
+- safe one-time Airfiber Owner/Super Admin setup in Users
 
 ## User access model
 
@@ -47,13 +48,22 @@ Authority and visibility are separate.
 
 The Users MU screen is card-first using the same 150×150 visual language as Modules, with icon role pills and icon-only hover actions. A list icon beside the title toggles between cards and a File-Explorer-style list; the choice is stored locally in the browser.
 
-Super Admin is never created as a hidden account/backdoor. A local deployment explicitly designates it, for example:
+### First-run Airfiber Owner — Core 0.4.1
 
-```php
-define( 'AFCN_SUPER_ADMIN_USER_ID', 123 );
-```
+Airfiber never ships a hard-coded Super Admin credential.
 
-See `docs/USER-ACCESS.md`.
+If no Super Admin exists, a logged-in WordPress Administrator sees **Set up the Airfiber Owner** at the top of Users. The Administrator can:
+
+- promote the current WordPress account to Airfiber Super Admin; or
+- create a separate WordPress Administrator and designate it as Super Admin.
+
+The separate-owner dialog suggests `bordocs` as the username only for convenience. It is editable and no password is embedded in source. Password may be entered manually or left blank so WordPress generates a strong random password and Airfiber displays it once.
+
+Successful in-app setup stores the chosen user ID in `afcn_super_admin_user_id` and grants the direct `afcn_super_admin` capability. `AFCN_SUPER_ADMIN_USER_ID` in `wp-config.php` remains a supported deployment-level override.
+
+The first-run setup disappears after an owner exists and the owner claim uses an atomic option write so two Administrators cannot independently complete setup at the same time.
+
+See `docs/USER-ACCESS.md` and `docs/DECISIONS.md`.
 
 ## Tools developer console — Core 0.4.0
 
@@ -153,6 +163,8 @@ Feature CSS/JS should remain lazy rather than being moved into global Core merel
 
 Developer Tools must never become a hidden backdoor or live self-modifying source-code system. Safe diagnostics can be automated; source restructuring stays in Git.
 
+Do not add a known/default owner password to source. First-run owner setup must remain explicit and local.
+
 ## Intentionally deferred
 
 Runtime ZIP installation and permanent filesystem deletion are not exposed yet. Trash is safe soft-state while the SDK is proven with real modules. The update UI is provider-ready but no package/update provider exists yet.
@@ -163,7 +175,9 @@ Nested business-module/sub-feature permission checkboxes remain deferred until a
 
 Do NOT bulk-migrate Classic.
 
-After verifying the new Tools/FIX drawer on the Super Admin account, build the first real provider module: read-only **OLT**. Use the convention-based module skeleton, advertise OLT connector types, contribute a small cache-first `dashboard.summary` slot, then build cached overview/list and lazy per-OLT/PON/ONU chunks. Provisioning writes come only after the read-only path proves the SDK.
+First verify Core 0.4.1 owner setup by opening Users as the current WordPress Administrator and promoting that account. After reload it should show **Super Admin**, Modules should expose MU, Settings should expose Tools, and performance warnings should expose FIX.
+
+After that verification, build the first real provider module: read-only **OLT**. Use the convention-based module skeleton, advertise OLT connector types, contribute a small cache-first `dashboard.summary` slot, then build cached overview/list and lazy per-OLT/PON/ONU chunks. Provisioning writes come only after the read-only path proves the SDK.
 
 ## New-chat handoff
 
