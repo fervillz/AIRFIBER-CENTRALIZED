@@ -17,12 +17,12 @@ Airfiber Next Core
 ├── Connection_Store        non-secret configured connection records
 ├── Secret_Store            encrypted credentials
 ├── Connection_Health       cached status/latency/last-check data
-├── HTTP_Client              measured remote requests
+├── HTTP_Client              measured HTTP remote requests
 ├── Cache                    stale/fresh data helpers
 └── Task_Queue               background work
 
 Feature modules
-├── OLT       advertises VSOL/Huawei/etc connector types
+├── OLT       owns SNMP/OLT behavior
 ├── MikroTik  advertises MikroTik connector types
 ├── SMS       advertises gateway/provider connector types
 └── ...
@@ -140,6 +140,27 @@ array(
 
 The provider obtains non-secret config from `Connection_Store` and credentials from `Secret_Store`. Provider-specific network work stays in the provider module.
 
+## First native OLT connector — Core 0.4.5
+
+`next/modules/olt/` is the first real provider module proving the connector contract. It advertises `olt-snmp` from manifest metadata and reuses the proven Classic OLT SNMP model without calling Classic classes during native operation.
+
+The initial native OLT scope is deliberately read-only:
+
+- GPON or EPON
+- SNMPv3 authPriv using SHA/DES, matching the current Classic implementation
+- SNMPv2c read-only community support
+- system name/description identity read
+- configured/default RX-power OID walk during an explicit **Test connection** action
+- encrypted credentials through `Secret_Store`
+- cached connection status/details through `Connection_Health`
+- external SNMP latency recorded as diagnostic performance data
+
+Opening **Connections**, **OLT**, or Dashboard does not poll the device. OLT pages and the `dashboard.summary` slot render from `Connection_Store` + `Connection_Health` only.
+
+Classic OLT cards remain as a migration safety net. When a native BETA OLT with the same host has passed a successful explicit connection test, Connections prefers that verified native card and stops showing the duplicate Classic OLT card. A failed or untested native setup does not hide Classic.
+
+This first slice does **not** provision ONUs or copy Classic credentials. Provisioning and deeper PON/ONU inventory come only after the native read-only connection path is verified.
+
 ## Connections Hub grouping
 
 Current built-in groups are:
@@ -164,5 +185,6 @@ This bridge:
 - does not run a live remote request just to render the card
 - links management back to Classic
 - preserves the old Connections Hub ordering where possible
+- suppresses only a Classic OLT duplicate whose matching native endpoint has already passed a BETA health test
 
 As each feature becomes a real BETA module, its connection can be migrated to `Connection_Store` and the legacy card removed without redesigning the Hub.
