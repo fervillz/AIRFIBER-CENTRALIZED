@@ -20,6 +20,7 @@ class Settings_Module implements Module_Contract {
 		$events  = array_slice( Debug_Logger::recent(), 0, 12 );
 		$audit   = Audit_Log::recent( 12 );
 		$queue   = Task_Queue::stats();
+		$can_fix = Capabilities::is_super_admin_user();
 
 		ob_start();
 		?>
@@ -77,15 +78,30 @@ class Settings_Module implements Module_Contract {
 										<th><?php esc_html_e( 'Level', 'airfiber-centralized' ); ?></th>
 										<th><?php esc_html_e( 'Module', 'airfiber-centralized' ); ?></th>
 										<th><?php esc_html_e( 'Cause', 'airfiber-centralized' ); ?></th>
+										<?php if ( $can_fix ) : ?><th><?php esc_html_e( 'Action', 'airfiber-centralized' ); ?></th><?php endif; ?>
 									</tr>
 								</thead>
 								<tbody>
 								<?php foreach ( $events as $event ) : ?>
+									<?php
+									$module_id = self::event_module_id( $event );
+									$cause     = self::event_cause( $event );
+									$phase     = self::event_phase( $event );
+									?>
 									<tr>
 										<td><?php echo esc_html( self::event_time( $event ) ); ?></td>
 										<td><?php echo UI::badge( strtoupper( $event['level'] ), 'error' === $event['level'] ? 'danger' : 'warning' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></td>
 										<td><strong><?php echo esc_html( self::event_module( $event ) ); ?></strong></td>
-										<td><?php echo esc_html( self::event_cause( $event ) ); ?></td>
+										<td><?php echo esc_html( $cause ); ?></td>
+										<?php if ( $can_fix ) : ?>
+											<td>
+												<?php if ( $module_id && 'core' !== $module_id ) : ?>
+													<button type="button" class="afcn-button afcn-button-secondary afcn-button-small" data-afcn-open-utility="tools" data-afcn-utility-action="fix" data-afcn-utility-module-target="<?php echo esc_attr( $module_id ); ?>" data-afcn-utility-phase="<?php echo esc_attr( $phase ); ?>" data-afcn-utility-cause="<?php echo esc_attr( $cause ); ?>"><?php esc_html_e( 'FIX', 'airfiber-centralized' ); ?></button>
+												<?php else : ?>
+													<span class="afcn-page-description">—</span>
+												<?php endif; ?>
+											</td>
+										<?php endif; ?>
 									</tr>
 								<?php endforeach; ?>
 								</tbody>
@@ -120,7 +136,7 @@ class Settings_Module implements Module_Contract {
 	}
 
 	private static function event_time( $event ) {
-		$raw = isset( $event['time'] ) ? (string) $event['time'] : '';
+		$raw       = isset( $event['time'] ) ? (string) $event['time'] : '';
 		$timestamp = $raw ? strtotime( $raw ) : false;
 		if ( false === $timestamp ) {
 			return $raw;
@@ -128,9 +144,22 @@ class Settings_Module implements Module_Contract {
 		return wp_date( 'Y-m-d H:i:s', $timestamp );
 	}
 
+	private static function event_context( $event ) {
+		return isset( $event['context'] ) && is_array( $event['context'] ) ? $event['context'] : array();
+	}
+
+	private static function event_module_id( $event ) {
+		$context = self::event_context( $event );
+		return isset( $context['module'] ) ? sanitize_key( $context['module'] ) : '';
+	}
+
+	private static function event_phase( $event ) {
+		$context = self::event_context( $event );
+		return isset( $context['phase'] ) ? sanitize_key( $context['phase'] ) : '';
+	}
+
 	private static function event_module( $event ) {
-		$context = isset( $event['context'] ) && is_array( $event['context'] ) ? $event['context'] : array();
-		$id      = isset( $context['module'] ) ? sanitize_key( $context['module'] ) : '';
+		$id = self::event_module_id( $event );
 		if ( ! $id ) {
 			return 'Core';
 		}
@@ -139,7 +168,7 @@ class Settings_Module implements Module_Contract {
 	}
 
 	private static function event_cause( $event ) {
-		$context = isset( $event['context'] ) && is_array( $event['context'] ) ? $event['context'] : array();
+		$context = self::event_context( $event );
 		if ( ! empty( $context['reason'] ) ) {
 			return (string) $context['reason'];
 		}
