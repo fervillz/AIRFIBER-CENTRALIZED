@@ -132,6 +132,92 @@
 	height:18px;
 }
 
+/* Nested navigation is metadata-driven. Child tools do not become top-level tabs. */
+.afcn-nav-item{position:relative;display:flex;align-items:center}
+.afcn-nav-item>button{display:inline-flex;align-items:center;gap:4px}
+.afcn-nav-caret{margin-left:1px;color:currentColor;font-size:11px;line-height:1}
+.afcn-nav-submenu{
+	position:absolute;
+	z-index:450;
+	top:calc(100% + 7px);
+	right:0;
+	display:grid;
+	min-width:170px;
+	padding:6px;
+	border:1px solid var(--afcn-border);
+	border-radius:10px;
+	background:#fff;
+	box-shadow:0 14px 38px rgba(24,36,51,.14);
+	visibility:hidden;
+	opacity:0;
+	transform:translateY(-5px);
+	transition:opacity .14s ease,transform .14s ease,visibility 0s linear .14s;
+}
+.afcn-nav-item.has-children:hover .afcn-nav-submenu,
+.afcn-nav-item.has-children:focus-within .afcn-nav-submenu{
+	visibility:visible;
+	opacity:1;
+	transform:none;
+	transition-delay:0s;
+}
+.afcn-nav-submenu button{
+	display:flex;
+	width:100%;
+	min-height:36px;
+	align-items:center;
+	justify-content:flex-start;
+	gap:8px;
+	padding:7px 9px;
+	border:0;
+	border-radius:8px;
+	background:transparent;
+	color:var(--afcn-text);
+	font:inherit;
+	font-size:12px;
+	cursor:pointer;
+	text-align:left;
+}
+.afcn-nav-submenu button:hover,.afcn-nav-submenu button:focus-visible{background:#e7f0fb;color:var(--afcn-primary);outline:0}
+.afcn-nav-submenu .afcn-icon{width:15px;height:15px}
+
+/* Chrome-devtools-style utility drawer. It overlays the app instead of resizing it. */
+.afcn-utility-drawer{
+	position:fixed;
+	z-index:850;
+	top:68px;
+	right:0;
+	bottom:0;
+	width:min(560px,92vw);
+	border-left:1px solid var(--afcn-border);
+	background:#fff;
+	box-shadow:-18px 0 46px rgba(24,36,51,.16);
+	transform:translateX(105%);
+	visibility:hidden;
+	transition:transform .22s cubic-bezier(.2,.8,.2,1),visibility 0s linear .22s;
+}
+.afcn-utility-drawer.is-open{
+	visibility:visible;
+	transform:translateX(0);
+	transition:transform .22s cubic-bezier(.2,.8,.2,1),visibility 0s;
+}
+.afcn-utility-drawer-header{
+	display:flex;
+	min-height:62px;
+	align-items:center;
+	justify-content:space-between;
+	gap:12px;
+	padding:11px 14px;
+	border-bottom:1px solid var(--afcn-border);
+	background:#fff;
+}
+.afcn-utility-drawer-header small,.afcn-utility-drawer-header strong{display:block}
+.afcn-utility-drawer-header small{margin-bottom:2px;color:var(--afcn-muted);font-size:9px;font-weight:700;letter-spacing:.08em;text-transform:uppercase}
+.afcn-utility-drawer-header strong{font-family:var(--afcn-font-heading);font-size:20px;font-weight:400}
+.afcn-utility-drawer-body{height:calc(100% - 62px);overflow:auto;background:#f7f9fc}
+.afcn-utility-loading{display:grid;min-height:220px;place-items:center;align-content:center;gap:10px;color:var(--afcn-muted)}
+
+@media(max-width:980px){.afcn-nav-submenu{left:0;right:auto}.afcn-utility-drawer{top:116px}}
+
 @media (prefers-reduced-motion:reduce){
 	.afcn-card,
 	.afcn-button{
@@ -145,7 +231,9 @@
 		transform:none;
 	}
 
-	.afcn-tooltip-panel{
+	.afcn-tooltip-panel,
+	.afcn-nav-submenu,
+	.afcn-utility-drawer{
 		transition:none;
 	}
 }
