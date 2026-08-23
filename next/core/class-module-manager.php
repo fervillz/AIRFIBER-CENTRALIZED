@@ -39,6 +39,9 @@ class Module_Manager {
 		if ( ! empty( $module['system'] ) ) { return new \WP_Error( 'afcn_system_module', __( 'Core MU modules cannot be disabled.', 'airfiber-centralized' ), array( 'status' => 400 ) ); }
 		if ( $enabled && Module_Trash::is_trashed( $id ) ) { return new \WP_Error( 'afcn_module_trashed', __( 'Restore this module from Trash before activating it.', 'airfiber-centralized' ), array( 'status' => 409 ) ); }
 		if ( ! Capabilities::is_super_admin_user() && ! current_user_can( 'manage_options' ) && ! current_user_can( Capabilities::MANAGE_MODULES ) ) { return new \WP_Error( 'afcn_forbidden', __( 'You cannot manage modules.', 'airfiber-centralized' ), array( 'status' => 403 ) ); }
+		if ( isset( $module['capability'] ) && Capabilities::SUPER_ADMIN === $module['capability'] && ! Capabilities::is_super_admin_user() ) {
+			return new \WP_Error( 'afcn_super_admin_module', __( 'This developer module is reserved for the Airfiber Super Admin.', 'airfiber-centralized' ), array( 'status' => 403 ) );
+		}
 
 		$current = self::is_enabled( $id, $module );
 		if ( $current === $enabled ) { return array( 'module' => $id, 'enabled' => $enabled ); }
@@ -97,12 +100,16 @@ class Module_Manager {
 		if ( ! is_array( $module ) ) {
 			return false;
 		}
+
+		$capability = isset( $module['capability'] ) ? $module['capability'] : Capabilities::ACCESS;
+		if ( Capabilities::SUPER_ADMIN === $capability ) {
+			return Capabilities::is_super_admin_user();
+		}
 		if ( Capabilities::is_super_admin_user() ) {
 			return true;
 		}
 
-		$capability = isset( $module['capability'] ) ? $module['capability'] : Capabilities::ACCESS;
-		$allowed    = current_user_can( 'manage_options' ) || current_user_can( $capability );
+		$allowed = current_user_can( 'manage_options' ) || current_user_can( $capability );
 		if ( ! $allowed ) {
 			return false;
 		}
@@ -185,6 +192,9 @@ class Module_Manager {
 	public static function statuses() {
 		$output = array();
 		foreach ( Module_Registry::all() as $id => $module ) {
+			if ( ! Capabilities::is_super_admin_user() && isset( $module['capability'] ) && Capabilities::SUPER_ADMIN === $module['capability'] ) {
+				continue;
+			}
 			$output[ $id ] = array(
 				'meta'         => $module,
 				'enabled'      => self::is_enabled( $id, $module ),
