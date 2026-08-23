@@ -41,25 +41,35 @@ class Tools_Module implements Module_Contract {
 		return ob_get_clean();
 	}
 
+	/**
+	 * Keep the read-only query endpoint available for SDK consumers.
+	 *
+	 * The console itself uses the action endpoint for diagnostics because every
+	 * Airfiber module is required to expose handle_action(), while handle_query()
+	 * is an optional SDK capability. That makes the FIX workflow resilient even
+	 * when an older/stale runtime does not recognize optional query support yet.
+	 */
 	public static function handle_query( $query, $payload = array() ) {
-		if ( ! Capabilities::is_super_admin_user() ) {
-			return new \WP_Error( 'afcn_tools_forbidden', __( 'Super Admin access is required.', 'airfiber-centralized' ), array( 'status' => 403 ) );
+		$permission = self::permission_check();
+		if ( is_wp_error( $permission ) ) {
+			return $permission;
 		}
 
 		if ( 'diagnose-performance' === $query ) {
-			return Performance_Doctor::diagnose(
-				isset( $payload['module'] ) ? $payload['module'] : '',
-				isset( $payload['phase'] ) ? $payload['phase'] : '',
-				isset( $payload['cause'] ) ? $payload['cause'] : ''
-			);
+			return self::diagnose_performance( $payload );
 		}
 
 		return new \WP_Error( 'afcn_tools_query_unknown', __( 'Unknown Tools query.', 'airfiber-centralized' ), array( 'status' => 404 ) );
 	}
 
 	public static function handle_action( $action, $payload = array() ) {
-		if ( ! Capabilities::is_super_admin_user() ) {
-			return new \WP_Error( 'afcn_tools_forbidden', __( 'Super Admin access is required.', 'airfiber-centralized' ), array( 'status' => 403 ) );
+		$permission = self::permission_check();
+		if ( is_wp_error( $permission ) ) {
+			return $permission;
+		}
+
+		if ( 'diagnose-performance' === $action ) {
+			return self::diagnose_performance( $payload );
 		}
 
 		if ( 'optimize-performance' === $action ) {
@@ -67,5 +77,21 @@ class Tools_Module implements Module_Contract {
 		}
 
 		return new \WP_Error( 'afcn_tools_action_unknown', __( 'Unknown Tools action.', 'airfiber-centralized' ), array( 'status' => 400 ) );
+	}
+
+	private static function permission_check() {
+		if ( ! Capabilities::is_super_admin_user() ) {
+			return new \WP_Error( 'afcn_tools_forbidden', __( 'Super Admin access is required.', 'airfiber-centralized' ), array( 'status' => 403 ) );
+		}
+		return true;
+	}
+
+	private static function diagnose_performance( $payload ) {
+		$payload = is_array( $payload ) ? $payload : array();
+		return Performance_Doctor::diagnose(
+			isset( $payload['module'] ) ? $payload['module'] : '',
+			isset( $payload['phase'] ) ? $payload['phase'] : '',
+			isset( $payload['cause'] ) ? $payload['cause'] : ''
+		);
 	}
 }
