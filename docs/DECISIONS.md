@@ -94,7 +94,13 @@ Decision: Airfiber Super Admin is a separate owner/developer authority. WordPres
 
 Reason: public/customer administrators should be able to operate Airfiber without automatically seeing owner/developer-only Core internals. It also avoids treating every WordPress Administrator as the product owner.
 
-Core does not ship a hidden Super Admin account. A deployment must explicitly designate its Super Admin, for example with `AFCN_SUPER_ADMIN_USER_ID`, a controlled filter, or an explicit user-level capability.
+Core does not ship a hidden Super Admin account. A deployment must explicitly designate its Super Admin, for example with `AFCN_SUPER_ADMIN_USER_ID`, a controlled filter, an explicit user-level capability, or the one-time owner setup flow.
+
+## 2026-08-23 — First-run owner setup never ships a default password
+
+Decision: if no Airfiber Super Admin exists, a WordPress Administrator may explicitly promote the current account or create a separate owner from the Users screen. The separate-owner form suggests `bordocs` as a convenience only; the username is editable and no password is stored in source code. A blank password generates a strong random value that is displayed once.
+
+Reason: this gives local/development and public installations a convenient bootstrap path without creating a universal credential or hidden backdoor. Once an owner is claimed, the first-run setup disappears. The owner claim is stored separately and guarded against concurrent first-run setup attempts.
 
 ## 2026-08-23 — Authority and menu visibility are separate
 
