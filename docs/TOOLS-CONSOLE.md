@@ -17,6 +17,7 @@ The first workflow is performance remediation from **Settings → Recent perform
 5. It performs safe runtime warm-up/verification.
 6. It retests the module REST request through AJAX.
 7. It prints recommendations for any remaining structural work.
+8. If the retest completes within the applicable budget, the original warning is marked **resolved** and disappears from the active warning table.
 
 Normal Administrators do not receive the Tools navigation item, utility runtime, FIX buttons or MU inventory.
 
@@ -28,6 +29,10 @@ Tools still exposes the read-only `diagnose-performance` query for SDK consumers
 
 A single failed diagnostic stage should not immediately stop the whole FIX session. The console logs the failure and, where safe, continues to the warm-up and REST retest so the Super Admin still gets useful evidence. The final result clearly reports whether the REST retest succeeded or failed.
 
+A successful FIX no longer deletes the original debug event. `Debug_Logger` marks it resolved and keeps it in the bounded debug history for troubleshooting/audit purposes. **Recent performance warnings** shows unresolved events only. If the same performance problem happens again, the monitor writes a new warning and it appears again automatically.
+
+The Settings MU module listens for the Tools resolution event and removes the resolved row immediately, so the Super Admin does not need to reload Settings after a successful FIX.
+
 ## Safe automation boundary
 
 Tools is deliberately conservative. Automatic remediation may:
@@ -37,6 +42,7 @@ Tools is deliberately conservative. Automatic remediation may:
 - warm the compiled module registry
 - run one controlled module render
 - retest the module REST endpoint
+- mark the original warning resolved after a successful in-budget retest
 - recommend caching, pagination, lazy chunks, DOM reduction or asset splitting
 
 Tools does **not** automatically rewrite PHP, JavaScript or CSS, alter database schema, modify customer data, change SSH/firewall settings, or create a remote developer backdoor.
