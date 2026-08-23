@@ -39,6 +39,18 @@ A developer should be able to understand the file's purpose from its filename.
 - Expensive remote calls should use `Airfiber\Next\HTTP_Client` so external latency is measured separately.
 - Repeated performance budget violations can quarantine a non-system module.
 
+## User access rules
+
+- WordPress authentication remains underneath Airfiber users.
+- Airfiber Super Admin is explicit and is **not** equivalent to the WordPress `administrator` role.
+- Never add a hidden developer account, secret bypass, or remote backdoor to create Super Admin access.
+- Public/customer WordPress Administrators receive normal Airfiber administration capabilities only.
+- `User_Access` may restrict normal feature-module visibility per user; the module runtime must enforce that policy, not only hide navigation markup.
+- MU/Core pages remain capability-driven. The Modules-screen MU inventory is Super-Admin-only.
+- Super Admin always sees all enabled modules and cannot have Core access disabled from the Users UI.
+- Keep the reserved nested `areas` visibility model unused until a real module requires submenu/sub-feature visibility; do not invent broad permission complexity early.
+- A future Developer/Debug/Security area, if built, must be Super-Admin-only and explicitly configured/audited.
+
 ## Safe Git workflow
 
 Do not discard local work. Prefer normal fast-forward commits. Never force-update `main`.
