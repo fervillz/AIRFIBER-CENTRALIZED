@@ -8,7 +8,7 @@ Build Airfiber Next/BETA as an isolated, very fast application platform inside t
 
 BETA URL: `/airfiber-beta/`.
 
-Airfiber Next Core version: **0.4.6**.
+Airfiber Next Core version: **0.4.7**.
 
 ## Boundary
 
@@ -31,6 +31,7 @@ Classic stays in `includes/`, `templates/`, and `assets/`. Next/BETA lives in `n
 - performance budgets, bounded samples, p50/p95 and circuit-breaker isolation
 - Core/MU components: Dashboard, Users, Modules, Settings, Tools
 - normal Connections add-on with Classic read-only connector bridge
+- generic connector-field `show_when` metadata and unsaved form **Connect** probes
 - first native read-only OLT provider using Connection_Store / Secret_Store / Connection_Health
 - generic nested navigation (`parent`) and utility presentation (`presentation: drawer`)
 - Super-Admin-only Tools developer console and resilient performance FIX workflow
@@ -104,27 +105,38 @@ Automatic FIX is intentionally conservative: it does not rewrite live PHP/JS/CSS
 
 See `docs/TOOLS-CONSOLE.md` and `docs/DECISIONS.md`.
 
-## Native OLT — Core 0.4.5
+## Native OLT — Core 0.4.7
 
 `next/modules/olt/` is the first real native provider module and remains a normal lazy add-on, not MU. It starts read-only to prove the connector/runtime architecture against real infrastructure before any provisioning code is migrated.
 
 The OLT manifest advertises `olt-snmp` without loading OLT PHP during discovery. Connections can therefore offer **OLT (SNMP)** from metadata alone.
 
-The first slice supports:
+Current native OLT support:
 
 - GPON and EPON
-- SNMPv3 `authPriv` with SHA/DES, matching the current Classic implementation
+- SNMPv3 `authPriv` with SHA/DES, matching Classic
 - SNMPv2c read-only community
+- SNMP-version-aware fields: v2c shows Community only; v3 shows Username/Auth/Privacy
 - encrypted SNMP secrets through `Secret_Store`
 - system name/description identity read
-- RX-power OID walk during an explicit Test connection action
-- cached health/details in `Connection_Health`
+- GPON/EPON default RX OIDs when the custom OID is blank
+- explicit **Connect** probe in the Add/Edit Connection dialog without saving the form
+- successful probe changes the button to **Connected**; editing the form resets it to **Connect**
+- cached health/details in `Connection_Health` for saved connection tests
 - external SNMP latency recorded as diagnostic performance data
 - cache-first OLT page and `dashboard.summary` contribution
 
-Opening **Connections**, **OLT**, or Dashboard never polls an OLT. The explicit test action is the only live SNMP operation in this phase.
+### GPON SNMPv2c compatibility
 
-Classic is still the migration safety net. Creating an untested native OLT does not hide the matching Classic card. After the native connection for the same host passes an explicit test and is cached as online, Connections prefers the verified BETA card and suppresses only that duplicate Classic OLT card. No Classic credentials are copied automatically.
+Classic already contains an important firmware workaround: V1600G-family GPON agents can answer SNMP GET/GETNEXT while stalling on GETBULK/`snmp2_real_walk()`. Core 0.4.7 ports that proven behavior into the native OLT provider rather than inventing a different transport path.
+
+For GPON + SNMPv2c, BETA now tries a bounded numeric-OID GETNEXT walk first, then `real_walk()` as fallback. Other SNMP modes retain normal real-walk behavior with the bounded GETNEXT path available when the normal walk fails.
+
+This difference was the main code-level mismatch between the working Classic GPON path and the first BETA OLT implementation.
+
+Opening **Connections**, **OLT**, or Dashboard still never polls an OLT. Live SNMP happens only from an explicit saved test, form Connect probe, or future bounded background work.
+
+Classic is still the migration safety net. Creating or probing an unsaved native OLT does not hide the matching Classic card. After the **saved** native connection for the same host passes an explicit test and is cached as online, Connections prefers the verified BETA card and suppresses only that duplicate Classic OLT card. No Classic credentials are copied automatically.
 
 Provisioning, ONU writes and deep PON/ONU inventory are intentionally deferred until this read-only connection path is verified against real devices.
 
@@ -136,11 +148,25 @@ All normal `<dialog class="afcn-dialog">` modals use one Core-owned responsive f
 
 Desktop target is 680 × 680 px, constrained by the current viewport. Dialog header and footer stay fixed; only `.afcn-dialog-body` scrolls when a form is taller than the shared frame. Mobile uses the same component with a small viewport gutter.
 
-Core 0.4.6 also standardizes the dialog header close control. Add/Edit User and Add/Edit Connection now use the same existing `.afcn-icon-button` with `data-afcn-dialog-close`. Its 32 × 32 px outlined white rounded-square styling is based on the proven Classic Connections close button. Do not introduce `.afcn-dialog-close` or another module-specific close-button class.
+Core 0.4.6 also standardizes the dialog header close control. Add/Edit User and Add/Edit Connection use the same existing `.afcn-icon-button` with `data-afcn-dialog-close`. Its 32 × 32 px outlined white rounded-square styling is based on the proven Classic Connections close button. Do not introduce `.afcn-dialog-close` or another module-specific close-button class.
 
 Modules should not set their own modal width/height or close-button styling. Connections, Users and future OLT/PPP/Billing forms inherit the shared Core rules automatically.
 
 See `docs/UI-SYSTEM.md`.
+
+## Connector form contract — Core 0.4.7
+
+Connector manifests may add a simple equality condition to a field:
+
+```json
+"show_when": {"field":"version","value":"2c"}
+```
+
+Connections renders and wires this generically. Hidden fields are disabled so irrelevant credentials are not submitted. During edit, an omitted conditional field keeps its existing saved value instead of being erased. Provider-specific field names remain outside Core/Connections logic.
+
+A connector with `test_action` can expose the shared **Connect** dialog action. The probe sends sanitized current form configuration to the provider and only the secret values actually typed in the form. Blank edit secrets can fall back to `Secret_Store`. The probe never persists configuration and never changes the health of the saved connection.
+
+See `docs/CONNECTORS.md`.
 
 ## Lazy module asset portability
 
@@ -204,9 +230,9 @@ See `docs/PERFORMANCE-CONTRACT.md` and `docs/TOOLS-CONSOLE.md`.
 
 ## Connections architecture
 
-Core owns generic `Connector_Registry`, `Connection_Store`, `Secret_Store` and `Connection_Health`. The normal `connections` add-on provides the grouped Hub UI.
+Core owns generic `Connector_Registry`, `Connection_Store`, `Secret_Store` and `Connection_Health`. The normal `connections` add-on provides the grouped Hub UI and generic connector-form behavior.
 
-OLT is now the first native BETA provider. Existing Classic OLT, MikroTik and Google Sheets entries still appear as read-only **CLASSIC** cards without copying credentials. For OLT, a verified native endpoint suppresses the duplicate Classic card with the same host; untested/failing native setup leaves Classic visible.
+OLT is the first native BETA provider. Existing Classic OLT, MikroTik and Google Sheets entries still appear as read-only **CLASSIC** cards without copying credentials. For OLT, a verified saved native endpoint suppresses the duplicate Classic card with the same host; untested/failing native setup leaves Classic visible.
 
 See `docs/CONNECTORS.md`.
 
@@ -234,16 +260,18 @@ OLT provisioning writes, ONU mutations and full PON/ONU inventory remain deferre
 
 Do NOT bulk-migrate Classic.
 
-Verify Core 0.4.6 on the development installation:
+Verify Core 0.4.7 on the development installation:
 
-1. **Connections → Add Connection** should offer **OLT (SNMP)**.
-2. Create a native OLT for the same host as one existing Classic OLT, entering fresh BETA SNMP credentials; do not copy secrets automatically from Classic.
-3. Before the first successful test, both the native BETA card and Classic fallback may remain visible.
-4. Run **Test connection** from the native card. A successful test should mark the native card online and, after the Connections view refreshes, suppress the duplicate Classic OLT card with that host.
-5. Open **OLT** and Dashboard; both must render cached state without causing an SNMP poll.
-6. Check Add/Edit User, Owner and Connection dialogs: all should use the same 680 × 680 frame, the same outlined rounded-square `.afcn-icon-button` close control, and long forms should scroll only inside the body.
+1. Open the BETA **GPON - LINGION** connection for `10.13.88.7`.
+2. With **SNMPv2c** selected, only the Community credential should be shown; SNMPv3 Username/Auth/Privacy must be hidden. Switching to SNMPv3 should reverse that visibility.
+3. Re-enter the same SNMPv2c community used by Classic if BETA does not already have it saved. Classic credentials are intentionally not copied.
+4. Press **Connect** before Save Changes. The current form values should be tested without saving. Success changes the button to **Connected**; changing any field resets it to **Connect**.
+5. The GPON v2c test should use the Classic-compatible bounded GETNEXT path before falling back to `real_walk()`.
+6. After saving, run the normal card **Test connection** once. A successful saved test marks the native card online and allows Connections to suppress the matching Classic OLT card.
+7. Open **OLT** and Dashboard; both must remain cache-only and cause no SNMP poll.
+8. Check Add/Edit User, Owner and Connection dialogs: all should use the same 680 × 680 frame and shared `.afcn-icon-button` close control.
 
-After verification, extend OLT read-only functionality with cached overview/inventory and lazy per-OLT/PON/ONU details. Keep remote reads explicit/background and bounded. Provisioning writes come only after the read-only path proves stable.
+After the real GPON connection is verified, extend OLT read-only functionality with cached overview/inventory and lazy per-OLT/PON/ONU details. Keep remote reads explicit/background and bounded. Provisioning writes come only after the read-only path proves stable.
 
 ## New-chat handoff
 
