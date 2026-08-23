@@ -1,15 +1,18 @@
 {
   "id": "users",
   "name": "Users",
-  "description": "Create and manage Airfiber administrators and operators using WordPress users underneath.",
-  "version": "0.1.0",
+  "description": "Manage Airfiber administrators, operators and per-user module visibility using WordPress users underneath.",
+  "version": "0.2.0",
   "class": "Airfiber\\Next\\Modules\\Users\\Users_Module",
   "position": 70,
   "icon": "users",
   "capability": "afcn_manage_users",
   "system": true,
   "default_enabled": true,
-  "assets": {"css": [], "js": []},
-  "requires": {"core": ">=0.1.0"},
+  "assets": {
+    "css": ["assets/users.css"],
+    "js": ["assets/users.js"]
+  },
+  "requires": {"core": ">=0.3.7"},
   "events": []
 }
