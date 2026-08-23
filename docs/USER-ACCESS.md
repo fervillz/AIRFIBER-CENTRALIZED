@@ -23,7 +23,7 @@ Super Admin:
 - cannot have its Core access unchecked in the Users screen
 - can access the developer Tools drawer and performance FIX workflow
 
-Core ships with no hidden account or remote backdoor. A site explicitly designates its Super Admin, for example in `wp-config.php`:
+Core ships with no hidden account or remote backdoor. A deployment may explicitly designate its Super Admin in `wp-config.php`:
 
 ```php
 define( 'AFCN_SUPER_ADMIN_USER_ID', 123 );
@@ -31,7 +31,30 @@ define( 'AFCN_SUPER_ADMIN_USER_ID', 123 );
 
 The `afcn_super_admin_user_ids` filter and explicit user-level `afcn_super_admin` capability are also supported for controlled deployments.
 
-A public/customer installation that does not explicitly designate a Super Admin treats WordPress Administrators as normal Airfiber Administrators.
+A public/customer installation that does not explicitly designate a Super Admin treats WordPress Administrators as normal Airfiber Administrators until the one-time owner setup is completed.
+
+## One-time owner setup
+
+Core 0.4.1 adds a safe first-run owner bootstrap to **Users**.
+
+When all of the following are true:
+
+- no Airfiber Super Admin currently exists
+- the current user is logged in
+- the current user is a WordPress Administrator with `manage_options`
+
+Users shows **Set up the Airfiber Owner**.
+
+The Administrator can either:
+
+1. promote the current WordPress account to Airfiber Super Admin; or
+2. create a separate WordPress Administrator and designate it as the Airfiber Super Admin.
+
+The separate-owner form suggests the username `bordocs` for convenience, but this is not a built-in account and no default password exists in source code. The username may be changed. The password must be entered by the Administrator or left blank so WordPress generates a strong random password that is displayed once.
+
+Successful in-app setup stores the chosen user ID in `afcn_super_admin_user_id` and also grants the user-level `afcn_super_admin` capability. `AFCN_SUPER_ADMIN_USER_ID` in `wp-config.php` remains the strongest deployment-level override.
+
+The setup UI disappears once an owner exists. Setup is intentionally guarded so two Administrators cannot independently create two first-run owners at the same time.
 
 ### Administrator
 
@@ -76,7 +99,7 @@ Editing a user exposes normal module visibility checkboxes. Super Admin always s
 
 Normal Administrators do not see MU visibility controls or developer-only modules.
 
-The data model reserves an `areas` map for future nested/submenu visibility, but Core does not invent submenu permission semantics before a real module needs them. Module-level visibility is the stable contract today.
+The data model reserves an `areas` map for future nested/submenu visibility, but Core does not invent submenu permission semantics before a real module needs it. Module-level visibility is the stable contract today.
 
 ## Developer Tools
 
