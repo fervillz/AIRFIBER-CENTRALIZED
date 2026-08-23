@@ -8,7 +8,7 @@ Build Airfiber Next/BETA as an isolated, very fast application platform inside t
 
 BETA URL: `/airfiber-beta/`.
 
-Airfiber Next Core version: **0.4.4**.
+Airfiber Next Core version: **0.4.5**.
 
 ## Boundary
 
@@ -20,6 +20,7 @@ Classic stays in `includes/`, `templates/`, and `assets/`. Next/BETA lives in `n
 - readable WordPress-style `class-*.php` files
 - managed/protected BETA page
 - shared UI system: Source Serif 4 headings, 9px controls, 14px dialogs, shared cards/tooltips/icons/motion
+- one shared responsive 680 × 680 BETA dialog frame; long dialog bodies scroll while header/footer stay fixed
 - compiled cached module registry, numeric menu positions and lazy module PHP/assets/data
 - generic REST render/query/chunk/action runtime
 - browser SDK at `window.AirfiberNext`
@@ -29,6 +30,7 @@ Classic stays in `includes/`, `templates/`, and `assets/`. Next/BETA lives in `n
 - performance budgets, bounded samples, p50/p95 and circuit-breaker isolation
 - Core/MU components: Dashboard, Users, Modules, Settings, Tools
 - normal Connections add-on with Classic read-only connector bridge
+- first native read-only OLT provider using Connection_Store / Secret_Store / Connection_Health
 - generic nested navigation (`parent`) and utility presentation (`presentation: drawer`)
 - Super-Admin-only Tools developer console and resilient performance FIX workflow
 - resolved-warning lifecycle that keeps history but removes successfully remediated warnings from the active table
@@ -101,6 +103,42 @@ Automatic FIX is intentionally conservative: it does not rewrite live PHP/JS/CSS
 
 See `docs/TOOLS-CONSOLE.md` and `docs/DECISIONS.md`.
 
+## Native OLT — Core 0.4.5
+
+`next/modules/olt/` is the first real native provider module and remains a normal lazy add-on, not MU. It starts read-only to prove the connector/runtime architecture against real infrastructure before any provisioning code is migrated.
+
+The OLT manifest advertises `olt-snmp` without loading OLT PHP during discovery. Connections can therefore offer **OLT (SNMP)** from metadata alone.
+
+The first slice supports:
+
+- GPON and EPON
+- SNMPv3 `authPriv` with SHA/DES, matching the current Classic implementation
+- SNMPv2c read-only community
+- encrypted SNMP secrets through `Secret_Store`
+- system name/description identity read
+- RX-power OID walk during an explicit Test connection action
+- cached health/details in `Connection_Health`
+- external SNMP latency recorded as diagnostic performance data
+- cache-first OLT page and `dashboard.summary` contribution
+
+Opening **Connections**, **OLT**, or Dashboard never polls an OLT. The explicit test action is the only live SNMP operation in this phase.
+
+Classic is still the migration safety net. Creating an untested native OLT does not hide the matching Classic card. After the native connection for the same host passes an explicit test and is cached as online, Connections prefers the verified BETA card and suppresses only that duplicate Classic OLT card. No Classic credentials are copied automatically.
+
+Provisioning, ONU writes and deep PON/ONU inventory are intentionally deferred until this read-only connection path is verified against real devices.
+
+See `docs/CONNECTORS.md`, `docs/ARCHITECTURE.md` and `docs/DECISIONS.md`.
+
+## Uniform BETA dialogs — Core 0.4.5
+
+All normal `<dialog class="afcn-dialog">` modals now use one Core-owned responsive frame rather than module-specific dimensions.
+
+Desktop target is 680 × 680 px, constrained by the current viewport. Dialog header and footer stay fixed; only `.afcn-dialog-body` scrolls when a form is taller than the shared frame. Mobile uses the same component with a small viewport gutter.
+
+Modules should not set their own modal width/height. Connections, Users and future OLT/PPP/Billing forms inherit this shared rule automatically.
+
+See `docs/UI-SYSTEM.md`.
+
 ## Lazy module asset portability
 
 Core 0.3.10 fixed the repeated unstyled module screen on Windows-based development hosts. `Assets::module_manifest()` normalizes both module base paths and resolved asset paths with `wp_normalize_path()` before the security containment check.
@@ -139,7 +177,7 @@ Feature module PHP/assets/data are loaded only when a direct page, query, action
 
 MU also does not mean eagerly loaded. MU modules are lifecycle-protected, but their PHP/assets can still remain lazy when the module contract allows it.
 
-`Module_Slots` resolves shared-page contributors from cached manifest metadata. Dashboard exposes `dashboard.summary`; the browser requests each contribution only as it approaches the viewport. Lazy chunk assets are deduplicated and loaded only when that chunk is requested.
+`Module_Slots` resolves shared-page contributors from cached manifest metadata. Dashboard exposes `dashboard.summary`; the browser requests each contribution only as it approaches the viewport. OLT is the first real contributor and its chunk reads only cached native connection state.
 
 See `docs/MODULE-LOADING.md`.
 
@@ -157,11 +195,15 @@ Diagnostic transport/navigation warnings can be handed to the Super Admin Tools 
 
 Active Settings warnings are unresolved events only. A successful in-budget FIX marks the old event resolved instead of deleting it. The original event remains available in the bounded debug history, while any recurrence creates a fresh active warning.
 
+OLT SNMP timing uses the existing external-latency channel so a slow/unreachable OLT does not quarantine otherwise healthy OLT PHP.
+
 See `docs/PERFORMANCE-CONTRACT.md` and `docs/TOOLS-CONSOLE.md`.
 
 ## Connections architecture
 
-Core owns generic `Connector_Registry`, `Connection_Store`, `Secret_Store` and `Connection_Health`. The normal `connections` add-on provides the grouped Hub UI. Existing Classic OLT, MikroTik and Google Sheets entries appear as read-only **CLASSIC** cards without copying credentials.
+Core owns generic `Connector_Registry`, `Connection_Store`, `Secret_Store` and `Connection_Health`. The normal `connections` add-on provides the grouped Hub UI.
+
+OLT is now the first native BETA provider. Existing Classic OLT, MikroTik and Google Sheets entries still appear as read-only **CLASSIC** cards without copying credentials. For OLT, a verified native endpoint suppresses the duplicate Classic card with the same host; untested/failing native setup leaves Classic visible.
 
 See `docs/CONNECTORS.md`.
 
@@ -183,16 +225,25 @@ Runtime ZIP installation and permanent filesystem deletion are not exposed yet. 
 
 Nested business-module/sub-feature permission checkboxes remain deferred until a real use case defines their contract. Future Tools security features such as IP/user blocking require explicit auditing and separate design.
 
+OLT provisioning writes, ONU mutations and full PON/ONU inventory remain deferred until native BETA connection tests are verified on real OLTs.
+
 ## Next work
 
 Do NOT bulk-migrate Classic.
 
-Verify Core 0.4.4 by running FIX against an existing Users warning. If the REST retest comes back inside budget, that warning row should disappear immediately without reloading Settings. If Users is still over budget, the row should remain and the console should explicitly say why.
+Verify Core 0.4.5 on the development installation:
 
-After that verification, build the first real provider module: read-only **OLT**. Use the convention-based module skeleton, advertise OLT connector types, contribute a small cache-first `dashboard.summary` slot, then build cached overview/list and lazy per-OLT/PON/ONU chunks. Provisioning writes come only after the read-only path proves the SDK.
+1. **Connections → Add Connection** should offer **OLT (SNMP)**.
+2. Create a native OLT for the same host as one existing Classic OLT, entering fresh BETA SNMP credentials; do not copy secrets automatically from Classic.
+3. Before the first successful test, both the native BETA card and Classic fallback may remain visible.
+4. Run **Test connection** from the native card. A successful test should mark the native card online and, after the Connections view refreshes, suppress the duplicate Classic OLT card with that host.
+5. Open **OLT** and Dashboard; both must render cached state without causing an SNMP poll.
+6. Check Add/Edit User, Owner and Connection dialogs: all should use the same frame and long forms should scroll only inside the body.
+
+After verification, extend OLT read-only functionality with cached overview/inventory and lazy per-OLT/PON/ONU details. Keep remote reads explicit/background and bounded. Provisioning writes come only after the read-only path proves stable.
 
 ## New-chat handoff
 
 Tell ChatGPT:
 
-> Open `fervillz/AIRFIBER-CENTRALIZED`, read `CONTINUE-HERE.md`, `AGENTS.md`, `docs/README.md`, `docs/MODULE-BASICS.md`, `docs/MODULE-LOADING.md`, `docs/USER-ACCESS.md`, `docs/TOOLS-CONSOLE.md`, `docs/ARCHITECTURE.md`, `docs/CONNECTORS.md`, `docs/MODULE-SDK.md` and `docs/PERFORMANCE-CONTRACT.md`, inspect current `main`, then continue Airfiber Next/BETA work.
+> Open `fervillz/AIRFIBER-CENTRALIZED`, read `CONTINUE-HERE.md`, `AGENTS.md`, `docs/README.md`, `docs/MODULE-BASICS.md`, `docs/MODULE-LOADING.md`, `docs/USER-ACCESS.md`, `docs/TOOLS-CONSOLE.md`, `docs/ARCHITECTURE.md`, `docs/CONNECTORS.md`, `docs/MODULE-SDK.md`, `docs/UI-SYSTEM.md` and `docs/PERFORMANCE-CONTRACT.md`, inspect current `main`, then continue Airfiber Next/BETA work.
