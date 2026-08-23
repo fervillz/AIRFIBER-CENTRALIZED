@@ -5,6 +5,7 @@ namespace Airfiber\Next\Modules\Users;
 use Airfiber\Next\Capabilities;
 use Airfiber\Next\Icon;
 use Airfiber\Next\Module_Contract;
+use Airfiber\Next\Owner_Setup;
 use Airfiber\Next\Tooltip;
 use Airfiber\Next\UI;
 use Airfiber\Next\User_Access;
@@ -18,6 +19,8 @@ class Users_Module implements Module_Contract {
 		$users          = User_Manager::list_users();
 		$roles          = Capabilities::assignable_roles();
 		$is_super_admin = User_Manager::is_super_admin();
+		$owner_setup    = Owner_Setup::can_setup();
+		$current_user   = wp_get_current_user();
 		$modules        = User_Access::assignable_modules( false );
 		$mu_modules     = $is_super_admin ? User_Access::assignable_modules( true ) : array();
 		$mu_modules     = array_filter(
@@ -48,6 +51,23 @@ class Users_Module implements Module_Contract {
 				</div>
 				<button type="button" class="afcn-button afcn-button-primary" data-afcn-dialog-open="afcn-add-user-dialog"><?php esc_html_e( 'Add User', 'airfiber-centralized' ); ?></button>
 			</div>
+
+			<?php if ( $owner_setup ) : ?>
+				<section class="afcn-owner-setup afcn-card" aria-labelledby="afcn-owner-setup-title">
+					<div class="afcn-owner-setup-icon" aria-hidden="true"><?php echo Icon::svg( 'shield' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></div>
+					<div class="afcn-owner-setup-copy">
+						<span class="afcn-user-role-badge is-super"><?php esc_html_e( 'First run', 'airfiber-centralized' ); ?></span>
+						<h2 id="afcn-owner-setup-title"><?php esc_html_e( 'Set up the Airfiber Owner', 'airfiber-centralized' ); ?></h2>
+						<p><?php esc_html_e( 'No Airfiber Super Admin exists yet. Choose one explicit owner now. This is a one-time setup and no default password is stored in the plugin.', 'airfiber-centralized' ); ?></p>
+					</div>
+					<div class="afcn-owner-setup-actions">
+						<form data-afcn-action="setup-owner-current" data-afcn-module="users" data-afcn-confirm="<?php echo esc_attr( sprintf( __( 'Make %s the Airfiber Super Admin?', 'airfiber-centralized' ), $current_user->user_login ) ); ?>">
+							<button type="submit" class="afcn-button afcn-button-primary"><?php echo esc_html( sprintf( __( 'Make %s Super Admin', 'airfiber-centralized' ), $current_user->user_login ) ); ?></button>
+						</form>
+						<button type="button" class="afcn-button afcn-button-secondary" data-afcn-dialog-open="afcn-create-owner-dialog"><?php esc_html_e( 'Create Separate Owner', 'airfiber-centralized' ); ?></button>
+					</div>
+				</section>
+			<?php endif; ?>
 
 			<?php if ( empty( $users ) ) : ?>
 				<div class="afcn-user-empty"><?php esc_html_e( 'No Airfiber users found.', 'airfiber-centralized' ); ?></div>
@@ -94,6 +114,31 @@ class Users_Module implements Module_Contract {
 					</div>
 				</form>
 			</dialog>
+
+			<?php if ( $owner_setup ) : ?>
+				<dialog class="afcn-dialog" id="afcn-create-owner-dialog">
+					<form data-afcn-action="setup-owner-create" data-afcn-module="users">
+						<div class="afcn-dialog-header">
+							<h2><?php esc_html_e( 'Create Airfiber Owner', 'airfiber-centralized' ); ?></h2>
+							<button type="button" class="afcn-icon-button" data-afcn-dialog-close aria-label="<?php esc_attr_e( 'Close', 'airfiber-centralized' ); ?>">×</button>
+						</div>
+						<div class="afcn-dialog-body">
+							<p class="afcn-user-edit-note"><?php esc_html_e( 'This creates a separate WordPress Administrator and designates it as the single Airfiber Super Admin. The suggested username is only a convenience; the password is never hard-coded.', 'airfiber-centralized' ); ?></p>
+							<div class="afcn-form-grid">
+								<?php echo UI::field( 'username', __( 'Owner username', 'airfiber-centralized' ), array( 'value' => Owner_Setup::SUGGESTED_USERNAME, 'required' => true ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+								<?php echo UI::field( 'display_name', __( 'Display name', 'airfiber-centralized' ), array( 'value' => 'Bordocs' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+								<?php echo UI::field( 'email', __( 'Owner email', 'airfiber-centralized' ), array( 'type' => 'email', 'required' => true ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+								<?php echo UI::field( 'password', __( 'Owner password', 'airfiber-centralized' ), array( 'type' => 'password', 'placeholder' => __( 'Leave blank to generate a strong password', 'airfiber-centralized' ) ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+							</div>
+							<p class="afcn-user-access-help"><?php esc_html_e( 'If password is blank, Airfiber generates a strong password and shows it once after creation.', 'airfiber-centralized' ); ?></p>
+						</div>
+						<div class="afcn-dialog-footer">
+							<button type="button" class="afcn-button afcn-button-secondary" data-afcn-dialog-close><?php esc_html_e( 'Cancel', 'airfiber-centralized' ); ?></button>
+							<button type="submit" class="afcn-button afcn-button-primary"><?php esc_html_e( 'Create Owner', 'airfiber-centralized' ); ?></button>
+						</div>
+					</form>
+				</dialog>
+			<?php endif; ?>
 
 			<dialog class="afcn-dialog" id="afcn-edit-user-dialog">
 				<form data-afcn-action="update-user" data-afcn-module="users">
@@ -226,6 +271,12 @@ class Users_Module implements Module_Contract {
 	}
 
 	public static function handle_action( $action, $payload = array() ) {
+		if ( 'setup-owner-current' === $action ) {
+			return Owner_Setup::promote_current_user();
+		}
+		if ( 'setup-owner-create' === $action ) {
+			return Owner_Setup::create_owner( $payload );
+		}
 		if ( 'create-user' === $action ) {
 			$result = User_Manager::create_user( $payload );
 			if ( is_wp_error( $result ) ) { return $result; }
