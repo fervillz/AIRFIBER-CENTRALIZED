@@ -30,6 +30,8 @@ A developer should be able to understand the file's purpose from its filename.
 - Modules use Core components first; module-specific CSS/JS should be the exception.
 - BETA dialogs use the shared Core `.afcn-dialog` frame. Do not introduce module-specific dialog width/height; put overflow content in `.afcn-dialog-body` so the shared body scrolling works.
 - Dialog header close buttons use the existing `.afcn-icon-button` with `data-afcn-dialog-close`. Do not create `afcn-dialog-close` or module-specific close-button classes; Core owns the shared close-control appearance.
+- Connector-specific form visibility belongs in manifest field metadata such as simple `show_when` equality rules. Connections owns the generic renderer/runtime; do not hard-code OLT/MikroTik/provider field names into the Connections module.
+- A dialog **Connect** probe may test sanitized current form values without persisting them. Do not mark saved connection health from an unsaved form probe.
 - **Installed does not mean loaded. Active does not mean loaded.**
 - Unopened modules must have near-zero runtime cost.
 - Module PHP, optional CSS/JS, data and external network work are lazy/on-demand.
@@ -48,8 +50,9 @@ A developer should be able to understand the file's purpose from its filename.
 - Native OLT configuration belongs in `Connection_Store`; credentials belong in `Secret_Store`; cached status/details belong in `Connection_Health`.
 - Do not copy or decrypt Classic OLT credentials into BETA automatically.
 - Opening Connections, OLT, Dashboard or a shared slot must not trigger SNMP/network fan-out.
-- Live OLT reads must be explicit or bounded background work. The first slice permits live SNMP only for explicit connection testing.
-- Keep the Classic OLT bridge visible until a matching native endpoint has passed an explicit BETA health test. Only then may the duplicate Classic card be suppressed.
+- Live OLT reads must be explicit or bounded background work. The first slice permits live SNMP only for explicit connection testing/probing.
+- Preserve the proven Classic GPON SNMPv2c bounded GETNEXT behavior in the native OLT transport. Some V1600G-family firmware answers GET/GETNEXT but stalls on GETBULK/real-walk requests.
+- Keep the Classic OLT bridge visible until a matching native endpoint has passed an explicit saved BETA health test. Only then may the duplicate Classic card be suppressed.
 - Do not add ONU provisioning/mutation until the native read-only connection and inventory path is proven against real devices.
 - Keep OLT/SNMP/vendor knowledge in the OLT module, not Core or the Connections UI.
 
@@ -62,7 +65,7 @@ A developer should be able to understand the file's purpose from its filename.
 - `User_Access` may restrict normal feature-module visibility per user; the module runtime must enforce that policy, not only hide navigation markup.
 - MU/Core pages remain capability-driven. The Modules-screen MU inventory is Super-Admin-only.
 - Super Admin always sees all enabled modules and cannot have Core access disabled from the Users UI.
-- Modules requiring `afcn_super_admin` are developer-authority modules. Normal Admins must not see them in navigation, module inventory, or user-visibility checkboxes.
+- Modules requiring `afcn_super_admin` are developer-authority modules. Normal Admins must not see them in navigation, module inventory, or per-user visibility checkboxes.
 - Keep the reserved nested `areas` visibility model unused until a real business module requires submenu/sub-feature visibility; do not invent broad permission complexity early.
 
 ## Developer Tools rules
