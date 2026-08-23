@@ -11,6 +11,7 @@ use Airfiber\Next\Module_Registry;
 use Airfiber\Next\Module_Trash;
 use Airfiber\Next\Module_Updates;
 use Airfiber\Next\Tooltip;
+use Airfiber\Next\User_Manager;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -20,7 +21,9 @@ class Modules_Module implements Module_Contract {
 	const PAGE_SIZE      = 30;
 
 	public static function render( $context = array() ) {
-		$statuses = self::decorate_statuses( Module_Manager::statuses() );
+		$show_mu  = User_Manager::is_super_admin();
+		$statuses = self::visible_statuses( Module_Manager::statuses(), $show_mu );
+		$statuses = self::decorate_statuses( $statuses );
 		$counts   = self::counts( $statuses );
 		$use_ajax = count( $statuses ) > self::AJAX_THRESHOLD;
 		$initial  = $use_ajax ? self::browser_page( $statuses, 'all', '', 1 ) : array(
@@ -35,15 +38,25 @@ class Modules_Module implements Module_Contract {
 			'update'        => __( 'Update Available', 'airfiber-centralized' ),
 			'auto-disabled' => __( 'Auto-updates Disabled', 'airfiber-centralized' ),
 			'trash'         => __( 'Trash', 'airfiber-centralized' ),
-			'mu'            => __( 'MU', 'airfiber-centralized' ),
 		);
+		if ( $show_mu ) {
+			$filters['mu'] = __( 'MU', 'airfiber-centralized' );
+		}
 
 		ob_start();
 		?>
 		<div class="afcn-page-head">
 			<div>
 				<h1 class="afcn-page-title"><?php esc_html_e( 'Modules', 'airfiber-centralized' ); ?></h1>
-				<p class="afcn-page-description"><?php esc_html_e( 'Installable modules stay separate from must-use Core components. Module code and optional assets still load only when needed.', 'airfiber-centralized' ); ?></p>
+				<p class="afcn-page-description">
+					<?php
+					if ( $show_mu ) {
+						esc_html_e( 'Installable modules stay separate from must-use Core components. Module code and optional assets still load only when needed.', 'airfiber-centralized' );
+					} else {
+						esc_html_e( 'Manage installed Airfiber add-ons. Module code and optional assets load only when needed.', 'airfiber-centralized' );
+					}
+					?>
+				</p>
 			</div>
 			<form data-afcn-action="refresh-registry" data-afcn-module="modules">
 				<button type="submit" class="afcn-button afcn-button-secondary"><?php esc_html_e( 'Refresh Registry', 'airfiber-centralized' ); ?></button>
@@ -90,22 +103,40 @@ class Modules_Module implements Module_Contract {
 			return new \WP_Error( 'afcn_modules_query', __( 'Unknown modules query.', 'airfiber-centralized' ), array( 'status' => 404 ) );
 		}
 
-		$filter = isset( $payload['filter'] ) ? sanitize_key( $payload['filter'] ) : 'all';
-		$search = isset( $payload['search'] ) ? sanitize_text_field( wp_unslash( $payload['search'] ) ) : '';
-		$page   = isset( $payload['page'] ) ? max( 1, absint( $payload['page'] ) ) : 1;
-		if ( ! in_array( $filter, self::filter_ids(), true ) ) {
+		$show_mu = User_Manager::is_super_admin();
+		$filter  = isset( $payload['filter'] ) ? sanitize_key( $payload['filter'] ) : 'all';
+		$search  = isset( $payload['search'] ) ? sanitize_text_field( wp_unslash( $payload['search'] ) ) : '';
+		$page    = isset( $payload['page'] ) ? max( 1, absint( $payload['page'] ) ) : 1;
+		if ( ! in_array( $filter, self::filter_ids( $show_mu ), true ) ) {
 			$filter = 'all';
 		}
 
-		$statuses       = self::decorate_statuses( Module_Manager::statuses() );
+		$statuses       = self::visible_statuses( Module_Manager::statuses(), $show_mu );
+		$statuses       = self::decorate_statuses( $statuses );
 		$result         = self::browser_page( $statuses, $filter, $search, $page );
 		$result['html'] = self::render_cards_html( $result['items'] );
 		unset( $result['items'] );
 		return $result;
 	}
 
-	private static function filter_ids() {
-		return array( 'all', 'active', 'inactive', 'update', 'auto-disabled', 'trash', 'mu' );
+	private static function filter_ids( $include_mu = false ) {
+		$filters = array( 'all', 'active', 'inactive', 'update', 'auto-disabled', 'trash' );
+		if ( $include_mu ) {
+			$filters[] = 'mu';
+		}
+		return $filters;
+	}
+
+	private static function visible_statuses( $statuses, $include_mu ) {
+		if ( $include_mu ) {
+			return $statuses;
+		}
+		foreach ( $statuses as $id => $status ) {
+			if ( ! empty( $status['meta']['system'] ) ) {
+				unset( $statuses[ $id ] );
+			}
+		}
+		return $statuses;
 	}
 
 	private static function decorate_statuses( $statuses ) {
@@ -218,7 +249,6 @@ class Modules_Module implements Module_Contract {
 
 		$health_text  = ucfirst( (string) $health['status'] );
 		$health_label = sprintf(
-			/* translators: 1: health state, 2: p50 milliseconds, 3: p95 milliseconds, 4: max queries */
 			__( '%1$s · p50 %2$s ms · p95 %3$s ms · %4$s max queries', 'airfiber-centralized' ),
 			$health_text,
 			$health['p50_ms'],
@@ -228,9 +258,7 @@ class Modules_Module implements Module_Contract {
 		?>
 		<article class="<?php echo esc_attr( implode( ' ', $classes ) ); ?>" data-afcn-module-card data-afcn-groups="<?php echo esc_attr( $groups ); ?>" data-afcn-search="<?php echo esc_attr( $search ); ?>"<?php echo $hide_mu_initially && $is_mu ? ' hidden' : ''; ?>>
 			<div class="afcn-module-card-head">
-				<div class="afcn-module-card-icon" aria-hidden="true">
-					<?php echo Icon::svg( $icon ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
-				</div>
+				<div class="afcn-module-card-icon" aria-hidden="true"><?php echo Icon::svg( $icon ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></div>
 				<div class="afcn-module-card-badges">
 					<?php if ( $is_mu ) : ?>
 						<span class="afcn-module-card-badge is-mu"><?php esc_html_e( 'MU', 'airfiber-centralized' ); ?></span>
@@ -270,11 +298,9 @@ class Modules_Module implements Module_Contract {
 					} else {
 						echo self::action_form( $id, 'toggle', 'check', __( 'Activate', 'airfiber-centralized' ), array( 'enabled' => '1' ), 'is-success' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
 					}
-
 					if ( ! empty( $module['settings'] ) ) {
 						echo self::settings_control( $module['settings'] ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
 					}
-
 					if ( ! $enabled ) {
 						echo self::action_form( $id, 'trash', 'trash', __( 'Move to Trash', 'airfiber-centralized' ), array(), 'is-danger' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
 					}
@@ -312,7 +338,7 @@ class Modules_Module implements Module_Contract {
 	}
 
 	public static function handle_action( $action, $payload = array() ) {
-		if ( ! current_user_can( 'manage_options' ) && ! current_user_can( Capabilities::MANAGE_MODULES ) ) {
+		if ( ! User_Manager::is_super_admin() && ! current_user_can( 'manage_options' ) && ! current_user_can( Capabilities::MANAGE_MODULES ) ) {
 			return new \WP_Error( 'afcn_forbidden', __( 'You cannot manage modules.', 'airfiber-centralized' ), array( 'status' => 403 ) );
 		}
 
@@ -321,9 +347,7 @@ class Modules_Module implements Module_Contract {
 		if ( 'toggle' === $action ) {
 			$enabled = ! empty( $payload['enabled'] ) && '0' !== (string) $payload['enabled'];
 			$result  = Module_Manager::set_enabled( $module_id, $enabled );
-			if ( is_wp_error( $result ) ) {
-				return $result;
-			}
+			if ( is_wp_error( $result ) ) { return $result; }
 			$result['message']     = $enabled ? __( 'Module activated.', 'airfiber-centralized' ) : __( 'Module deactivated.', 'airfiber-centralized' );
 			$result['refresh_nav'] = true;
 			return $result;
@@ -331,19 +355,11 @@ class Modules_Module implements Module_Contract {
 
 		if ( 'trash' === $action ) {
 			$module = Module_Registry::get( $module_id );
-			if ( ! $module ) {
-				return new \WP_Error( 'afcn_module_missing', __( 'Module not found.', 'airfiber-centralized' ), array( 'status' => 404 ) );
-			}
-			if ( ! empty( $module['system'] ) ) {
-				return new \WP_Error( 'afcn_mu_module', __( 'Core MU components cannot be moved to Trash.', 'airfiber-centralized' ), array( 'status' => 400 ) );
-			}
-			if ( Module_Manager::is_enabled( $module_id, $module ) ) {
-				return new \WP_Error( 'afcn_module_active', __( 'Deactivate this module before moving it to Trash.', 'airfiber-centralized' ), array( 'status' => 409 ) );
-			}
+			if ( ! $module ) { return new \WP_Error( 'afcn_module_missing', __( 'Module not found.', 'airfiber-centralized' ), array( 'status' => 404 ) ); }
+			if ( ! empty( $module['system'] ) ) { return new \WP_Error( 'afcn_mu_module', __( 'Core MU components cannot be moved to Trash.', 'airfiber-centralized' ), array( 'status' => 400 ) ); }
+			if ( Module_Manager::is_enabled( $module_id, $module ) ) { return new \WP_Error( 'afcn_module_active', __( 'Deactivate this module before moving it to Trash.', 'airfiber-centralized' ), array( 'status' => 409 ) ); }
 			$result = Module_Trash::trash( $module_id );
-			if ( is_wp_error( $result ) ) {
-				return $result;
-			}
+			if ( is_wp_error( $result ) ) { return $result; }
 			return array( 'message' => __( 'Module moved to Trash.', 'airfiber-centralized' ) );
 		}
 
@@ -360,10 +376,7 @@ class Modules_Module implements Module_Contract {
 		if ( 'refresh-registry' === $action ) {
 			Module_Registry::invalidate();
 			Module_Registry::all( true );
-			return array(
-				'message'     => __( 'Module registry refreshed from disk.', 'airfiber-centralized' ),
-				'refresh_nav' => true,
-			);
+			return array( 'message' => __( 'Module registry refreshed from disk.', 'airfiber-centralized' ), 'refresh_nav' => true );
 		}
 
 		return new \WP_Error( 'afcn_unknown_action', __( 'Unknown module action.', 'airfiber-centralized' ), array( 'status' => 400 ) );
