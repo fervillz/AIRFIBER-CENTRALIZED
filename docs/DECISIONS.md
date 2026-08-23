@@ -110,13 +110,13 @@ Reason: an Administrator can have administrative authority while still receiving
 
 Selecting every available normal module stores no restrictive policy, so newly installed modules remain visible by default. Nested/submenu visibility is reserved in the policy model but deferred until a real module needs it.
 
-## 2026-08-23 — Developer Tools is a normal lazy module in a Core utility drawer
+## 2026-08-23 — Developer Tools is an MU module in a Core utility drawer
 
-Decision: the developer console lives in the normal `tools` module, while Core only provides generic `parent` navigation metadata and a `drawer` presentation primitive. Tools is nested under Settings and is visible/loadable only to the explicit Airfiber Super Admin.
+Decision: the developer console lives physically in `next/modules/mu/tools/`, while Core only provides generic `parent` navigation metadata and a `drawer` presentation primitive. Tools is nested under Settings and is visible/loadable only to the explicit Airfiber Super Admin.
 
-Reason: developer diagnostics should not become a permanent Core business feature or a normal buyer/admin navigation item. Keeping Tools as a module lets its PHP/CSS/JS remain lazy while the reusable drawer primitive can serve future utility modules.
+Reason: Tools is part of Airfiber's developer/diagnostic control plane and should not be activatable, deactivatable, trashed or deleted like a normal customer feature module. Physical MU placement gives it that lifecycle protection while the existing lazy runtime still prevents its PHP/CSS/JS from loading until the Super Admin actually opens it.
 
-Normal Administrators do not receive the Tools navigation item, Tools module inventory entry, utility runtime, or performance FIX action.
+Normal Administrators do not receive the Tools navigation item, Tools MU inventory, utility runtime, or performance FIX action.
 
 ## 2026-08-23 — Performance FIX does not self-modify production source code
 
