@@ -83,10 +83,12 @@ class User_Access {
 
 	/**
 	 * Modules that may be exposed in the visibility editor.
+	 *
+	 * Developer/Super-Admin modules are authority-only and are intentionally not
+	 * exposed as visibility checkboxes for any target user.
 	 */
 	public static function assignable_modules( $include_mu = false ) {
-		$output         = array();
-		$current_super = Capabilities::is_super_admin_user();
+		$output = array();
 		foreach ( Module_Registry::all() as $id => $module ) {
 			if ( Module_Trash::is_trashed( $id ) || ! Module_Manager::is_enabled( $id, $module ) || ! Module_Manager::dependencies_met( $module ) ) {
 				continue;
@@ -94,7 +96,7 @@ class User_Access {
 			if ( ! $include_mu && ! empty( $module['system'] ) ) {
 				continue;
 			}
-			if ( ! $current_super && isset( $module['capability'] ) && Capabilities::SUPER_ADMIN === $module['capability'] ) {
+			if ( isset( $module['capability'] ) && Capabilities::SUPER_ADMIN === $module['capability'] ) {
 				continue;
 			}
 			$output[ $id ] = $module;
