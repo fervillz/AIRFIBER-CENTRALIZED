@@ -70,6 +70,20 @@ Supported field types are `text`, `password`, `number`, `email`, `url`, `select`
 
 `display` may be `endpoint` or `meta` for non-secret fields. Secret fields are never used as card display values.
 
+A field may use one simple equality condition so a connector form shows only fields relevant to the selected mode:
+
+```json
+{
+  "key": "community",
+  "label": "SNMPv2c Community",
+  "type": "password",
+  "secret": true,
+  "show_when": {"field":"version","value":"2c"}
+}
+```
+
+`show_when` is intentionally small: one controlling field and one expected value. Do not put business logic or an expression language in connector manifests. Hidden conditional fields are disabled in the browser; on edit, omitted conditional values keep their previously saved value.
+
 ## Stored records
 
 `Connection_Store` keeps only generic, non-secret data:
@@ -119,9 +133,9 @@ Supported states include `online`, `offline`, `warning`, `unconfigured`, `error`
 
 The Connections UI normalizes these into user-facing card states without forcing a live check.
 
-## Test contract
+## Test and form-probe contract
 
-If a connector declares `test_action`, the Connections Hub lazy-loads the owning feature module and calls that module action with:
+If a connector declares `test_action`, the Connections Hub lazy-loads the owning feature module and calls that module action for a normal saved connection test with:
 
 ```php
 array( 'connection_id' => $connection_id )
@@ -140,26 +154,32 @@ array(
 
 The provider obtains non-secret config from `Connection_Store` and credentials from `Secret_Store`. Provider-specific network work stays in the provider module.
 
-## First native OLT connector — Core 0.4.5
+Connections may also expose a **Connect** button inside Add/Edit dialogs. That button probes the current sanitized form values without persisting them. For an edit, blank secret fields may fall back to the already encrypted saved secret. A successful form probe changes the button to **Connected** for the current form state; changing a field resets it to **Connect**. Form probes do not rewrite `Connection_Health`, because unsaved values must not be presented as the health of the saved connection.
+
+## First native OLT connector — Core 0.4.7
 
 `next/modules/olt/` is the first real provider module proving the connector contract. It advertises `olt-snmp` from manifest metadata and reuses the proven Classic OLT SNMP model without calling Classic classes during native operation.
 
-The initial native OLT scope is deliberately read-only:
+The native OLT scope remains deliberately read-only:
 
 - GPON or EPON
 - SNMPv3 authPriv using SHA/DES, matching the current Classic implementation
 - SNMPv2c read-only community support
+- SNMP-version-aware form fields: v2c shows Community; v3 shows Username/Auth/Privacy
 - system name/description identity read
-- configured/default RX-power OID walk during an explicit **Test connection** action
+- configured/default RX-power OID walk during an explicit connection test/probe
 - encrypted credentials through `Secret_Store`
 - cached connection status/details through `Connection_Health`
 - external SNMP latency recorded as diagnostic performance data
+- Classic-compatible bounded GETNEXT fallback for GPON SNMPv2c firmware that responds to GET/GETNEXT but stalls on GETBULK/`real_walk`
+
+The GPON fallback is important for the V1600G-family behavior already handled by Classic. BETA keeps this transport workaround inside the OLT provider rather than Core.
 
 Opening **Connections**, **OLT**, or Dashboard does not poll the device. OLT pages and the `dashboard.summary` slot render from `Connection_Store` + `Connection_Health` only.
 
-Classic OLT cards remain as a migration safety net. When a native BETA OLT with the same host has passed a successful explicit connection test, Connections prefers that verified native card and stops showing the duplicate Classic OLT card. A failed or untested native setup does not hide Classic.
+Classic OLT cards remain as a migration safety net. When a native BETA OLT with the same host has passed a successful explicit saved connection test, Connections prefers that verified native card and stops showing the duplicate Classic OLT card. A failed or untested native setup does not hide Classic.
 
-This first slice does **not** provision ONUs or copy Classic credentials. Provisioning and deeper PON/ONU inventory come only after the native read-only connection path is verified.
+This slice does **not** provision ONUs or copy Classic credentials. Provisioning and deeper PON/ONU inventory come only after the native read-only connection path is verified.
 
 ## Connections Hub grouping
 
