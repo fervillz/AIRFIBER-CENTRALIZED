@@ -92,14 +92,35 @@
 			await window.AirfiberNext.request('module/' + encodeURIComponent(context.module));
 			const requestMs = performance.now() - started;
 			const budget = Number(diagnosis.budget || 500);
-			if (budget > 0 && requestMs > budget) {
+			const withinBudget = budget <= 0 || requestMs <= budget;
+			if (!withinBudget) {
 				log(root, 'REST retest: ' + requestMs.toFixed(2) + ' ms — still above ' + budget.toFixed(2) + ' ms budget.', 'warning');
 			} else {
 				log(root, 'REST retest: ' + requestMs.toFixed(2) + ' ms — within the current budget.', 'success');
 			}
-			return true;
+			return { ok: true, withinBudget: withinBudget, requestMs: requestMs, budget: budget };
 		} catch (error) {
 			log(root, 'REST retest failed: ' + (error.message || 'Unknown error.'), 'error');
+			return { ok: false, withinBudget: false };
+		}
+	}
+
+	async function resolveWarning(root, context, retestResult) {
+		if (!context.warning || !retestResult.ok || !retestResult.withinBudget) {
+			return false;
+		}
+
+		try {
+			await window.AirfiberNext.action('tools', 'resolve-performance-warning', {
+				warning: context.warning
+			});
+			document.dispatchEvent(new CustomEvent('afcn:performance-warning:resolved', {
+				detail: { id: context.warning }
+			}));
+			log(root, 'Original warning marked resolved. It will return only if a new slow sample is recorded.', 'success');
+			return true;
+		} catch (error) {
+			log(root, 'Retest passed, but the old warning could not be marked resolved: ' + (error.message || 'Unknown error.'), 'warning');
 			return false;
 		}
 	}
@@ -119,7 +140,7 @@
 		try {
 			const diagnosis = await diagnose(root, context);
 			const optimized = await optimize(root, context);
-			const retestOk = await retest(root, context, diagnosis);
+			const retestResult = await retest(root, context, diagnosis);
 
 			log(root, '4/4 Producing next-step recommendations…', 'info');
 			const recommendations = (diagnosis.recommendations || []).concat(optimized.recommendations || []);
@@ -130,10 +151,13 @@
 				log(root, 'Recommendation: collect another real navigation sample before changing code structure.', 'muted');
 			}
 
-			if (retestOk) {
-				log(root, 'FIX session complete. Navigate to the module normally to collect the next real navigation sample.', 'success');
+			if (retestResult.ok && retestResult.withinBudget) {
+				await resolveWarning(root, context, retestResult);
+				log(root, 'FIX session complete. A new warning will appear automatically if the issue happens again.', 'success');
+			} else if (retestResult.ok) {
+				log(root, 'FIX session finished, but the warning remains open because the retest is still above budget.', 'warning');
 			} else {
-				log(root, 'FIX session finished with a REST error. Review the lines above before changing module code.', 'warning');
+				log(root, 'FIX session finished with a REST error. The warning remains open.', 'warning');
 			}
 		} catch (error) {
 			log(root, 'FIX stopped unexpectedly: ' + (error.message || 'Unknown error.'), 'error');
