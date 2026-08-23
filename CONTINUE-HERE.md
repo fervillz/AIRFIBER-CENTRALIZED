@@ -8,7 +8,7 @@ Build Airfiber Next/BETA as an isolated, very fast application platform inside t
 
 BETA URL: `/airfiber-beta/`.
 
-Airfiber Next Core version: **0.3.7**.
+Airfiber Next Core version: **0.3.8**.
 
 ## Boundary
 
@@ -30,9 +30,9 @@ Classic stays in `includes/`, `templates/`, and `assets/`. Next/BETA lives in `n
 - Core MU components: Dashboard, Users, Modules, Settings
 - normal Connections add-on with Classic read-only connector bridge
 
-## User access model — Core 0.3.7
+## User access model
 
-Authority and visibility are now separate.
+Authority and visibility are separate.
 
 - **Super Admin** is explicit owner/developer authority and is not automatically granted to the WordPress `administrator` role.
 - WordPress Administrators remain normal Airfiber Administrators by default.
@@ -43,7 +43,9 @@ Authority and visibility are now separate.
 - MU/Core pages remain capability-driven; the visibility UI does not let normal Admins manipulate Core/MU access.
 - the policy reserves an `areas` key for future nested/submenu visibility, but module-level visibility is the only stable contract now.
 
-The Users MU screen is now card-first using the same 150×150 visual language as Modules, with icon role pills and icon-only hover actions. A list icon beside the title toggles between cards and a File-Explorer-style list; the choice is stored locally in the browser. Users CSS/JS are declared in the Users manifest and load only when Users opens.
+The Users MU screen is card-first using the same 150×150 visual language as Modules, with icon role pills and icon-only hover actions. A list icon beside the title toggles between cards and a File-Explorer-style list; the choice is stored locally in the browser. Users CSS/JS are declared in the Users manifest and load only when Users opens.
+
+Core 0.3.8 forces the compiled module registry to rebuild so the new Users lazy CSS/JS declaration cannot remain stuck behind an older cached manifest. Module asset URLs now include both the Core version and file modification time, so deployments reliably invalidate stale feature CSS/JS while keeping assets lazy.
 
 Super Admin is never created as a hidden account/backdoor. A local deployment explicitly designates it, for example:
 
@@ -96,6 +98,8 @@ See `docs/CONNECTORS.md`.
 An unopened module costs almost nothing beyond cached manifest metadata. External device/network latency cannot quarantine a module. Secrets never belong in manifests, browser bootstrap data, logs or task payloads. Do not weaken a performance budget just to hide a warning.
 
 Do not introduce broad feature-module bootstrap hooks that run on every Airfiber request. Prefer explicit Core loading triggers and manifest metadata.
+
+When a module manifest changes during BETA development, bump the relevant module version and Core version (or manually Refresh Registry) so compiled metadata is intentionally invalidated. Do not move feature CSS/JS into Core merely to avoid registry refreshes; feature assets should remain lazy.
 
 ## Intentionally deferred
 
