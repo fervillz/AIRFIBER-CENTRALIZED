@@ -2,7 +2,9 @@
 
 namespace Airfiber\Next\Modules\Tools;
 
+use Airfiber\Next\Audit_Log;
 use Airfiber\Next\Capabilities;
+use Airfiber\Next\Debug_Logger;
 use Airfiber\Next\Icon;
 use Airfiber\Next\Module_Contract;
 
@@ -76,6 +78,10 @@ class Tools_Module implements Module_Contract {
 			return Performance_Doctor::optimize( isset( $payload['module'] ) ? $payload['module'] : '' );
 		}
 
+		if ( 'resolve-performance-warning' === $action ) {
+			return self::resolve_performance_warning( $payload );
+		}
+
 		return new \WP_Error( 'afcn_tools_action_unknown', __( 'Unknown Tools action.', 'airfiber-centralized' ), array( 'status' => 400 ) );
 	}
 
@@ -92,6 +98,24 @@ class Tools_Module implements Module_Contract {
 			isset( $payload['module'] ) ? $payload['module'] : '',
 			isset( $payload['phase'] ) ? $payload['phase'] : '',
 			isset( $payload['cause'] ) ? $payload['cause'] : ''
+		);
+	}
+
+	private static function resolve_performance_warning( $payload ) {
+		$payload  = is_array( $payload ) ? $payload : array();
+		$event_id = isset( $payload['warning'] ) ? sanitize_key( $payload['warning'] ) : '';
+		if ( '' === $event_id ) {
+			return new \WP_Error( 'afcn_tools_warning_missing', __( 'The performance warning identifier is missing.', 'airfiber-centralized' ), array( 'status' => 400 ) );
+		}
+
+		if ( ! Debug_Logger::resolve( $event_id ) ) {
+			return new \WP_Error( 'afcn_tools_warning_not_found', __( 'The performance warning could not be resolved.', 'airfiber-centralized' ), array( 'status' => 404 ) );
+		}
+
+		Audit_Log::record( 'performance_warning_resolved', $event_id );
+		return array(
+			'resolved' => $event_id,
+			'message'  => __( 'Performance warning marked resolved.', 'airfiber-centralized' ),
 		);
 	}
 }
