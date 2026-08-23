@@ -103,12 +103,14 @@ The data model reserves an `areas` map for future nested/submenu visibility, but
 
 ## Developer Tools
 
-Core 0.4.0 adds a normal `tools` module that is available only to the explicit Super Admin. It is nested under **Settings → Tools** and opens as a fixed right-side utility drawer rather than replacing the main Airfiber page.
+Core 0.4.2 stores Tools as a **must-use module** under `next/modules/mu/tools/`. It is available only to the explicit Super Admin, is nested under **Settings → Tools**, and opens as a fixed right-side utility drawer rather than replacing the main Airfiber page.
+
+Because Tools is MU, it cannot be activated, deactivated, trashed or deleted through the normal Modules lifecycle. It still follows the lazy runtime contract: its PHP/CSS/JS does not load until the Super Admin opens Tools or starts a FIX workflow.
 
 Normal Administrators do not receive:
 
 - the Tools submenu
-- the Tools module in module inventory
+- the Tools MU inventory
 - the utility drawer JavaScript runtime
 - performance warning FIX buttons
 
