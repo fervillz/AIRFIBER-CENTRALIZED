@@ -58,7 +58,7 @@ Core resolves eligible contributors from the compiled manifest registry without 
 
 Chunk responses include the owning module's optional asset manifest. Core deduplicates and loads those assets before inserting the chunk, then emits `afcn:chunk:loaded`.
 
-The Dashboard exposes `dashboard.summary` as the first shared slot. This allows OLT, PPP, Billing and future modules to contribute small cached summary cards without making Dashboard depend on those modules.
+The Dashboard exposes `dashboard.summary` as the first shared slot. OLT is the first real provider to use it: its summary reads only stored connection records and cached health, so Dashboard never performs an OLT network request.
 
 See `docs/MODULE-LOADING.md`.
 
@@ -117,7 +117,13 @@ The normal `connections` add-on supplies the central grouped card UI. It does no
 
 Connection credentials are stored separately through `Secret_Store`. Connection configuration and cached health are separate records so status refreshes never rewrite credentials/settings.
 
-While Classic remains active, the BETA Connections Hub exposes existing Classic OLT, MikroTik and Google Sheets entries as read-only CLASSIC cards. No credentials are copied and management links back to Classic until the relevant feature has a native BETA module.
+### First provider: native OLT
+
+`next/modules/olt/` is the first real provider module. It advertises a read-only `olt-snmp` connector, keeps SNMP behavior inside the OLT module, records secrets through `Secret_Store`, and writes only generic cached status/details through the Connections test contract. External SNMP latency is diagnostic rather than an actionable module-code failure.
+
+The OLT page, Connections page and Dashboard summary remain cache-first. Remote SNMP work occurs only after an explicit Test connection action in this first slice.
+
+While Classic remains active, Connections still exposes existing Classic OLT, MikroTik and Google Sheets entries as read-only CLASSIC cards. For OLT migration specifically, Classic remains visible until a native connection with the same host passes its BETA test; then the verified native card replaces only that duplicate Classic card. No Classic credentials are copied automatically.
 
 See `docs/CONNECTORS.md` for the provider contract and security rules.
 
@@ -129,7 +135,7 @@ The queue contract is intentionally runner-agnostic so a dedicated worker can re
 
 ## Data and external devices
 
-Use `Cache` for cache-first/stale-while-refresh behavior, `Module_Options` for per-module settings, and `HTTP_Client` so remote latency is measured separately from PHP performance.
+Use `Cache` for cache-first/stale-while-refresh behavior, `Module_Options` for per-module settings, and `HTTP_Client` for measured HTTP/API requests. Non-HTTP providers such as OLT SNMP record their remote duration through `Performance_Monitor::record_external()` so the same diagnostic isolation rule applies.
 
 Connection pages should render from stored/cached state first. Opening a page must not fan out to every OLT, MikroTik or cloud API.
 
