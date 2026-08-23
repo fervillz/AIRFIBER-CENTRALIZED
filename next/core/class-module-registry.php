@@ -6,7 +6,7 @@ defined( 'ABSPATH' ) || exit;
 
 class Module_Registry {
 	const OPTION_CACHE = 'afcn_module_registry_v1';
-	const CACHE_SCHEMA = 5;
+	const CACHE_SCHEMA = 6;
 
 	private static $modules = null;
 
