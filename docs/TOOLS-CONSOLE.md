@@ -1,6 +1,8 @@
 # Airfiber Next Tools Console
 
-The **Tools** module is a normal Airfiber module presented as a fixed right-side utility drawer. It is available only to the explicit Airfiber Super Admin.
+The **Tools** module is a must-use Airfiber module stored under `next/modules/mu/tools/`. It is presented as a fixed right-side utility drawer and is available only to the explicit Airfiber Super Admin.
+
+Tools is MU because it is part of the platform's developer/diagnostic control plane. It cannot be activated, deactivated, trashed or deleted from the normal Modules lifecycle. MU does **not** mean eagerly loaded: its PHP/CSS/JS remains lazy and is loaded only when the Super Admin opens Tools or starts a FIX workflow.
 
 ## Purpose
 
@@ -10,13 +12,13 @@ The first workflow is performance remediation from **Settings → Recent perform
 
 1. Super Admin clicks **FIX** on a warning.
 2. Core opens the Tools drawer from right to left.
-3. The Tools module loads lazily.
+3. The Tools MU module loads lazily.
 4. The console inspects module health, budgets and lazy assets.
 5. It performs safe runtime warm-up/verification.
 6. It retests the module REST request through AJAX.
 7. It prints recommendations for any remaining structural work.
 
-Normal Administrators do not receive the Tools navigation item, utility runtime, or FIX buttons.
+Normal Administrators do not receive the Tools navigation item, utility runtime, FIX buttons or MU inventory.
 
 ## Safe automation boundary
 
@@ -35,15 +37,18 @@ Code restructuring remains a developer action because self-modifying production 
 
 ## Module metadata
 
-Tools demonstrates two generic manifest fields introduced in Core 0.4.0:
+Tools uses the same lightweight manifest contract as other Airfiber modules:
 
 ```json
 {
   "name": "Tools",
   "parent": "settings",
-  "presentation": "drawer"
+  "presentation": "drawer",
+  "capability": "afcn_super_admin"
 }
 ```
+
+Its **physical location** under `next/modules/mu/` makes it MU. A manifest cannot promote a normal module to MU.
 
 `parent` nests a module under another visible navigation module.
 
@@ -52,11 +57,11 @@ Tools demonstrates two generic manifest fields introduced in Core 0.4.0:
 - `page` — normal main-stage module page (default)
 - `drawer` — fixed right-side utility drawer
 
-These are generic Core navigation/presentation primitives; Core does not contain Tools-specific module logic.
+These are generic Core navigation/presentation primitives; Core does not contain Tools-specific diagnostic logic.
 
 ## Performance
 
-The drawer shell and its interaction CSS are part of the small Core UI system, but the Tools module PHP/CSS/JS remains lazy.
+The drawer shell and its interaction CSS are part of the small Core UI system, but the Tools MU module PHP/CSS/JS remains lazy.
 
 The additional Core `utility.js` runtime is enqueued only for an explicit Super Admin session. Normal customer/admin sessions do not download it.
 
