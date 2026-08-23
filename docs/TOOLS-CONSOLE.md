@@ -20,6 +20,14 @@ The first workflow is performance remediation from **Settings → Recent perform
 
 Normal Administrators do not receive the Tools navigation item, utility runtime, FIX buttons or MU inventory.
 
+## FIX request flow
+
+The browser console runs its own diagnostic commands through the module **action** endpoint. `handle_action()` is part of the required module contract, so this avoids making the FIX workflow depend on optional `handle_query()` support or a stale runtime that has not recognized optional query methods yet.
+
+Tools still exposes the read-only `diagnose-performance` query for SDK consumers, but the built-in console does not require it.
+
+A single failed diagnostic stage should not immediately stop the whole FIX session. The console logs the failure and, where safe, continues to the warm-up and REST retest so the Super Admin still gets useful evidence. The final result clearly reports whether the REST retest succeeded or failed.
+
 ## Safe automation boundary
 
 Tools is deliberately conservative. Automatic remediation may:
