@@ -1,6 +1,6 @@
 # AIRFIBER-CENTRALIZED — Continue Here
 
-Updated: 2026-08-23
+Updated: 2026-08-24
 
 ## Current goal
 
@@ -8,7 +8,7 @@ Build Airfiber Next/BETA as an isolated, very fast application platform inside t
 
 BETA URL: `/airfiber-beta/`.
 
-Airfiber Next Core version: **0.4.5**.
+Airfiber Next Core version: **0.4.6**.
 
 ## Boundary
 
@@ -21,6 +21,7 @@ Classic stays in `includes/`, `templates/`, and `assets/`. Next/BETA lives in `n
 - managed/protected BETA page
 - shared UI system: Source Serif 4 headings, 9px controls, 14px dialogs, shared cards/tooltips/icons/motion
 - one shared responsive 680 × 680 BETA dialog frame; long dialog bodies scroll while header/footer stay fixed
+- one shared BETA dialog header close control using `.afcn-icon-button`, styled from the proven Classic Connections modal
 - compiled cached module registry, numeric menu positions and lazy module PHP/assets/data
 - generic REST render/query/chunk/action runtime
 - browser SDK at `window.AirfiberNext`
@@ -129,13 +130,15 @@ Provisioning, ONU writes and deep PON/ONU inventory are intentionally deferred u
 
 See `docs/CONNECTORS.md`, `docs/ARCHITECTURE.md` and `docs/DECISIONS.md`.
 
-## Uniform BETA dialogs — Core 0.4.5
+## Uniform BETA dialogs — Core 0.4.5 / 0.4.6
 
-All normal `<dialog class="afcn-dialog">` modals now use one Core-owned responsive frame rather than module-specific dimensions.
+All normal `<dialog class="afcn-dialog">` modals use one Core-owned responsive frame rather than module-specific dimensions.
 
 Desktop target is 680 × 680 px, constrained by the current viewport. Dialog header and footer stay fixed; only `.afcn-dialog-body` scrolls when a form is taller than the shared frame. Mobile uses the same component with a small viewport gutter.
 
-Modules should not set their own modal width/height. Connections, Users and future OLT/PPP/Billing forms inherit this shared rule automatically.
+Core 0.4.6 also standardizes the dialog header close control. Add/Edit User and Add/Edit Connection now use the same existing `.afcn-icon-button` with `data-afcn-dialog-close`. Its 32 × 32 px outlined white rounded-square styling is based on the proven Classic Connections close button. Do not introduce `.afcn-dialog-close` or another module-specific close-button class.
+
+Modules should not set their own modal width/height or close-button styling. Connections, Users and future OLT/PPP/Billing forms inherit the shared Core rules automatically.
 
 See `docs/UI-SYSTEM.md`.
 
@@ -231,14 +234,14 @@ OLT provisioning writes, ONU mutations and full PON/ONU inventory remain deferre
 
 Do NOT bulk-migrate Classic.
 
-Verify Core 0.4.5 on the development installation:
+Verify Core 0.4.6 on the development installation:
 
 1. **Connections → Add Connection** should offer **OLT (SNMP)**.
 2. Create a native OLT for the same host as one existing Classic OLT, entering fresh BETA SNMP credentials; do not copy secrets automatically from Classic.
 3. Before the first successful test, both the native BETA card and Classic fallback may remain visible.
 4. Run **Test connection** from the native card. A successful test should mark the native card online and, after the Connections view refreshes, suppress the duplicate Classic OLT card with that host.
 5. Open **OLT** and Dashboard; both must render cached state without causing an SNMP poll.
-6. Check Add/Edit User, Owner and Connection dialogs: all should use the same frame and long forms should scroll only inside the body.
+6. Check Add/Edit User, Owner and Connection dialogs: all should use the same 680 × 680 frame, the same outlined rounded-square `.afcn-icon-button` close control, and long forms should scroll only inside the body.
 
 After verification, extend OLT read-only functionality with cached overview/inventory and lazy per-OLT/PON/ONU details. Keep remote reads explicit/background and bounded. Provisioning writes come only after the read-only path proves stable.
 
