@@ -43,6 +43,23 @@ Core CSS currently includes:
 
 `Airfiber\Next\Icon` supplies small dependency-free SVG icons for shared controls.
 
+## Uniform BETA dialogs
+
+All normal BETA `<dialog class="afcn-dialog">` modals use one Core-owned frame instead of module-specific dimensions.
+
+Desktop target:
+
+- width: 680 px
+- height: 680 px
+- still constrained to the current viewport
+- shared 14 px radius
+- header and footer stay fixed
+- `.afcn-dialog-body` is the only scrolling region when content is taller than the frame
+
+On small/mobile viewports the same component fills the available viewport with a small outer gutter. Modules should not set their own dialog width/height or make the complete dialog scroll; add content inside `.afcn-dialog-body` and let Core handle overflow.
+
+This keeps Connections, Users and future OLT/PPP/Billing forms visually stable even when one form contains many more fields than another.
+
 ## Default card hover language
 
 All normal Airfiber cards use the same motion language unless a component has a strong reason to opt out:
