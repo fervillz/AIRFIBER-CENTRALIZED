@@ -29,6 +29,7 @@ A developer should be able to understand the file's purpose from its filename.
 - Core owns the visual system and shared runtime services.
 - Modules use Core components first; module-specific CSS/JS should be the exception.
 - BETA dialogs use the shared Core `.afcn-dialog` frame. Do not introduce module-specific dialog width/height; put overflow content in `.afcn-dialog-body` so the shared body scrolling works.
+- Dialog header close buttons use the existing `.afcn-icon-button` with `data-afcn-dialog-close`. Do not create `afcn-dialog-close` or module-specific close-button classes; Core owns the shared close-control appearance.
 - **Installed does not mean loaded. Active does not mean loaded.**
 - Unopened modules must have near-zero runtime cost.
 - Module PHP, optional CSS/JS, data and external network work are lazy/on-demand.
