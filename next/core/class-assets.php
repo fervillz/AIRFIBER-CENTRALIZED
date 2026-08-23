@@ -45,21 +45,31 @@ class Assets {
 		);
 	}
 
+	/**
+	 * Return only the assets needed by the module being rendered.
+	 *
+	 * Modules may declare assets in module.json, but convention-based
+	 * assets/<module-id>.css and assets/<module-id>.js are also discovered here.
+	 * Discovery happens only after the module is requested, so it keeps unrelated
+	 * pages free from feature CSS/JS while making simple modules harder to misconfigure.
+	 */
 	public static function module_manifest( $module ) {
 		$out       = array( 'css' => array(), 'js' => array() );
-		$base_real = realpath( $module['path'] );
+		$base_real = self::module_base_path( $module );
 		if ( ! $base_real ) {
 			return $out;
 		}
+
 		$base_real = trailingslashit( $base_real );
-		$url_path  = ! empty( $module['url_path'] ) ? trim( $module['url_path'], '/' ) : 'modules/' . $module['id'];
+		$url_path  = self::module_url_path( $module );
 
 		foreach ( array( 'css', 'js' ) as $type ) {
-			foreach ( (array) $module['assets'][ $type ] as $relative ) {
+			foreach ( self::asset_paths( $module, $type ) as $relative ) {
 				$relative = ltrim( str_replace( '\\', '/', (string) $relative ), '/' );
 				if ( false !== strpos( $relative, '..' ) || strtolower( pathinfo( $relative, PATHINFO_EXTENSION ) ) !== $type ) {
 					continue;
 				}
+
 				$file = realpath( $base_real . $relative );
 				if ( ! $file || 0 !== strpos( $file, $base_real ) || ! is_readable( $file ) ) {
 					continue;
@@ -75,6 +85,49 @@ class Assets {
 				);
 			}
 		}
+
 		return $out;
+	}
+
+	private static function asset_paths( $module, $type ) {
+		$declared = array();
+		if ( isset( $module['assets'][ $type ] ) && is_array( $module['assets'][ $type ] ) ) {
+			$declared = $module['assets'][ $type ];
+		}
+
+		$id = isset( $module['id'] ) ? sanitize_key( $module['id'] ) : '';
+		if ( $id ) {
+			$declared[] = 'assets/' . $id . '.' . $type;
+		}
+
+		return array_values( array_unique( array_filter( $declared ) ) );
+	}
+
+	private static function module_base_path( $module ) {
+		if ( ! empty( $module['path'] ) ) {
+			$real = realpath( $module['path'] );
+			if ( $real ) {
+				return $real;
+			}
+		}
+
+		$id = isset( $module['id'] ) ? sanitize_key( $module['id'] ) : '';
+		if ( ! $id ) {
+			return false;
+		}
+
+		$is_mu = ! empty( $module['system'] ) || ( isset( $module['source'] ) && 'mu' === $module['source'] );
+		$path  = AFCN_PATH . 'modules/' . ( $is_mu ? 'mu/' : '' ) . $id;
+		return realpath( $path );
+	}
+
+	private static function module_url_path( $module ) {
+		if ( ! empty( $module['url_path'] ) ) {
+			return trim( $module['url_path'], '/' );
+		}
+
+		$id    = isset( $module['id'] ) ? sanitize_key( $module['id'] ) : '';
+		$is_mu = ! empty( $module['system'] ) || ( isset( $module['source'] ) && 'mu' === $module['source'] );
+		return 'modules/' . ( $is_mu ? 'mu/' : '' ) . $id;
 	}
 }
