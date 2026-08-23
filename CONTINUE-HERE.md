@@ -8,7 +8,7 @@ Build Airfiber Next/BETA as an isolated, very fast application platform inside t
 
 BETA URL: `/airfiber-beta/`.
 
-Airfiber Next Core version: **0.3.9**.
+Airfiber Next Core version: **0.3.10**.
 
 ## Boundary
 
@@ -45,7 +45,20 @@ Authority and visibility are separate.
 
 The Users MU screen is card-first using the same 150×150 visual language as Modules, with icon role pills and icon-only hover actions. A list icon beside the title toggles between cards and a File-Explorer-style list; the choice is stored locally in the browser.
 
-Core 0.3.9 hardens lazy module assets. `Assets::module_manifest()` now auto-detects conventional `assets/<module-id>.css` and `assets/<module-id>.js` files when that module is actually requested, while still honoring explicit manifest asset declarations. It also repairs the module base path from the known module id/source if cached path metadata is stale. This fixes the Users unstyled-render case without moving feature CSS/JS into global Core assets. Registry schema 6 and the Core version bump force compiled metadata to rebuild as an additional safeguard.
+### Lazy module asset portability
+
+Core 0.3.10 fixes the actual cause of the repeated unstyled Users screen on Windows-based development hosts. PHP `realpath()` returns Windows paths with backslashes, while WordPress/Airfiber paths commonly use forward slashes. The old containment check compared those raw strings and rejected valid module CSS/JS as if they were outside the module directory.
+
+`Assets::module_manifest()` now normalizes both the module base path and resolved asset path with `wp_normalize_path()` before doing the security containment check. The traversal/readability checks remain intact. This keeps Users and every future module's CSS/JS lazy while making the loader portable across Windows and Unix hosts.
+
+Core also supports conventional lazy assets:
+
+```text
+assets/<module-id>.css
+assets/<module-id>.js
+```
+
+Explicit manifest asset declarations remain supported for additional/non-conventional files.
 
 Super Admin is never created as a hidden account/backdoor. A local deployment explicitly designates it, for example:
 
@@ -64,15 +77,6 @@ A future Developer/Debug/Security nav is intentionally **not** implemented yet. 
 GitHub Markdown is the documentation source of truth. Start at `docs/README.md` and `docs/MODULE-BASICS.md`.
 
 `module.json` is the Airfiber equivalent of a WordPress plugin header. A convention-following module can use only a `name`; Core infers folder ID, namespace, class and class filename without executing module PHP.
-
-A simple module can also follow the asset convention:
-
-```text
-assets/<module-id>.css
-assets/<module-id>.js
-```
-
-Those files remain lazy. Core checks for them only when that module is requested. Explicit `assets` entries in `module.json` remain supported for non-conventional filenames or additional files.
 
 ## Active does not mean loaded
 
@@ -108,7 +112,7 @@ An unopened module costs almost nothing beyond cached manifest metadata. Externa
 
 Do not introduce broad feature-module bootstrap hooks that run on every Airfiber request. Prefer explicit Core loading triggers and manifest metadata.
 
-When a module manifest changes during BETA development, bump the relevant module version and Core version (or manually Refresh Registry) so compiled metadata is intentionally invalidated. Feature CSS/JS should remain lazy rather than being moved into global Core merely to solve a cache or registry issue.
+Feature CSS/JS should remain lazy rather than being moved into global Core merely to solve a deployment, path or cache issue. Shared BETA design is consumed through Core variables/components; module CSS should add only feature-specific layout.
 
 ## Intentionally deferred
 
