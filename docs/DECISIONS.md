@@ -123,3 +123,17 @@ Normal Administrators do not receive the Tools navigation item, Tools MU invento
 Decision: the Tools performance FIX workflow may inspect health/budgets/assets, warm safe runtime state, run a controlled render, retest the REST endpoint with AJAX and produce recommendations. It does not automatically rewrite PHP, JavaScript, CSS or database schema.
 
 Reason: automated source restructuring on a live WordPress installation is difficult to review, version, test and roll back safely. Airfiber may automate reversible runtime optimizations, but structural code changes remain explicit developer work.
+
+## 2026-08-23 — OLT migration starts native and read-only
+
+Decision: the first real provider module is `next/modules/olt/`. It owns native SNMP connection testing and cache-first OLT presentation using `Connection_Store`, `Secret_Store` and `Connection_Health`; it does not call Classic OLT classes for native operation and does not provision ONUs yet.
+
+Reason: a read-only OLT slice proves the module/connector/lazy-slot contracts against real infrastructure without putting provisioning at risk. Classic remains a migration fallback until the matching native endpoint has passed an explicit BETA connection test.
+
+A verified native OLT suppresses only the duplicate Classic card with the same host. Untested or failing native configuration does not hide Classic.
+
+## 2026-08-23 — BETA dialogs use one shared frame
+
+Decision: all normal `.afcn-dialog` modals use the same responsive 680 × 680 px target frame. Header/footer remain fixed and `.afcn-dialog-body` scrolls when content exceeds the available body height.
+
+Reason: Users, Connections and future feature forms should feel like one product. Module-specific modal dimensions create visual jumps and make larger forms inconsistent; scrolling the body preserves a stable frame while still supporting long forms.
