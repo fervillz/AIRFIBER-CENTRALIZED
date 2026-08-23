@@ -30,6 +30,8 @@ Airfiber's runtime rule is stricter than the normal WordPress active-plugin mode
 
 A feature module should load only when a direct page, query, action, lazy chunk, shared slot, event or background task explicitly needs it.
 
+MU status changes lifecycle protection, not the lazy-loading rule. An MU component may still keep its PHP/assets dormant until Core explicitly needs that component.
+
 ## Shared-page slots
 
 Core provides `Module_Slots` for lightweight contributions to shared pages such as Dashboard.
@@ -68,11 +70,13 @@ Cross-module behavior can use `Event_Bus` or normal `afcn_*` WordPress hooks. Mo
 
 ## Modules vs MU components
 
-Must-use Core management components live in:
+Must-use Core/platform components live in:
 
 ```text
 next/modules/mu/<id>/
 ```
+
+Current MU components include Dashboard, Users, Modules, Settings and the Super-Admin-only Tools console.
 
 Normal installable feature add-ons live in:
 
@@ -81,6 +85,8 @@ next/modules/<id>/
 ```
 
 MU status is determined by physical location. Normal modules cannot promote themselves to Core through manifest metadata.
+
+MU components are always lifecycle-enabled and cannot be activated/deactivated/trashed/deleted through the normal Modules lifecycle. They can still be lazy at runtime. Tools is the clearest example: it is MU but its PHP/CSS/JS loads only when the Super Admin opens Settings → Tools or starts a FIX workflow.
 
 The Modules browser exposes the MU inventory only to Airfiber Super Admin. Normal Airfiber Administrators still use capability-appropriate Core pages such as Users, Modules and Settings, but they do not see the internal MU component inventory.
 
@@ -133,7 +139,7 @@ Airfiber uses WordPress users/authentication underneath with Airfiber-specific a
 
 Normal WordPress Administrators receive the standard Airfiber administration capabilities. They do **not** automatically become Airfiber Super Admin.
 
-Super Admin is explicit and is intended for the owner/developer authority. It sees all enabled modules and the MU inventory and bypasses per-user module visibility. Core ships with no hidden account or remote backdoor; the site must explicitly designate the Super Admin, for example with `AFCN_SUPER_ADMIN_USER_ID`.
+Super Admin is explicit and is intended for the owner/developer authority. It sees all enabled modules and the MU inventory and bypasses per-user module visibility. Core ships with no hidden account or remote backdoor; the site must explicitly designate the Super Admin, for example with the one-time owner setup or `AFCN_SUPER_ADMIN_USER_ID`.
 
 `User_Access` stores optional per-user allow lists for normal feature modules. No saved policy means all enabled normal modules are visible, so newly installed modules remain visible by default. Saving a restricted policy hides and blocks direct access to unchecked normal modules.
 
