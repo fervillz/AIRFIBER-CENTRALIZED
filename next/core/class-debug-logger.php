@@ -22,9 +22,82 @@ class Debug_Logger {
 		self::write( 'error', $message, $context );
 	}
 
+	/**
+	 * Return the complete recent event history, including resolved entries.
+	 */
 	public static function recent() {
 		$events = get_option( self::OPTION, array() );
 		return is_array( $events ) ? array_reverse( $events ) : array();
+	}
+
+	/**
+	 * Return only warnings/errors that still need attention.
+	 *
+	 * Resolved events stay in the bounded debug history for audit/troubleshooting,
+	 * but no longer belong in the active "Recent performance warnings" table.
+	 */
+	public static function recent_open() {
+		return array_values(
+			array_filter(
+				self::recent(),
+				function ( $event ) {
+					return is_array( $event ) && empty( $event['resolved_at'] );
+				}
+			)
+		);
+	}
+
+	/**
+	 * Stable identifier for both new events and legacy rows written before event
+	 * ids existed. The fallback intentionally uses only immutable event fields.
+	 */
+	public static function event_id( $event ) {
+		if ( ! is_array( $event ) ) {
+			return '';
+		}
+		if ( ! empty( $event['id'] ) ) {
+			return sanitize_key( (string) $event['id'] );
+		}
+
+		$immutable = array(
+			'time'    => isset( $event['time'] ) ? (string) $event['time'] : '',
+			'level'   => isset( $event['level'] ) ? (string) $event['level'] : '',
+			'message' => isset( $event['message'] ) ? (string) $event['message'] : '',
+			'context' => isset( $event['context'] ) && is_array( $event['context'] ) ? $event['context'] : array(),
+		);
+		return substr( hash( 'sha256', wp_json_encode( $immutable ) ), 0, 24 );
+	}
+
+	/**
+	 * Mark a warning as resolved without deleting its history.
+	 */
+	public static function resolve( $event_id ) {
+		$event_id = sanitize_key( (string) $event_id );
+		if ( '' === $event_id ) {
+			return false;
+		}
+
+		$events = get_option( self::OPTION, array() );
+		if ( ! is_array( $events ) || empty( $events ) ) {
+			return false;
+		}
+
+		$changed = false;
+		foreach ( $events as &$event ) {
+			if ( ! is_array( $event ) || self::event_id( $event ) !== $event_id ) {
+				continue;
+			}
+			$event['resolved_at'] = gmdate( 'c' );
+			$event['resolved_by'] = get_current_user_id();
+			$changed              = true;
+			break;
+		}
+		unset( $event );
+
+		if ( $changed ) {
+			update_option( self::OPTION, array_slice( $events, -self::LIMIT ), false );
+		}
+		return $changed;
 	}
 
 	/**
@@ -57,14 +130,16 @@ class Debug_Logger {
 	}
 
 	private static function write( $level, $message, $context ) {
-		$events   = get_option( self::OPTION, array() );
-		$events[] = array(
+		$events = get_option( self::OPTION, array() );
+		$event  = array(
+			'id'      => str_replace( '-', '', wp_generate_uuid4() ),
 			'time'    => gmdate( 'c' ),
 			'level'   => sanitize_key( $level ),
 			'message' => sanitize_text_field( $message ),
 			'context' => self::sanitize_context( $context ),
 		);
-		$events = array_slice( $events, -self::LIMIT );
+		$events[] = $event;
+		$events   = array_slice( $events, -self::LIMIT );
 		update_option( self::OPTION, $events, false );
 	}
 
