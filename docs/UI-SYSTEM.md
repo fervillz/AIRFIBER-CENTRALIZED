@@ -14,7 +14,8 @@ Core owns the visual language. Modules should not invent a separate design syste
 - Fields/selects: 9px radius.
 - Cards: 10px radius.
 - Dialogs/popups: 14px radius.
-- Icon-only circular controls may remain circular.
+- Dialog header close controls: 10px radius, outlined white square.
+- Icon-only circular controls may remain circular only when the control is intentionally circular and is not the standard dialog close control.
 
 ## Core components
 
@@ -57,6 +58,14 @@ Desktop target:
 - `.afcn-dialog-body` is the only scrolling region when content is taller than the frame
 
 On small/mobile viewports the same component fills the available viewport with a small outer gutter. Modules should not set their own dialog width/height or make the complete dialog scroll; add content inside `.afcn-dialog-body` and let Core handle overflow.
+
+Every dialog header close button uses the existing shared markup:
+
+```html
+<button type="button" class="afcn-icon-button" data-afcn-dialog-close aria-label="Close">×</button>
+```
+
+Do not create `afcn-dialog-close` or another module-specific close-button class. The shared `.afcn-icon-button` deliberately copies the proven Classic Connections modal close control: 32 × 32 px, 1 px `#dce4ec` border, 10 px radius, white background and muted blue-grey icon/text. Core owns its hover/focus state.
 
 This keeps Connections, Users and future OLT/PPP/Billing forms visually stable even when one form contains many more fields than another.
 
