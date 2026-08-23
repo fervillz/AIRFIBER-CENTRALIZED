@@ -18,7 +18,7 @@ class Settings_Module implements Module_Contract {
 
 	public static function render( $context = array() ) {
 		$budgets = Performance_Monitor::budgets();
-		$events  = array_slice( Debug_Logger::recent(), 0, 12 );
+		$events  = array_slice( Debug_Logger::recent_open(), 0, 12 );
 		$audit   = Audit_Log::recent( 12 );
 		$queue   = Task_Queue::stats();
 		$tools   = Module_Registry::get( 'tools' );
@@ -69,50 +69,48 @@ class Settings_Module implements Module_Contract {
 				</div>
 			</div>
 
-			<div class="afcn-card afcn-col-12">
+			<div class="afcn-card afcn-col-12" data-afcn-performance-warnings>
 				<div class="afcn-card-header"><h2><?php esc_html_e( 'Recent performance warnings', 'airfiber-centralized' ); ?></h2></div>
 				<div class="afcn-card-body">
-					<?php if ( empty( $events ) ) : ?>
-						<p class="afcn-page-description"><?php esc_html_e( 'No recent warnings or errors.', 'airfiber-centralized' ); ?></p>
-					<?php else : ?>
-						<div class="afcn-table-wrap">
-							<table class="afcn-table">
-								<thead>
-									<tr>
-										<th><?php esc_html_e( 'Time', 'airfiber-centralized' ); ?></th>
-										<th><?php esc_html_e( 'Level', 'airfiber-centralized' ); ?></th>
-										<th><?php esc_html_e( 'Module', 'airfiber-centralized' ); ?></th>
-										<th><?php esc_html_e( 'Cause', 'airfiber-centralized' ); ?></th>
-										<?php if ( $can_fix ) : ?><th><?php esc_html_e( 'Action', 'airfiber-centralized' ); ?></th><?php endif; ?>
-									</tr>
-								</thead>
-								<tbody>
-								<?php foreach ( $events as $event ) : ?>
-									<?php
-									$module_id = self::event_module_id( $event );
-									$cause     = self::event_cause( $event );
-									$phase     = self::event_phase( $event );
-									?>
-									<tr>
-										<td><?php echo esc_html( self::event_time( $event ) ); ?></td>
-										<td><?php echo UI::badge( strtoupper( $event['level'] ), 'error' === $event['level'] ? 'danger' : 'warning' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></td>
-										<td><strong><?php echo esc_html( self::event_module( $event ) ); ?></strong></td>
-										<td><?php echo esc_html( $cause ); ?></td>
-										<?php if ( $can_fix ) : ?>
-											<td>
-												<?php if ( $module_id && 'core' !== $module_id ) : ?>
-													<button type="button" class="afcn-button afcn-button-secondary afcn-button-small" data-afcn-open-utility="tools" data-afcn-utility-action="fix" data-afcn-utility-module-target="<?php echo esc_attr( $module_id ); ?>" data-afcn-utility-phase="<?php echo esc_attr( $phase ); ?>" data-afcn-utility-cause="<?php echo esc_attr( $cause ); ?>"><?php esc_html_e( 'FIX', 'airfiber-centralized' ); ?></button>
-												<?php else : ?>
-													<span class="afcn-page-description">—</span>
-												<?php endif; ?>
-											</td>
-										<?php endif; ?>
-									</tr>
-								<?php endforeach; ?>
-								</tbody>
-							</table>
-						</div>
-					<?php endif; ?>
+					<p class="afcn-page-description" data-afcn-performance-empty<?php echo empty( $events ) ? '' : ' hidden'; ?>><?php esc_html_e( 'No unresolved performance warnings.', 'airfiber-centralized' ); ?></p>
+					<div class="afcn-table-wrap" data-afcn-performance-table<?php echo empty( $events ) ? ' hidden' : ''; ?>>
+						<table class="afcn-table">
+							<thead>
+								<tr>
+									<th><?php esc_html_e( 'Time', 'airfiber-centralized' ); ?></th>
+									<th><?php esc_html_e( 'Level', 'airfiber-centralized' ); ?></th>
+									<th><?php esc_html_e( 'Module', 'airfiber-centralized' ); ?></th>
+									<th><?php esc_html_e( 'Cause', 'airfiber-centralized' ); ?></th>
+									<?php if ( $can_fix ) : ?><th><?php esc_html_e( 'Action', 'airfiber-centralized' ); ?></th><?php endif; ?>
+								</tr>
+							</thead>
+							<tbody>
+							<?php foreach ( $events as $event ) : ?>
+								<?php
+								$event_id  = Debug_Logger::event_id( $event );
+								$module_id = self::event_module_id( $event );
+								$cause     = self::event_cause( $event );
+								$phase     = self::event_phase( $event );
+								?>
+								<tr data-afcn-performance-warning="<?php echo esc_attr( $event_id ); ?>">
+									<td><?php echo esc_html( self::event_time( $event ) ); ?></td>
+									<td><?php echo UI::badge( strtoupper( $event['level'] ), 'error' === $event['level'] ? 'danger' : 'warning' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></td>
+									<td><strong><?php echo esc_html( self::event_module( $event ) ); ?></strong></td>
+									<td><?php echo esc_html( $cause ); ?></td>
+									<?php if ( $can_fix ) : ?>
+										<td>
+											<?php if ( $module_id && 'core' !== $module_id ) : ?>
+												<button type="button" class="afcn-button afcn-button-secondary afcn-button-small" data-afcn-open-utility="tools" data-afcn-utility-action="fix" data-afcn-utility-warning="<?php echo esc_attr( $event_id ); ?>" data-afcn-utility-module-target="<?php echo esc_attr( $module_id ); ?>" data-afcn-utility-phase="<?php echo esc_attr( $phase ); ?>" data-afcn-utility-cause="<?php echo esc_attr( $cause ); ?>"><?php esc_html_e( 'FIX', 'airfiber-centralized' ); ?></button>
+											<?php else : ?>
+												<span class="afcn-page-description">—</span>
+											<?php endif; ?>
+										</td>
+									<?php endif; ?>
+								</tr>
+							<?php endforeach; ?>
+							</tbody>
+						</table>
+					</div>
 				</div>
 			</div>
 
