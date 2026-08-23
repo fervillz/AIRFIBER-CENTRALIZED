@@ -55,18 +55,20 @@ class Olt_SNMP_Client {
 		$device      = '' !== $name ? $name : $config['host'];
 
 		return array(
-			'state'       => 'online',
-			'message'     => sprintf(
+			'state'   => 'online',
+			'message' => sprintf(
 				/* translators: 1: OLT name/host, 2: number of valid optical readings. */
 				__( 'Connected to %1$s. %2$d optical readings detected.', 'airfiber-centralized' ),
 				$device,
 				$valid
 			),
-			'device_name' => $name,
-			'description' => $description,
-			'onu_count'   => count( $rx_values ),
-			'valid_count' => $valid,
-			'technology'  => $config['technology'],
+			'details' => array(
+				'device_name' => $name,
+				'description' => $description,
+				'onu_count'   => count( $rx_values ),
+				'valid_count' => $valid,
+				'technology'  => $config['technology'],
+			),
 		);
 	}
 
