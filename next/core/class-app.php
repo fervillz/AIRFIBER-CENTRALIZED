@@ -60,16 +60,18 @@ class App {
 				</div>
 			</main>
 
-			<aside class="afcn-utility-drawer" id="afcn-utility-drawer" aria-hidden="true" aria-label="<?php esc_attr_e( 'Airfiber tools', 'airfiber-centralized' ); ?>">
-				<div class="afcn-utility-drawer-header">
-					<div>
-						<small><?php esc_html_e( 'Super Admin', 'airfiber-centralized' ); ?></small>
-						<strong data-afcn-utility-title><?php esc_html_e( 'Tools', 'airfiber-centralized' ); ?></strong>
+			<?php if ( ! empty( $user['is_super_admin'] ) ) : ?>
+				<aside class="afcn-utility-drawer" id="afcn-utility-drawer" aria-hidden="true" aria-label="<?php esc_attr_e( 'Airfiber tools', 'airfiber-centralized' ); ?>">
+					<div class="afcn-utility-drawer-header">
+						<div>
+							<small><?php esc_html_e( 'Super Admin', 'airfiber-centralized' ); ?></small>
+							<strong data-afcn-utility-title><?php esc_html_e( 'Tools', 'airfiber-centralized' ); ?></strong>
+						</div>
+						<button type="button" class="afcn-icon-button" data-afcn-utility-close aria-label="<?php esc_attr_e( 'Close tools', 'airfiber-centralized' ); ?>"><?php echo Icon::svg( 'x' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></button>
 					</div>
-					<button type="button" class="afcn-icon-button" data-afcn-utility-close aria-label="<?php esc_attr_e( 'Close tools', 'airfiber-centralized' ); ?>"><?php echo Icon::svg( 'x' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></button>
-				</div>
-				<div class="afcn-utility-drawer-body" data-afcn-utility-stage></div>
-			</aside>
+					<div class="afcn-utility-drawer-body" data-afcn-utility-stage></div>
+				</aside>
+			<?php endif; ?>
 
 			<div class="afcn-toast-region" id="afcn-toast-region" aria-live="polite"></div>
 		</div>
