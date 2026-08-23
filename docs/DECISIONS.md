@@ -87,3 +87,19 @@ Decision: activating an Airfiber module only makes it eligible for use. Core mus
 Reason: Airfiber should decide what a request needs before loading module code. This avoids the normal WordPress pattern where every active plugin participates in every request.
 
 Direct pages, queries, actions, lazy chunks, declared events and background tasks are explicit loading triggers. Shared-page contributions use manifest-declared slots. Core resolves slot contributors from cached metadata, then the browser requests each chunk only when its placeholder approaches the viewport.
+
+## 2026-08-23 — Super Admin is explicit, not equal to WordPress Administrator
+
+Decision: Airfiber Super Admin is a separate owner/developer authority. WordPress Administrators receive normal Airfiber administration capabilities but do not automatically receive `afcn_super_admin`.
+
+Reason: public/customer administrators should be able to operate Airfiber without automatically seeing owner/developer-only Core internals. It also avoids treating every WordPress Administrator as the product owner.
+
+Core does not ship a hidden Super Admin account. A deployment must explicitly designate its Super Admin, for example with `AFCN_SUPER_ADMIN_USER_ID`, a controlled filter, or an explicit user-level capability.
+
+## 2026-08-23 — Authority and menu visibility are separate
+
+Decision: roles/capabilities define authority while `User_Access` may further narrow the normal feature modules visible to a user. MU/Core pages remain capability-driven and the MU inventory is visible only to Super Admin.
+
+Reason: an Administrator can have administrative authority while still receiving a simplified operational menu. Hiding a module must also block direct interactive loading; visibility is not implemented as CSS/menu hiding only.
+
+Selecting every available normal module stores no restrictive policy, so newly installed modules remain visible by default. Nested/submenu visibility is reserved in the policy model but deferred until a real module needs it.
