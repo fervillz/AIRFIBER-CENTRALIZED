@@ -38,6 +38,7 @@ A developer should be able to understand the file's purpose from its filename.
 - Slot chunks should stay small/cache-first. A Dashboard slot must not secretly bootstrap a full OLT/Billing/PPP workflow or fan out to external devices.
 - Expensive remote calls should use `Airfiber\Next\HTTP_Client` so external latency is measured separately.
 - Repeated performance budget violations can quarantine a non-system module.
+- Generic module presentation may use manifest `parent` and `presentation` metadata. Keep feature-specific behavior in the module; Core only owns generic navigation/presentation primitives.
 
 ## User access rules
 
@@ -48,8 +49,17 @@ A developer should be able to understand the file's purpose from its filename.
 - `User_Access` may restrict normal feature-module visibility per user; the module runtime must enforce that policy, not only hide navigation markup.
 - MU/Core pages remain capability-driven. The Modules-screen MU inventory is Super-Admin-only.
 - Super Admin always sees all enabled modules and cannot have Core access disabled from the Users UI.
-- Keep the reserved nested `areas` visibility model unused until a real module requires submenu/sub-feature visibility; do not invent broad permission complexity early.
-- A future Developer/Debug/Security area, if built, must be Super-Admin-only and explicitly configured/audited.
+- Modules requiring `afcn_super_admin` are developer-authority modules. Normal Admins must not see them in navigation, module inventory, or user-visibility checkboxes.
+- Keep the reserved nested `areas` visibility model unused until a real business module requires submenu/sub-feature visibility; do not invent broad permission complexity early.
+
+## Developer Tools rules
+
+- The developer console is the normal lazy `tools` module, nested under Settings and presented in the generic right-side Core drawer.
+- Tools/FIX controls are Super-Admin-only. Normal customer/admin sessions must not download the utility runtime or Tools assets merely because the module is installed.
+- Performance FIX may inspect metrics/assets, warm safe runtime state, run controlled read-only render checks, retest REST/AJAX delivery, and recommend changes.
+- **Never make the live Tools module automatically rewrite PHP, JavaScript, CSS, database schema, SSH/firewall configuration, or customer data as an optimization.** Structural source changes belong in the normal Git/development workflow where they can be reviewed and rolled back.
+- Any future security operations such as user/IP blocking must be explicit, auditable, reversible where practical, and separately capability-checked.
+- Never implement SSH or remote shell as a hidden backdoor.
 
 ## Safe Git workflow
 
