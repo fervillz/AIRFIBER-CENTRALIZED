@@ -6,7 +6,7 @@ defined( 'ABSPATH' ) || exit;
 
 class Module_Registry {
 	const OPTION_CACHE = 'afcn_module_registry_v1';
-	const CACHE_SCHEMA = 7;
+	const CACHE_SCHEMA = 8;
 
 	private static $modules = null;
 
@@ -271,6 +271,18 @@ class Module_Registry {
 				}
 			}
 
+			$show_when = array();
+			if ( isset( $field['show_when'] ) && is_array( $field['show_when'] ) ) {
+				$controller = isset( $field['show_when']['field'] ) ? sanitize_key( $field['show_when']['field'] ) : '';
+				$value      = isset( $field['show_when']['value'] ) ? sanitize_text_field( (string) $field['show_when']['value'] ) : '';
+				if ( $controller && '' !== $value && $controller !== $key ) {
+					$show_when = array(
+						'field' => $controller,
+						'value' => $value,
+					);
+				}
+			}
+
 			$output[] = array(
 				'key'         => $key,
 				'label'       => $label,
@@ -280,6 +292,7 @@ class Module_Registry {
 				'placeholder' => isset( $field['placeholder'] ) ? sanitize_text_field( $field['placeholder'] ) : '',
 				'display'     => $display,
 				'options'     => $options,
+				'show_when'   => $show_when,
 			);
 		}
 
