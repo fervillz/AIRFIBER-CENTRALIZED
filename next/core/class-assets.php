@@ -64,9 +64,13 @@ class Assets {
 				if ( ! $file || 0 !== strpos( $file, $base_real ) || ! is_readable( $file ) ) {
 					continue;
 				}
+
+				$modified = filemtime( $file );
+				$version  = AFCN_VERSION . '-' . ( false !== $modified ? (string) $modified : '0' );
+
 				$out[ $type ][] = array(
 					'url'   => trailingslashit( AFCN_URL . $url_path ) . $relative,
-					'ver'   => (string) filemtime( $file ),
+					'ver'   => $version,
 					'bytes' => (int) filesize( $file ),
 				);
 			}
