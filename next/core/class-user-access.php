@@ -26,6 +26,9 @@ class User_Access {
 		if ( Capabilities::is_super_admin_user( $user_id ) ) {
 			return true;
 		}
+		if ( isset( $module['capability'] ) && Capabilities::SUPER_ADMIN === $module['capability'] ) {
+			return false;
+		}
 
 		// MU/Core pages are controlled by their normal capability. Their internal
 		// MU status is not exposed as an editable visibility option to Admins.
@@ -82,12 +85,16 @@ class User_Access {
 	 * Modules that may be exposed in the visibility editor.
 	 */
 	public static function assignable_modules( $include_mu = false ) {
-		$output = array();
+		$output         = array();
+		$current_super = Capabilities::is_super_admin_user();
 		foreach ( Module_Registry::all() as $id => $module ) {
 			if ( Module_Trash::is_trashed( $id ) || ! Module_Manager::is_enabled( $id, $module ) || ! Module_Manager::dependencies_met( $module ) ) {
 				continue;
 			}
 			if ( ! $include_mu && ! empty( $module['system'] ) ) {
+				continue;
+			}
+			if ( ! $current_super && isset( $module['capability'] ) && Capabilities::SUPER_ADMIN === $module['capability'] ) {
 				continue;
 			}
 			$output[ $id ] = $module;
