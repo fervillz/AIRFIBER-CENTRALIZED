@@ -2,6 +2,9 @@
 
 namespace Airfiber\Next\Modules\Connections;
 
+use Airfiber\Next\Connection_Health;
+use Airfiber\Next\Connection_Store;
+
 defined( 'ABSPATH' ) || exit;
 
 /**
@@ -15,7 +18,7 @@ class Legacy_Connections {
 	const OPTION_ORDER = 'afc_connections_card_order';
 
 	public static function cards() {
-		$cards = self::olt_cards();
+		$cards  = self::olt_cards();
 		$router = self::mikrotik_card();
 		$sheet  = self::sheet_card();
 
@@ -34,7 +37,8 @@ class Legacy_Connections {
 			return array();
 		}
 
-		$posts = get_posts(
+		$native_hosts = self::verified_native_olt_hosts();
+		$posts        = get_posts(
 			array(
 				'post_type'      => \AFC_OLT_Manager::POST_TYPE,
 				'post_status'    => array( 'draft', 'publish' ),
@@ -53,6 +57,15 @@ class Legacy_Connections {
 			$device = is_array( $device ) ? $device : array();
 			$state  = 'unconfigured';
 
+			$technology = isset( $config['technology'] ) && 'EPON' === strtoupper( $config['technology'] ) ? 'EPON' : 'GPON';
+			$host       = ! empty( $config['host'] ) ? sanitize_text_field( $config['host'] ) : '';
+			$host_key   = self::host_key( $host );
+
+			// Keep Classic visible until the same native OLT has passed a real test.
+			if ( $host_key && isset( $native_hosts[ $host_key ] ) ) {
+				continue;
+			}
+
 			if ( 'publish' === $post->post_status ) {
 				if ( get_post_meta( $post->ID, \AFC_OLT_Manager::DISCONNECTED_META, true ) ) {
 					$state = 'offline';
@@ -63,9 +76,7 @@ class Legacy_Connections {
 				}
 			}
 
-			$technology = isset( $config['technology'] ) && 'EPON' === strtoupper( $config['technology'] ) ? 'EPON' : 'GPON';
-			$host       = ! empty( $config['host'] ) ? sanitize_text_field( $config['host'] ) : '';
-			$subtitle   = ! empty( $device['name'] ) ? sanitize_text_field( $device['name'] ) : ( $host ? $host : __( 'OLT not configured', 'airfiber-centralized' ) );
+			$subtitle = ! empty( $device['name'] ) ? sanitize_text_field( $device['name'] ) : ( $host ? $host : __( 'OLT not configured', 'airfiber-centralized' ) );
 
 			$cards[] = array(
 				'key'         => 'olt:' . (int) $post->ID,
@@ -84,11 +95,41 @@ class Legacy_Connections {
 				'latency_ms'  => 0,
 				'source'      => 'classic',
 				'readonly'    => true,
-				'description' => __( 'Managed by the existing Airfiber Classic OLT settings until the OLT module is migrated to BETA.', 'airfiber-centralized' ),
+				'description' => __( 'Managed by the existing Airfiber Classic OLT settings until a verified native BETA OLT connection replaces this endpoint.', 'airfiber-centralized' ),
 			);
 		}
 
 		return $cards;
+	}
+
+	/**
+	 * A native OLT only replaces its Classic card after an explicit successful
+	 * health test. Failed/unverified native setup therefore cannot hide a working
+	 * Classic migration fallback.
+	 */
+	private static function verified_native_olt_hosts() {
+		$output = array();
+		foreach ( Connection_Store::for_module( 'olt' ) as $id => $record ) {
+			if ( 'olt-snmp' !== ( isset( $record['type'] ) ? $record['type'] : '' ) ) {
+				continue;
+			}
+			$health = Connection_Health::get( $id );
+			if ( 'online' !== ( isset( $health['state'] ) ? $health['state'] : '' ) ) {
+				continue;
+			}
+			$host = self::host_key( isset( $record['endpoint'] ) ? $record['endpoint'] : '' );
+			if ( $host ) {
+				$output[ $host ] = true;
+			}
+		}
+		return $output;
+	}
+
+	private static function host_key( $host ) {
+		$host = strtolower( trim( sanitize_text_field( (string) $host ) ) );
+		$host = preg_replace( '#^(?:https?://|udp:)#i', '', $host );
+		$host = preg_replace( '/:\d+$/', '', $host );
+		return trim( $host, '/ ' );
 	}
 
 	private static function mikrotik_card() {
