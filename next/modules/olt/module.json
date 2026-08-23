@@ -1,7 +1,7 @@
 {
   "name": "OLT",
   "description": "Read-only GPON and EPON optical line terminal monitoring for Airfiber BETA.",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "position": 30,
   "icon": "server",
   "default_enabled": true,
@@ -18,10 +18,10 @@
         {"key":"port","label":"SNMP Port","type":"number","placeholder":"161"},
         {"key":"technology","label":"Technology","type":"select","display":"meta","options":{"GPON":"GPON","EPON":"EPON"}},
         {"key":"version","label":"SNMP Version","type":"select","options":{"3":"SNMPv3","2c":"SNMPv2c"}},
-        {"key":"security_name","label":"SNMPv3 Username","type":"text","placeholder":"airfiber-monitor"},
-        {"key":"community","label":"SNMPv2c Community","type":"password","secret":true},
-        {"key":"auth_passphrase","label":"SNMPv3 Auth Passphrase","type":"password","secret":true},
-        {"key":"privacy_passphrase","label":"SNMPv3 Privacy Passphrase","type":"password","secret":true},
+        {"key":"security_name","label":"SNMPv3 Username","type":"text","placeholder":"airfiber-monitor","show_when":{"field":"version","value":"3"}},
+        {"key":"community","label":"SNMPv2c Community","type":"password","secret":true,"show_when":{"field":"version","value":"2c"}},
+        {"key":"auth_passphrase","label":"SNMPv3 Auth Passphrase","type":"password","secret":true,"show_when":{"field":"version","value":"3"}},
+        {"key":"privacy_passphrase","label":"SNMPv3 Privacy Passphrase","type":"password","secret":true,"show_when":{"field":"version","value":"3"}},
         {"key":"rx_oid","label":"RX Power OID","type":"text","placeholder":"Leave blank for the GPON/EPON default"},
         {"key":"warning_dbm","label":"Warning dBm","type":"number","placeholder":"-24"},
         {"key":"critical_dbm","label":"Critical dBm","type":"number","placeholder":"-27"},
@@ -37,5 +37,5 @@
       "span": 4
     }
   },
-  "requires": {"core": ">=0.4.5"}
+  "requires": {"core": ">=0.4.7"}
 }
