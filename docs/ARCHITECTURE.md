@@ -82,6 +82,8 @@ next/modules/<id>/
 
 MU status is determined by physical location. Normal modules cannot promote themselves to Core through manifest metadata.
 
+The Modules browser exposes the MU inventory only to Airfiber Super Admin. Normal Airfiber Administrators still use capability-appropriate Core pages such as Users, Modules and Settings, but they do not see the internal MU component inventory.
+
 ## Connections architecture
 
 Connections are intentionally separate from Modules.
@@ -125,11 +127,19 @@ Use `Cache` for cache-first/stale-while-refresh behavior, `Module_Options` for p
 
 Connection pages should render from stored/cached state first. Opening a page must not fan out to every OLT, MikroTik or cloud API.
 
-## Users
+## Users and visibility
 
-Airfiber uses WordPress authentication underneath with `airfiber_admin` and `airfiber_operator` roles. WordPress administrators automatically receive Airfiber capabilities.
+Airfiber uses WordPress users/authentication underneath with Airfiber-specific authority and visibility rules.
 
-Airfiber administrators can manage Connections through `afcn_manage_connections`; operators remain view/access oriented unless a later role policy grants more.
+Normal WordPress Administrators receive the standard Airfiber administration capabilities. They do **not** automatically become Airfiber Super Admin.
+
+Super Admin is explicit and is intended for the owner/developer authority. It sees all enabled modules and the MU inventory and bypasses per-user module visibility. Core ships with no hidden account or remote backdoor; the site must explicitly designate the Super Admin, for example with `AFCN_SUPER_ADMIN_USER_ID`.
+
+`User_Access` stores optional per-user allow lists for normal feature modules. No saved policy means all enabled normal modules are visible, so newly installed modules remain visible by default. Saving a restricted policy hides and blocks direct access to unchecked normal modules.
+
+MU/Core pages stay capability-driven rather than becoming ordinary visibility checkboxes. Super Admin Core access is always enabled. The `areas` policy key is reserved for future nested/submenu visibility after a real module requires it.
+
+See `docs/USER-ACCESS.md`.
 
 ## Fault isolation
 
