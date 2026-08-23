@@ -341,7 +341,7 @@ class Connections_Module implements Module_Contract {
 		?>
 		<dialog class="afcn-dialog" id="afcn-add-connection-dialog">
 			<form method="dialog" class="afcn-dialog-shell" data-afcn-module="connections" data-afcn-action="create-connection" data-afcn-connection-form>
-				<div class="afcn-dialog-header"><div><h2><?php esc_html_e( 'Add Connection', 'airfiber-centralized' ); ?></h2><p><?php esc_html_e( 'Choose a connector supplied by an active Airfiber module.', 'airfiber-centralized' ); ?></p></div><button type="button" class="afcn-dialog-close" data-afcn-dialog-close aria-label="<?php esc_attr_e( 'Close', 'airfiber-centralized' ); ?>">×</button></div>
+				<div class="afcn-dialog-header"><div><h2><?php esc_html_e( 'Add Connection', 'airfiber-centralized' ); ?></h2><p><?php esc_html_e( 'Choose a connector supplied by an active Airfiber module.', 'airfiber-centralized' ); ?></p></div><button type="button" class="afcn-icon-button" data-afcn-dialog-close aria-label="<?php esc_attr_e( 'Close', 'airfiber-centralized' ); ?>">×</button></div>
 				<div class="afcn-dialog-body">
 					<div class="afcn-form-grid">
 						<label class="afcn-field"><span><?php esc_html_e( 'Connector type', 'airfiber-centralized' ); ?></span><select class="afcn-select" name="connector_type" data-afcn-connector-type required><option value=""><?php esc_html_e( 'Select connector', 'airfiber-centralized' ); ?></option><?php foreach ( $types as $id => $type ) : ?><option value="<?php echo esc_attr( $id ); ?>"><?php echo esc_html( $type['name'] ); ?></option><?php endforeach; ?></select></label>
@@ -364,7 +364,7 @@ class Connections_Module implements Module_Contract {
 		<dialog class="afcn-dialog" id="afcn-connection-<?php echo esc_attr( $record['id'] ); ?>">
 			<form method="dialog" class="afcn-dialog-shell" data-afcn-module="connections" data-afcn-action="update-connection">
 				<input type="hidden" name="connection_id" value="<?php echo esc_attr( $record['id'] ); ?>">
-				<div class="afcn-dialog-header"><div><h2><?php echo esc_html( $record['name'] ); ?></h2><p><?php echo esc_html( $type['name'] ); ?></p></div><button type="button" class="afcn-dialog-close" data-afcn-dialog-close aria-label="<?php esc_attr_e( 'Close', 'airfiber-centralized' ); ?>">×</button></div>
+				<div class="afcn-dialog-header"><div><h2><?php echo esc_html( $record['name'] ); ?></h2><p><?php echo esc_html( $type['name'] ); ?></p></div><button type="button" class="afcn-icon-button" data-afcn-dialog-close aria-label="<?php esc_attr_e( 'Close', 'airfiber-centralized' ); ?>">×</button></div>
 				<div class="afcn-dialog-body">
 					<?php echo UI::field( 'connection_name', __( 'Connection name', 'airfiber-centralized' ), array( 'value' => $record['name'], 'required' => true ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
 					<div class="afcn-connector-fields is-visible"><?php self::render_fields( $type, isset( $record['config'] ) ? $record['config'] : array(), true ); ?></div>
