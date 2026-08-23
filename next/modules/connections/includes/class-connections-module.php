@@ -19,11 +19,11 @@ defined( 'ABSPATH' ) || exit;
 class Connections_Module implements Module_Contract {
 
 	public static function render( $context = array() ) {
-		$cards       = array_merge( self::beta_cards(), Legacy_Connections::cards() );
-		$types       = self::available_types();
-		$can_manage  = self::can_manage();
-		$counts      = self::counts( $cards );
-		$grouped     = self::group_cards( $cards );
+		$cards      = array_merge( self::beta_cards(), Legacy_Connections::cards() );
+		$types      = self::available_types();
+		$can_manage = self::can_manage();
+		$counts     = self::counts( $cards );
+		$grouped    = self::group_cards( $cards );
 
 		ob_start();
 		?>
@@ -113,7 +113,7 @@ class Connections_Module implements Module_Contract {
 		}
 
 		if ( 'create-connection' === $action ) {
-			$type = isset( $payload['connector_type'] ) ? sanitize_key( $payload['connector_type'] ) : '';
+			$type     = isset( $payload['connector_type'] ) ? sanitize_key( $payload['connector_type'] ) : '';
 			$prepared = self::prepare_record( $type, $payload );
 			if ( is_wp_error( $prepared ) ) {
 				return $prepared;
@@ -153,6 +153,10 @@ class Connections_Module implements Module_Contract {
 
 		if ( 'test-connection' === $action ) {
 			return self::test_connection( isset( $payload['connection_id'] ) ? sanitize_text_field( $payload['connection_id'] ) : '' );
+		}
+
+		if ( 'probe-connection' === $action ) {
+			return self::probe_connection( $payload );
 		}
 
 		return new \WP_Error( 'afcn_connections_action', __( 'Unknown connection action.', 'airfiber-centralized' ), array( 'status' => 400 ) );
@@ -203,13 +207,16 @@ class Connections_Module implements Module_Contract {
 		return $output;
 	}
 
-	private static function prepare_record( $type_id, $payload, $existing = null ) {
+	private static function prepare_record( $type_id, $payload, $existing = null, $allow_default_name = false ) {
 		$type = Connector_Registry::get( $type_id );
 		if ( ! $type ) {
 			return new \WP_Error( 'afcn_connector_unknown', __( 'The selected connector type is not available.', 'airfiber-centralized' ), array( 'status' => 400 ) );
 		}
 
 		$name = isset( $payload['connection_name'] ) ? sanitize_text_field( $payload['connection_name'] ) : '';
+		if ( '' === $name && $allow_default_name ) {
+			$name = $existing && ! empty( $existing['name'] ) ? $existing['name'] : $type['name'];
+		}
 		if ( '' === $name ) {
 			return new \WP_Error( 'afcn_connection_name', __( 'Connection name is required.', 'airfiber-centralized' ), array( 'status' => 400 ) );
 		}
@@ -218,12 +225,19 @@ class Connections_Module implements Module_Contract {
 		$secrets  = array();
 		$endpoint = $existing && isset( $existing['endpoint'] ) ? $existing['endpoint'] : '';
 		$fields   = isset( $type['fields'] ) && is_array( $type['fields'] ) ? $type['fields'] : array();
+		$is_edit  = $existing && ! empty( $existing['id'] );
 
 		foreach ( $fields as $field ) {
-			$key      = $field['key'];
-			$raw      = isset( $payload[ $key ] ) ? $payload[ $key ] : ( 'checkbox' === $field['type'] ? '0' : '' );
-			$value    = Connector_Registry::sanitize_field_value( $field, $raw );
-			$is_edit  = $existing && ! empty( $existing['id'] );
+			$key       = $field['key'];
+			$has_value = array_key_exists( $key, $payload );
+
+			/* Disabled conditional edit fields are omitted; keep their saved value. */
+			if ( ! $has_value && $is_edit && ! empty( $field['show_when'] ) ) {
+				continue;
+			}
+
+			$raw   = $has_value ? $payload[ $key ] : ( 'checkbox' === $field['type'] ? '0' : '' );
+			$value = Connector_Registry::sanitize_field_value( $field, $raw );
 
 			if ( ! empty( $field['secret'] ) ) {
 				if ( '' !== (string) $raw ) {
@@ -285,6 +299,49 @@ class Connections_Module implements Module_Contract {
 		return array( 'message' => isset( $health['message'] ) ? $health['message'] : __( 'Connection test completed.', 'airfiber-centralized' ) );
 	}
 
+	/** Test the values currently visible in a dialog without saving them. */
+	private static function probe_connection( $payload ) {
+		$id       = isset( $payload['connection_id'] ) ? sanitize_text_field( $payload['connection_id'] ) : '';
+		$existing = $id ? Connection_Store::get( $id ) : null;
+		$type_id  = $existing && ! empty( $existing['type'] )
+			? $existing['type']
+			: ( isset( $payload['connector_type'] ) ? sanitize_key( $payload['connector_type'] ) : '' );
+		$type     = Connector_Registry::get( $type_id );
+
+		if ( ! $type || empty( $type['module'] ) || empty( $type['test_action'] ) ) {
+			return new \WP_Error( 'afcn_connection_test_unsupported', __( 'This connector does not expose a connection test yet.', 'airfiber-centralized' ), array( 'status' => 400 ) );
+		}
+
+		$prepared = self::prepare_record( $type_id, $payload, $existing, true );
+		if ( is_wp_error( $prepared ) ) {
+			return $prepared;
+		}
+
+		$record           = $prepared['record'];
+		$record['id']     = $id;
+		$record['module'] = $type['module'];
+		$result           = Module_Manager::handle_action(
+			$type['module'],
+			$type['test_action'],
+			array(
+				'connection_id' => $id,
+				'record'        => $record,
+				'secrets'       => $prepared['secrets'],
+				'probe'         => true,
+			)
+		);
+
+		if ( is_wp_error( $result ) ) {
+			return $result;
+		}
+
+		return array(
+			'connected' => true,
+			'reload'    => false,
+			'message'   => is_array( $result ) && ! empty( $result['message'] ) ? $result['message'] : __( 'Connection succeeded.', 'airfiber-centralized' ),
+		);
+	}
+
 	private static function render_card( $card, $can_manage ) {
 		$state       = in_array( $card['state'], array( 'online', 'offline', 'warning', 'unconfigured', 'unknown' ), true ) ? $card['state'] : 'unknown';
 		$filter      = in_array( $state, array( 'online', 'offline', 'warning' ), true ) ? $state : 'unconfigured';
@@ -338,6 +395,7 @@ class Connections_Module implements Module_Contract {
 	}
 
 	private static function render_add_dialog( $types ) {
+		$can_probe = self::has_testable_type( $types );
 		?>
 		<dialog class="afcn-dialog" id="afcn-add-connection-dialog">
 			<form method="dialog" class="afcn-dialog-shell" data-afcn-module="connections" data-afcn-action="create-connection" data-afcn-connection-form>
@@ -347,9 +405,13 @@ class Connections_Module implements Module_Contract {
 						<label class="afcn-field"><span><?php esc_html_e( 'Connector type', 'airfiber-centralized' ); ?></span><select class="afcn-select" name="connector_type" data-afcn-connector-type required><option value=""><?php esc_html_e( 'Select connector', 'airfiber-centralized' ); ?></option><?php foreach ( $types as $id => $type ) : ?><option value="<?php echo esc_attr( $id ); ?>"><?php echo esc_html( $type['name'] ); ?></option><?php endforeach; ?></select></label>
 						<?php echo UI::field( 'connection_name', __( 'Connection name', 'airfiber-centralized' ), array( 'required' => true, 'placeholder' => __( 'e.g. Main Router', 'airfiber-centralized' ) ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
 					</div>
-					<?php foreach ( $types as $id => $type ) : ?><div class="afcn-connector-fields" data-afcn-connector-fields="<?php echo esc_attr( $id ); ?>" hidden><?php self::render_fields( $type, array(), false ); ?></div><?php endforeach; ?>
+					<?php foreach ( $types as $id => $type ) : ?><div class="afcn-connector-fields" data-afcn-connector-fields="<?php echo esc_attr( $id ); ?>" data-afcn-connector-testable="<?php echo ! empty( $type['test_action'] ) ? '1' : '0'; ?>" hidden><?php self::render_fields( $type, array(), false ); ?></div><?php endforeach; ?>
 				</div>
-				<div class="afcn-dialog-footer"><button type="button" class="afcn-button afcn-button-secondary" data-afcn-dialog-close><?php esc_html_e( 'Cancel', 'airfiber-centralized' ); ?></button><button type="submit" class="afcn-button afcn-button-primary"><?php esc_html_e( 'Save Connection', 'airfiber-centralized' ); ?></button></div>
+				<div class="afcn-dialog-footer">
+					<button type="button" class="afcn-button afcn-button-secondary" data-afcn-dialog-close><?php esc_html_e( 'Cancel', 'airfiber-centralized' ); ?></button>
+					<?php if ( $can_probe ) : ?><button type="button" class="afcn-button afcn-button-secondary" data-afcn-connection-probe disabled><?php esc_html_e( 'Connect', 'airfiber-centralized' ); ?></button><?php endif; ?>
+					<button type="submit" class="afcn-button afcn-button-primary"><?php esc_html_e( 'Save Connection', 'airfiber-centralized' ); ?></button>
+				</div>
 			</form>
 		</dialog>
 		<?php
@@ -360,16 +422,22 @@ class Connections_Module implements Module_Contract {
 		if ( ! $type ) {
 			return;
 		}
+		$health    = Connection_Health::get( $record['id'] );
+		$connected = 'online' === ( isset( $health['state'] ) ? $health['state'] : '' );
 		?>
 		<dialog class="afcn-dialog" id="afcn-connection-<?php echo esc_attr( $record['id'] ); ?>">
-			<form method="dialog" class="afcn-dialog-shell" data-afcn-module="connections" data-afcn-action="update-connection">
+			<form method="dialog" class="afcn-dialog-shell" data-afcn-module="connections" data-afcn-action="update-connection" data-afcn-connection-form>
 				<input type="hidden" name="connection_id" value="<?php echo esc_attr( $record['id'] ); ?>">
 				<div class="afcn-dialog-header"><div><h2><?php echo esc_html( $record['name'] ); ?></h2><p><?php echo esc_html( $type['name'] ); ?></p></div><button type="button" class="afcn-icon-button" data-afcn-dialog-close aria-label="<?php esc_attr_e( 'Close', 'airfiber-centralized' ); ?>">×</button></div>
 				<div class="afcn-dialog-body">
 					<?php echo UI::field( 'connection_name', __( 'Connection name', 'airfiber-centralized' ), array( 'value' => $record['name'], 'required' => true ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
-					<div class="afcn-connector-fields is-visible"><?php self::render_fields( $type, isset( $record['config'] ) ? $record['config'] : array(), true ); ?></div>
+					<div class="afcn-connector-fields is-visible" data-afcn-connector-fields="<?php echo esc_attr( $record['type'] ); ?>" data-afcn-connector-testable="<?php echo ! empty( $type['test_action'] ) ? '1' : '0'; ?>"><?php self::render_fields( $type, isset( $record['config'] ) ? $record['config'] : array(), true ); ?></div>
 				</div>
-				<div class="afcn-dialog-footer"><button type="button" class="afcn-button afcn-button-secondary" data-afcn-dialog-close><?php esc_html_e( 'Cancel', 'airfiber-centralized' ); ?></button><button type="submit" class="afcn-button afcn-button-primary"><?php esc_html_e( 'Save Changes', 'airfiber-centralized' ); ?></button></div>
+				<div class="afcn-dialog-footer">
+					<button type="button" class="afcn-button afcn-button-secondary" data-afcn-dialog-close><?php esc_html_e( 'Cancel', 'airfiber-centralized' ); ?></button>
+					<?php if ( ! empty( $type['test_action'] ) ) : ?><button type="button" class="afcn-button afcn-button-secondary" data-afcn-connection-probe data-afcn-connected="<?php echo $connected ? '1' : '0'; ?>"><?php echo esc_html( $connected ? __( 'Connected', 'airfiber-centralized' ) : __( 'Connect', 'airfiber-centralized' ) ); ?></button><?php endif; ?>
+					<button type="submit" class="afcn-button afcn-button-primary"><?php esc_html_e( 'Save Changes', 'airfiber-centralized' ); ?></button>
+				</div>
 			</form>
 		</dialog>
 		<?php
@@ -386,27 +454,41 @@ class Connections_Module implements Module_Contract {
 			$key         = $field['key'];
 			$value       = ! empty( $field['secret'] ) ? '' : ( isset( $config[ $key ] ) ? $config[ $key ] : '' );
 			$placeholder = $is_edit && ! empty( $field['secret'] ) ? __( 'Leave blank to keep current value', 'airfiber-centralized' ) : $field['placeholder'];
+			$show_when   = isset( $field['show_when'] ) && is_array( $field['show_when'] ) ? $field['show_when'] : array();
+			$attributes  = '';
+			if ( ! empty( $show_when['field'] ) && isset( $show_when['value'] ) ) {
+				$attributes = ' data-afcn-show-when-field="' . esc_attr( $show_when['field'] ) . '" data-afcn-show-when-value="' . esc_attr( $show_when['value'] ) . '"';
+			}
+			echo '<div class="afcn-connector-field"' . $attributes . '>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
 
 			if ( 'select' === $field['type'] ) {
 				echo UI::select( $key, $field['label'], $field['options'], $value ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
-				continue;
-			}
-			if ( 'checkbox' === $field['type'] ) {
+			} elseif ( 'checkbox' === $field['type'] ) {
 				echo '<label class="afcn-field afcn-checkbox-field"><span>' . esc_html( $field['label'] ) . '</span><input type="checkbox" name="' . esc_attr( $key ) . '" value="1"' . checked( '1', (string) $value, false ) . '></label>';
-				continue;
+			} else {
+				echo UI::field(
+					$key,
+					$field['label'],
+					array(
+						'type'        => $field['type'],
+						'value'       => $value,
+						'placeholder' => $placeholder,
+						'required'    => ! empty( $field['required'] ) && ! ( $is_edit && ! empty( $field['secret'] ) ),
+					)
+				); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
 			}
-			echo UI::field(
-				$key,
-				$field['label'],
-				array(
-					'type'        => $field['type'],
-					'value'       => $value,
-					'placeholder' => $placeholder,
-					'required'    => ! empty( $field['required'] ) && ! ( $is_edit && ! empty( $field['secret'] ) ),
-				)
-			); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+			echo '</div>';
 		}
 		echo '</div>';
+	}
+
+	private static function has_testable_type( $types ) {
+		foreach ( $types as $type ) {
+			if ( ! empty( $type['test_action'] ) ) {
+				return true;
+			}
+		}
+		return false;
 	}
 
 	private static function display_value( $record, $type, $display ) {
