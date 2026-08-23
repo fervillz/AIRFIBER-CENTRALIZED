@@ -103,3 +103,17 @@ Decision: roles/capabilities define authority while `User_Access` may further na
 Reason: an Administrator can have administrative authority while still receiving a simplified operational menu. Hiding a module must also block direct interactive loading; visibility is not implemented as CSS/menu hiding only.
 
 Selecting every available normal module stores no restrictive policy, so newly installed modules remain visible by default. Nested/submenu visibility is reserved in the policy model but deferred until a real module needs it.
+
+## 2026-08-23 — Developer Tools is a normal lazy module in a Core utility drawer
+
+Decision: the developer console lives in the normal `tools` module, while Core only provides generic `parent` navigation metadata and a `drawer` presentation primitive. Tools is nested under Settings and is visible/loadable only to the explicit Airfiber Super Admin.
+
+Reason: developer diagnostics should not become a permanent Core business feature or a normal buyer/admin navigation item. Keeping Tools as a module lets its PHP/CSS/JS remain lazy while the reusable drawer primitive can serve future utility modules.
+
+Normal Administrators do not receive the Tools navigation item, Tools module inventory entry, utility runtime, or performance FIX action.
+
+## 2026-08-23 — Performance FIX does not self-modify production source code
+
+Decision: the Tools performance FIX workflow may inspect health/budgets/assets, warm safe runtime state, run a controlled render, retest the REST endpoint with AJAX and produce recommendations. It does not automatically rewrite PHP, JavaScript, CSS or database schema.
+
+Reason: automated source restructuring on a live WordPress installation is difficult to review, version, test and roll back safely. Airfiber may automate reversible runtime optimizations, but structural code changes remain explicit developer work.
