@@ -57,7 +57,7 @@ class Performance_Doctor {
 	public static function optimize( $module_id ) {
 		$module_id = sanitize_key( $module_id );
 		if ( ! $module_id || 'tools' === $module_id ) {
-			return new \WP_Error( 'afcn_tools_invalid_target', __( 'Choose a normal Airfiber module to optimize.', 'airfiber-centralized' ), array( 'status' => 400 ) );
+			return new \WP_Error( 'afcn_tools_invalid_target', __( 'Choose another Airfiber module to optimize.', 'airfiber-centralized' ), array( 'status' => 400 ) );
 		}
 
 		$meta = Module_Registry::get( $module_id );
