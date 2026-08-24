@@ -1,6 +1,10 @@
 (function () {
 	'use strict';
 
+	function statusManager() {
+		return window.AirfiberNext && window.AirfiberNext.status ? window.AirfiberNext.status : window.AirfiberUIStatus;
+	}
+
 	function fieldValue(form, name) {
 		const field = form.elements.namedItem(name);
 		if (!field) {
@@ -59,6 +63,10 @@
 		}
 		button.dataset.afcnConnected = '0';
 		button.textContent = 'Connect';
+		const status = statusManager();
+		if (status) {
+			status.clear(button);
+		}
 	}
 
 	function syncProbeAvailability(form) {
@@ -67,7 +75,22 @@
 			return;
 		}
 		const panel = activePanel(form);
-		button.disabled = !panel || panel.dataset.afcnConnectorTestable !== '1';
+		const available = !!panel && panel.dataset.afcnConnectorTestable === '1';
+		button.disabled = !available;
+
+		const status = statusManager();
+		if (!status) {
+			return;
+		}
+		if (!available) {
+			status.set(button, 'disabled', 'Choose a connection type that supports testing.');
+			return;
+		}
+		if (button.dataset.afcnConnected === '1') {
+			status.success(button, 'Connected.', { alert: false });
+		} else if (button.dataset.afcnStatus === 'disabled') {
+			status.clear(button, { alert: false });
+		}
 	}
 
 	function payloadFrom(form) {
@@ -83,19 +106,31 @@
 			return;
 		}
 
+		const status = statusManager();
 		button.dataset.afcnProbing = '1';
 		button.disabled = true;
 		button.textContent = 'Connecting…';
+		if (status) {
+			status.loading(button, 'Connecting to the OLT…');
+		}
 
 		try {
 			const result = await window.AirfiberNext.action('connections', 'probe-connection', payloadFrom(form));
+			const message = (result && result.message) || 'Connection succeeded.';
 			button.dataset.afcnConnected = '1';
 			button.textContent = 'Connected';
-			window.AirfiberNext.toast((result && result.message) || 'Connection succeeded.', false);
+			if (status) {
+				status.success(button, message);
+			}
+			window.AirfiberNext.toast(message, false);
 		} catch (error) {
+			const message = error.message || 'Connection failed.';
 			button.dataset.afcnConnected = '0';
 			button.textContent = 'Connect';
-			window.AirfiberNext.toast(error.message || 'Connection failed.', true);
+			if (status) {
+				status.error(button, message);
+			}
+			window.AirfiberNext.toast(message, true);
 		} finally {
 			button.dataset.afcnProbing = '0';
 			syncProbeAvailability(form);
@@ -116,14 +151,16 @@
 			resetProbe(form);
 			syncProbeAvailability(form);
 		});
-		form.addEventListener('input', function () {
-			resetProbe(form);
+		form.addEventListener('input', function (event) {
+			if (probeButton && !probeButton.contains(event.target)) {
+				resetProbe(form);
+			}
 		});
 
 		if (typeSelect) {
 			typeSelect.addEventListener('change', function () {
-			syncConnectorPanels(form);
-		});
+				syncConnectorPanels(form);
+			});
 		}
 
 		if (probeButton) {
