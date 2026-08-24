@@ -3,6 +3,10 @@
 
 	let running = false;
 
+	function statusManager() {
+		return window.AirfiberNext && window.AirfiberNext.status ? window.AirfiberNext.status : window.AirfiberUIStatus;
+	}
+
 	function consoleNode(root) {
 		return root ? root.querySelector('[data-afcn-tools-console]') : null;
 	}
@@ -101,7 +105,7 @@
 			return { ok: true, withinBudget: withinBudget, requestMs: requestMs, budget: budget };
 		} catch (error) {
 			log(root, 'REST retest failed: ' + (error.message || 'Unknown error.'), 'error');
-			return { ok: false, withinBudget: false };
+			return { ok: false, withinBudget: false, message: error.message || 'REST retest failed.' };
 		}
 	}
 
@@ -130,7 +134,12 @@
 			return;
 		}
 
+		const status = statusManager();
+		const sourceButton = context.sourceButton || null;
 		running = true;
+		if (status && sourceButton) {
+			status.loading(sourceButton, 'Running performance FIX…', { alert: false });
+		}
 		divider(root);
 		log(root, 'FIX started for ' + context.module + '.', 'info');
 		if (context.cause) {
@@ -152,15 +161,34 @@
 			}
 
 			if (retestResult.ok && retestResult.withinBudget) {
-				await resolveWarning(root, context, retestResult);
+				const resolved = await resolveWarning(root, context, retestResult);
 				log(root, 'FIX session complete. A new warning will appear automatically if the issue happens again.', 'success');
+				if (status && sourceButton) {
+					if (resolved || !context.warning) {
+						status.success(sourceButton, 'Performance retest passed.', { alert: false });
+					} else {
+						status.warning(sourceButton, 'Retest passed, but the original warning could not be marked resolved.', { alert: false });
+					}
+				}
 			} else if (retestResult.ok) {
-				log(root, 'FIX session finished, but the warning remains open because the retest is still above budget.', 'warning');
+				const message = 'FIX finished, but the warning remains above budget.';
+				log(root, message, 'warning');
+				if (status && sourceButton) {
+					status.warning(sourceButton, message, { alert: false });
+				}
 			} else {
-				log(root, 'FIX session finished with a REST error. The warning remains open.', 'warning');
+				const message = retestResult.message || 'FIX finished with a REST error.';
+				log(root, message + ' The warning remains open.', 'warning');
+				if (status && sourceButton) {
+					status.error(sourceButton, message, { alert: false });
+				}
 			}
 		} catch (error) {
-			log(root, 'FIX stopped unexpectedly: ' + (error.message || 'Unknown error.'), 'error');
+			const message = error.message || 'Unknown error.';
+			log(root, 'FIX stopped unexpectedly: ' + message, 'error');
+			if (status && sourceButton) {
+				status.error(sourceButton, message, { alert: false });
+			}
 		} finally {
 			running = false;
 		}
