@@ -126,6 +126,9 @@
 			transientTimers.set(button, window.setTimeout(function () {
 				if (button.dataset.afcnStatus === status) {
 					setButtonState(button, '', '');
+					if (options.alert !== false) {
+						clearModalAlert(button);
+					}
 				}
 			}, delay));
 		}
@@ -140,6 +143,33 @@
 			case 'disabled': return 'This action is currently unavailable.';
 			default: return '';
 		}
+	}
+
+	function dialogFrom(target) {
+		if (!target || !target.closest) {
+			return null;
+		}
+		return target.closest('dialog.afcn-dialog');
+	}
+
+	function setDialogState(target, status) {
+		const dialog = dialogFrom(target);
+		if (!dialog) {
+			return;
+		}
+
+		status = normalizeStatus(status);
+		STATUS_CLASSES.forEach(function (item) {
+			dialog.classList.remove('is-afcn-dialog-' + item);
+		});
+
+		if (!status) {
+			dialog.removeAttribute('data-afcn-dialog-status');
+			return;
+		}
+
+		dialog.dataset.afcnDialogStatus = status;
+		dialog.classList.add('is-afcn-dialog-' + status);
 	}
 
 	function ensureDialogAlert(dialog) {
@@ -170,7 +200,7 @@
 	}
 
 	function modalAlert(target, status, message) {
-		const dialog = target && target.closest ? target.closest('dialog.afcn-dialog') : null;
+		const dialog = dialogFrom(target);
 		if (!dialog) {
 			return;
 		}
@@ -179,16 +209,18 @@
 			return;
 		}
 		status = normalizeStatus(status);
+		setDialogState(dialog, status);
 		alert.className = 'afcn-dialog-alert' + (status ? ' is-' + status : '');
 		alert.textContent = String(message || defaultMessage(status));
 		alert.hidden = !status || !alert.textContent;
 	}
 
 	function clearModalAlert(target) {
-		const dialog = target && target.closest ? target.closest('dialog.afcn-dialog') : null;
+		const dialog = dialogFrom(target);
 		if (!dialog) {
 			return;
 		}
+		setDialogState(dialog, '');
 		const alert = dialog.querySelector('[data-afcn-dialog-alert]');
 		if (alert) {
 			alert.hidden = true;
@@ -284,9 +316,13 @@
 					setButtonState(button, '', '');
 				}
 			});
+			if (!dialog.querySelector('button.is-afcn-loading')) {
+				clearModalAlert(event.target);
+			}
 		});
 
 		dialog.addEventListener('close', function () {
+			clearModalAlert(dialog);
 			document.dispatchEvent(new CustomEvent('afcn:dialog:closed', {
 				detail: {
 					dialog: dialog,
@@ -349,6 +385,7 @@
 		clear: clear,
 		modalAlert: modalAlert,
 		clearModalAlert: clearModalAlert,
+		setDialogState: setDialogState,
 		prepareDialog: prepareDialog,
 		wire: wire
 	});
