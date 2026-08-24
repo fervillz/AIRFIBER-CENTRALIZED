@@ -245,6 +245,18 @@ dialog.afcn-dialog .afcn-dialog-body{
 	scrollbar-gutter:stable;
 }
 
+/*
+ * Cancel behavior is intentionally different for create vs edit dialogs.
+ * Edit dialogs honor the hidden attribute until the shared dirty-state manager
+ * detects a real field change. Create/Add dialogs keep Cancel visible from open.
+ */
+dialog.afcn-dialog .afcn-dialog-footer [data-afcn-dialog-close][hidden]{display:none!important}
+dialog.afcn-dialog[data-afcn-dialog-mode="create"] .afcn-dialog-footer [data-afcn-dialog-close][hidden],
+dialog.afcn-dialog form[data-afcn-action^="create-"] .afcn-dialog-footer [data-afcn-dialog-close][hidden],
+dialog.afcn-dialog form[data-afcn-action$="-create"] .afcn-dialog-footer [data-afcn-dialog-close][hidden],
+dialog.afcn-dialog form[data-afcn-action^="add-"] .afcn-dialog-footer [data-afcn-dialog-close][hidden],
+dialog.afcn-dialog form[data-afcn-action$="-add"] .afcn-dialog-footer [data-afcn-dialog-close][hidden]{display:inline-flex!important}
+
 .afcn-dialog-alert{
 	display:flex;
 	flex:0 0 auto;
