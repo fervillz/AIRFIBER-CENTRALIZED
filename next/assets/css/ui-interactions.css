@@ -1,6 +1,8 @@
 :root{
 	--afcn-hover-shadow:0 10px 40px 0 rgba(0,0,0,.1);
 	--afcn-hover-lift:-10px;
+	--afcn-button-hover-lift:-5px;
+	--afcn-button-transition:500ms ease;
 	--afcn-card-hover-bg:#e7f0fb;
 	--afcn-hover-in:160ms cubic-bezier(.2,.8,.2,1);
 	--afcn-hover-out:5s cubic-bezier(.16,1,.3,1);
@@ -35,16 +37,16 @@
 
 .afcn-button{
 	transition:
-		transform var(--afcn-transition),
-		box-shadow var(--afcn-transition),
-		background-color var(--afcn-transition),
-		border-color var(--afcn-transition),
-		color var(--afcn-transition);
+		transform var(--afcn-button-transition),
+		box-shadow var(--afcn-button-transition),
+		background-color var(--afcn-button-transition),
+		border-color var(--afcn-button-transition),
+		color var(--afcn-button-transition);
 }
 
 .afcn-button:hover,
 .afcn-button:focus-visible{
-	transform:translateY(var(--afcn-hover-lift));
+	transform:translateY(var(--afcn-button-hover-lift));
 	box-shadow:var(--afcn-hover-shadow);
 }
 
