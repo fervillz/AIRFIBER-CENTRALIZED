@@ -12,6 +12,7 @@ class Assets {
 		$interactions   = AFCN_PATH . 'assets/css/ui-interactions.css';
 		$module_manager = AFCN_PATH . 'assets/css/module-manager.css';
 		$browser        = AFCN_PATH . 'assets/css/browser.css';
+		$status_js      = AFCN_PATH . 'assets/js/ui-status.js';
 		$js             = AFCN_PATH . 'assets/js/app.js';
 		$browser_js     = AFCN_PATH . 'assets/js/browser.js';
 		$utility_js     = AFCN_PATH . 'assets/js/utility.js';
@@ -26,7 +27,8 @@ class Assets {
 		wp_enqueue_style( 'afcn-ui-interactions', AFCN_URL . 'assets/css/ui-interactions.css', array( 'afcn-core' ), file_exists( $interactions ) ? (string) filemtime( $interactions ) : AFCN_VERSION );
 		wp_enqueue_style( 'afcn-module-manager', AFCN_URL . 'assets/css/module-manager.css', array( 'afcn-ui-interactions' ), file_exists( $module_manager ) ? (string) filemtime( $module_manager ) : AFCN_VERSION );
 		wp_enqueue_style( 'afcn-browser', AFCN_URL . 'assets/css/browser.css', array( 'afcn-module-manager' ), file_exists( $browser ) ? (string) filemtime( $browser ) : AFCN_VERSION );
-		wp_enqueue_script( 'afcn-app', AFCN_URL . 'assets/js/app.js', array(), file_exists( $js ) ? (string) filemtime( $js ) : AFCN_VERSION, true );
+		wp_enqueue_script( 'afcn-ui-status', AFCN_URL . 'assets/js/ui-status.js', array(), file_exists( $status_js ) ? (string) filemtime( $status_js ) : AFCN_VERSION, true );
+		wp_enqueue_script( 'afcn-app', AFCN_URL . 'assets/js/app.js', array( 'afcn-ui-status' ), file_exists( $js ) ? (string) filemtime( $js ) : AFCN_VERSION, true );
 		wp_enqueue_script( 'afcn-browser', AFCN_URL . 'assets/js/browser.js', array( 'afcn-app' ), file_exists( $browser_js ) ? (string) filemtime( $browser_js ) : AFCN_VERSION, true );
 
 		// Utility drawers are a Super-Admin shell feature. Normal customer/admin
