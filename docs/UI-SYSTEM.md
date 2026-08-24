@@ -33,6 +33,8 @@ Core CSS currently includes:
 - module errors
 - toasts
 - dialogs
+- shared button/action status feedback
+- shared dialog alert and state shadow feedback
 - shared hover/lift behavior
 - shared tooltip styling and motion
 - shared SVG icon sizing
@@ -43,6 +45,30 @@ Core CSS currently includes:
 `Airfiber\Next\Tooltip` is the single tooltip API. It supports plain text, up/down motion, alternate backgrounds and an optional tooltip action. Default background is black. Tooltip enter/exit uses opacity and vertical movement instead of abruptly appearing/disappearing.
 
 `Airfiber\Next\Icon` supplies small dependency-free SVG icons for shared controls.
+
+## Shared action status feedback
+
+Core owns action feedback for BETA buttons through the shared browser status manager. Modules should report the result of an action rather than inventing separate button-state CSS.
+
+Supported states are:
+
+- loading: blue status indicator/spinner
+- success: green check/status and green button border
+- warning: blue attention state
+- error: red `!` status and red button border
+- disabled: grey status
+
+The small status indicator is positioned at the top-right of the button and uses the same BETA tooltip language for the current message. Async module forms, connector probes, navigation actions and developer Tools can all use the same manager.
+
+When the action happens inside an `.afcn-dialog`, the same state is mirrored into the dialog alert and the modal shadow:
+
+- loading: blue shadow
+- success: green shadow
+- warning: blue shadow
+- error: red shadow
+- disabled: grey shadow
+
+The dialog shadow is state feedback, not a module-owned decoration. It transitions with the action and returns to the normal dialog shadow when the status is cleared, the form is edited after a completed action, or the dialog closes. `prefers-reduced-motion` removes the shadow transition.
 
 ## Uniform BETA dialogs
 
