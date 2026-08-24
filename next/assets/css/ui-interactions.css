@@ -6,6 +6,7 @@
 	--afcn-hover-out:5s cubic-bezier(.16,1,.3,1);
 	--afcn-dialog-width:680px;
 	--afcn-dialog-height:680px;
+	--afcn-status-disabled:#98a4b1;
 }
 
 /*
@@ -135,6 +136,72 @@
 }
 
 /*
+ * Site-wide BETA button state layer. Every operational button can expose one
+ * small status badge at its top-right while keeping the shared tooltip system.
+ */
+body.afcn-page button{
+	position:relative;
+	overflow:visible;
+}
+
+body.afcn-page button.is-afcn-loading{border-color:var(--afcn-primary)!important}
+body.afcn-page button.is-afcn-success{border-color:var(--afcn-success)!important;box-shadow:0 0 0 2px rgba(47,179,68,.08)}
+body.afcn-page button.is-afcn-warning{border-color:var(--afcn-primary)!important;box-shadow:0 0 0 2px rgba(32,107,196,.08)}
+body.afcn-page button.is-afcn-error{border-color:var(--afcn-danger)!important;box-shadow:0 0 0 2px rgba(214,57,57,.08)}
+body.afcn-page button.is-afcn-disabled,
+body.afcn-page button:disabled:not(.is-afcn-loading){border-color:var(--afcn-status-disabled)!important;color:#7f8a96;cursor:not-allowed}
+
+.afcn-button-status-tooltip{
+	position:absolute;
+	z-index:80;
+	top:-8px;
+	right:-8px;
+	left:auto;
+	dis:inline-flex;
+	width:18px;
+	height:18px;
+	align-items:center;
+	justify-content:center;
+	pointer-events:auto;
+}
+.afcn-button-status-tooltip .afcn-tooltip-trigger{display:grid;width:18px;height:18px;place-items:center}
+.afcn-button-status-tooltip .afcn-tooltip-panel{max-width:280px}
+.afcn-button-status-tooltip.afcn-tooltip-up .afcn-tooltip-panel{right:-2px;left:auto;transform:translateY(6px)}
+.afcn-button-status-tooltip.afcn-tooltip-down .afcn-tooltip-panel{right:-2px;left:auto;transform:translateY(-6px)}
+.afcn-button-status-tooltip.afcn-tooltip-up:hover .afcn-tooltip-panel,
+.afcn-button-status-tooltip.afcn-tooltip-up:focus-within .afcn-tooltip-panel,
+.afcn-button-status-tooltip.afcn-tooltip-down:hover .afcn-tooltip-panel,
+.afcn-button-status-tooltip.afcn-tooltip-down:focus-within .afcn-tooltip-panel{transform:translateY(0)}
+
+.afcn-button-status-icon{
+	display:grid;
+	width:18px;
+	height:18px;
+	place-items:center;
+	border:1px solid currentColor;
+	border-radius:999px;
+	background:#fff;
+	box-shadow:0 3px 9px rgba(24,36,51,.18);
+	font-family:var(--afcn-font-ui);
+	font-size:11px;
+	font-weight:800;
+	line-height:1;
+}
+.afcn-button-status-tooltip.is-loading .afcn-button-status-icon,
+.afcn-button-status-tooltip.is-warning .afcn-button-status-icon{color:var(--afcn-primary)}
+.afcn-button-status-tooltip.is-success .afcn-button-status-icon{color:var(--afcn-success)}
+.afcn-button-status-tooltip.is-error .afcn-button-status-icon{color:var(--afcn-danger)}
+.afcn-button-status-tooltip.is-disabled .afcn-button-status-icon{color:var(--afcn-status-disabled)}
+.afcn-button-status-icon.is-spinner{
+	width:16px;
+	height:16px;
+	border:2px solid rgba(32,107,196,.24);
+	border-top-color:var(--afcn-primary);
+	font-size:0;
+	animation:afcn-spin .7s linear infinite;
+}
+
+/*
  * One BETA dialog frame everywhere. Header/footer stay fixed; only the content
  * body scrolls when a form is taller than the shared frame.
  */
@@ -159,6 +226,26 @@ dialog.afcn-dialog .afcn-dialog-body{
 	overscroll-behavior:contain;
 	scrollbar-gutter:stable;
 }
+
+.afcn-dialog-alert{
+	display:flex;
+	flex:0 0 auto;
+	align-items:center;
+	min-height:40px;
+	margin:10px 16px 0;
+	padding:9px 11px;
+	border:1px solid var(--afcn-border);
+	border-radius:9px;
+	background:#f7f9fc;
+	color:var(--afcn-text);
+	font-size:12px;
+	line-height:1.35;
+}
+.afcn-dialog-alert[hidden]{display:none}
+.afcn-dialog-alert.is-loading,.afcn-dialog-alert.is-warning{border-color:#b7d4f2;background:#f1f7fd;color:#174f83}
+.afcn-dialog-alert.is-success{border-color:#a9ddb2;background:#effaf1;color:#176b2b}
+.afcn-dialog-alert.is-error{border-color:#efbcbc;background:#fff3f3;color:#8f1f1f}
+.afcn-dialog-alert.is-disabled{border-color:#d7dde4;background:#f6f7f9;color:#7f8a96}
 
 /* Nested navigation is metadata-driven. Child tools do not become top-level tabs. */
 .afcn-nav-item{position:relative;display:flex;align-items:center}
@@ -272,4 +359,6 @@ dialog.afcn-dialog .afcn-dialog-body{
 	.afcn-utility-drawer{
 		transition:none;
 	}
+
+	.afcn-button-status-icon.is-spinner{animation-duration:1.2s}
 }
