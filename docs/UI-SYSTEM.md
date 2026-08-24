@@ -107,7 +107,7 @@ All normal Airfiber cards use the same motion language unless a component has a 
 
 The asymmetric timing is deliberate: cards respond immediately when hovered, then gently settle back after the pointer leaves. The global interaction stylesheet respects `prefers-reduced-motion` and disables the lift/transition when reduced motion is requested.
 
-Normal Airfiber buttons retain the shared lift/shadow behavior but do not use the five-second card return unless specifically designed as a card-like control.
+Normal Airfiber buttons use a softer shared hover than cards: `translateY(-5px)` with a 500 ms transition for transform, shadow, background, border and color. Cards retain their existing -10 px / asymmetric timing.
 
 ## Module Manager cards
 
