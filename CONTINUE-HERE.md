@@ -1,6 +1,6 @@
 # AIRFIBER-CENTRALIZED — Continue Here
 
-Updated: 2026-08-24
+Updated: 2026-08-25
 
 ## Current goal
 
@@ -8,11 +8,11 @@ Build Airfiber Next/BETA as an isolated, very fast application platform inside t
 
 BETA URL: `/airfiber-beta/`.
 
-Airfiber Next Core version: **0.4.7**.
+Airfiber Next Core version: **0.4.9**.
 
 ## Boundary
 
-Classic stays in `includes/`, `templates/`, and `assets/`. Next/BETA lives in `next/`. Do not bulk-restructure Classic. The Classic bridge only boots `next/bootstrap.php` and exposes the small **Try BETA** entry.
+Classic stays in `includes/`, `templates/`, and `assets/`. Next/BETA lives under `next/`. Do not bulk-restructure Classic. The Classic bridge only boots `next/bootstrap.php` and exposes the small **Try BETA** entry.
 
 ## Core platform completed
 
@@ -22,6 +22,8 @@ Classic stays in `includes/`, `templates/`, and `assets/`. Next/BETA lives in `n
 - shared UI system: Source Serif 4 headings, 9px controls, 14px dialogs, shared cards/tooltips/icons/motion
 - one shared responsive 680 × 680 BETA dialog frame; long dialog bodies scroll while header/footer stay fixed
 - one shared BETA dialog header close control using `.afcn-icon-button`, styled from the proven Classic Connections modal
+- sitewide BETA button states with top-right loading/success/warning/error/disabled badges and shared tooltip messages
+- modal alert + modal box-shadow state feedback synchronized with the active button action
 - compiled cached module registry, numeric menu positions and lazy module PHP/assets/data
 - generic REST render/query/chunk/action runtime
 - browser SDK at `window.AirfiberNext`
@@ -142,15 +144,17 @@ Provisioning, ONU writes and deep PON/ONU inventory are intentionally deferred u
 
 See `docs/CONNECTORS.md`, `docs/ARCHITECTURE.md` and `docs/DECISIONS.md`.
 
-## Uniform BETA dialogs — Core 0.4.5 / 0.4.6
+## Uniform BETA dialogs — Core 0.4.5 / 0.4.9
 
 All normal `<dialog class="afcn-dialog">` modals use one Core-owned responsive frame rather than module-specific dimensions.
 
 Desktop target is 680 × 680 px, constrained by the current viewport. Dialog header and footer stay fixed; only `.afcn-dialog-body` scrolls when a form is taller than the shared frame. Mobile uses the same component with a small viewport gutter.
 
-Core 0.4.6 also standardizes the dialog header close control. Add/Edit User and Add/Edit Connection use the same existing `.afcn-icon-button` with `data-afcn-dialog-close`. Its 32 × 32 px outlined white rounded-square styling is based on the proven Classic Connections close button. Do not introduce `.afcn-dialog-close` or another module-specific close-button class.
+Core 0.4.6 standardized the dialog header close control. Add/Edit User and Add/Edit Connection use the same existing `.afcn-icon-button` with `data-afcn-dialog-close`. Its 32 × 32 px outlined white rounded-square styling is based on the proven Classic Connections close button. Do not introduce `.afcn-dialog-close` or another module-specific close-button class.
 
-Modules should not set their own modal width/height or close-button styling. Connections, Users and future OLT/PPP/Billing forms inherit the shared Core rules automatically.
+Core 0.4.8 introduced shared sitewide button states and modal alert messages. Core 0.4.9 extends the same state to the dialog shadow so the modal itself communicates the current action: blue while loading/warning, green on success, red on error, and grey when explicitly disabled. Editing after a completed action clears stale modal feedback; closing a dialog also clears its transient visual state.
+
+Modules should not set their own modal width/height, close-button styling, status badges, alert styling or state shadows. Connections, Users and future OLT/PPP/Billing forms inherit the shared Core rules automatically.
 
 See `docs/UI-SYSTEM.md`.
 
@@ -260,16 +264,17 @@ OLT provisioning writes, ONU mutations and full PON/ONU inventory remain deferre
 
 Do NOT bulk-migrate Classic.
 
-Verify Core 0.4.7 on the development installation:
+Verify Core 0.4.9 on the development installation:
 
 1. Open the BETA **GPON - LINGION** connection for `10.13.88.7`.
 2. With **SNMPv2c** selected, only the Community credential should be shown; SNMPv3 Username/Auth/Privacy must be hidden. Switching to SNMPv3 should reverse that visibility.
 3. Re-enter the same SNMPv2c community used by Classic if BETA does not already have it saved. Classic credentials are intentionally not copied.
-4. Press **Connect** before Save Changes. The current form values should be tested without saving. Success changes the button to **Connected**; changing any field resets it to **Connect**.
-5. The GPON v2c test should use the Classic-compatible bounded GETNEXT path before falling back to `real_walk()`.
-6. After saving, run the normal card **Test connection** once. A successful saved test marks the native card online and allows Connections to suppress the matching Classic OLT card.
-7. Open **OLT** and Dashboard; both must remain cache-only and cause no SNMP poll.
-8. Check Add/Edit User, Owner and Connection dialogs: all should use the same 680 × 680 frame and shared `.afcn-icon-button` close control.
+4. Press **Connect** before Save Changes. The current form values should be tested without saving. While connecting, the button badge, modal alert and modal shadow should be blue; success changes all three to green and the button to **Connected**; changing any field resets it to **Connect** and clears the modal state.
+5. Trigger one intentional validation/error case in a BETA modal and confirm the button badge, alert and dialog shadow become red while the modal remains open.
+6. The GPON v2c test should use the Classic-compatible bounded GETNEXT path before falling back to `real_walk()`.
+7. After saving, run the normal card **Test connection** once. A successful saved test marks the native card online and allows Connections to suppress the matching Classic OLT card.
+8. Open **OLT** and Dashboard; both must remain cache-only and cause no SNMP poll.
+9. Check Add/Edit User, Owner and Connection dialogs: all should use the same 680 × 680 frame and shared `.afcn-icon-button` close control.
 
 After the real GPON connection is verified, extend OLT read-only functionality with cached overview/inventory and lazy per-OLT/PON/ONU details. Keep remote reads explicit/background and bounded. Provisioning writes come only after the read-only path proves stable.
 
