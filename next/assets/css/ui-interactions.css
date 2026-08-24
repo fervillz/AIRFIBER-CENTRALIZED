@@ -210,6 +210,22 @@ dialog.afcn-dialog{
 	height:min(var(--afcn-dialog-height),calc(100dvh - 28px));
 	max-height:calc(100dvh - 28px);
 	overflow:hidden;
+	transition:box-shadow .22s ease;
+}
+dialog.afcn-dialog.is-afcn-dialog-loading{
+	box-shadow:0 32px 96px rgba(32,107,196,.30),0 0 0 3px rgba(32,107,196,.14);
+}
+dialog.afcn-dialog.is-afcn-dialog-success{
+	box-shadow:0 32px 96px rgba(47,179,68,.28),0 0 0 3px rgba(47,179,68,.14);
+}
+dialog.afcn-dialog.is-afcn-dialog-warning{
+	box-shadow:0 32px 96px rgba(32,107,196,.28),0 0 0 3px rgba(32,107,196,.12);
+}
+dialog.afcn-dialog.is-afcn-dialog-error{
+	box-shadow:0 32px 96px rgba(214,57,57,.30),0 0 0 3px rgba(214,57,57,.14);
+}
+dialog.afcn-dialog.is-afcn-dialog-disabled{
+	box-shadow:0 30px 88px rgba(102,115,130,.22),0 0 0 3px rgba(152,164,177,.12);
 }
 dialog.afcn-dialog>form{
 	display:flex;
@@ -343,7 +359,8 @@ dialog.afcn-dialog .afcn-dialog-body{
 
 @media (prefers-reduced-motion:reduce){
 	.afcn-card,
-	.afcn-button{
+	.afcn-button,
+	dialog.afcn-dialog{
 		transition:none;
 	}
 
