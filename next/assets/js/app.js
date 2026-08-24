@@ -8,6 +8,7 @@
 	const cfg = window.afcnApp;
 	const stage = document.getElementById('afcn-module-stage');
 	const nav = Array.from(document.querySelectorAll('[data-afcn-module]'));
+	const uiStatus = window.AirfiberUIStatus || null;
 	const metricSampleRate = 0.15;
 	const state = {
 		current: '',
@@ -159,6 +160,7 @@
 		resetSlotObserver();
 		stage.innerHTML = '<div class="afcn-card afcn-module-error"><h2>Module unavailable</h2><p></p><button type="button" class="afcn-button afcn-button-secondary">Try again</button></div>';
 		stage.querySelector('p').textContent = error.message || cfg.labels.failed;
+		wireModule(stage);
 		stage.querySelector('button').addEventListener('click', function () {
 			loadModule(state.current, true);
 		});
@@ -176,7 +178,7 @@
 
 	async function loadModule(id, force) {
 		if (!id) {
-			return;
+			return false;
 		}
 
 		state.current = id;
@@ -189,7 +191,7 @@
 			if (sampleMetrics) {
 				reportMetric(id, 'client', clientMs);
 			}
-			return;
+			return true;
 		}
 
 		const navigationStarted = performance.now();
@@ -214,8 +216,10 @@
 				reportMetric(id, 'client', clientMs);
 				reportMetric(id, 'navigation', navigationMs);
 			}
+			return true;
 		} catch (error) {
 			showError(error);
+			return false;
 		}
 	}
 
@@ -280,6 +284,7 @@
 		item.innerHTML = '<div class="afcn-card afcn-slot-error"><div class="afcn-card-body"><strong></strong><p class="afcn-page-description"></p><button type="button" class="afcn-button afcn-button-secondary afcn-button-small">Try again</button></div></div>';
 		item.querySelector('strong').textContent = label;
 		item.querySelector('p').textContent = error.message || cfg.labels.failed;
+		wireModule(item);
 		item.querySelector('button').addEventListener('click', function () {
 			item.dataset.afcnSlotState = '';
 			loadSlotItem(item);
@@ -343,6 +348,9 @@
 	function openDialog(id) {
 		const dialog = typeof id === 'string' ? document.getElementById(id) : id;
 		if (dialog && typeof dialog.showModal === 'function') {
+			if (uiStatus) {
+				uiStatus.prepareDialog(dialog);
+			}
 			dialog.showModal();
 		}
 	}
@@ -352,6 +360,28 @@
 		if (item && typeof item.close === 'function') {
 			item.close();
 		}
+	}
+
+	function actionLoadingMessage(action) {
+		action = String(action || '').toLowerCase();
+		if (action.includes('connect') || action.includes('test') || action.includes('probe')) {
+			return 'Connecting…';
+		}
+		if (action.includes('refresh')) {
+			return 'Refreshing…';
+		}
+		if (action.includes('delete') || action.includes('trash') || action.includes('remove')) {
+			return 'Processing…';
+		}
+		return 'Currently saving, kindly wait.';
+	}
+
+	function submitButton(form) {
+		const active = document.activeElement;
+		if (active && active.tagName === 'BUTTON' && active.type === 'submit' && form.contains(active)) {
+			return active;
+		}
+		return form.querySelector('[type="submit"]');
 	}
 
 	async function submitAction(form) {
@@ -364,7 +394,11 @@
 			return;
 		}
 
-		const button = form.querySelector('[type="submit"]');
+		const button = submitButton(form);
+		const dialog = form.closest('dialog.afcn-dialog');
+		if (button && uiStatus) {
+			uiStatus.loading(button, actionLoadingMessage(action));
+		}
 		if (button) {
 			button.disabled = true;
 		}
@@ -376,10 +410,24 @@
 
 		try {
 			const result = await moduleAction(module, action, payload);
+			const message = (result && result.message) || cfg.labels.saved;
 			if (result && result.generated_password) {
 				window.prompt('Generated password — copy it now:', result.generated_password);
 			}
-			toast((result && result.message) || cfg.labels.saved, false);
+			if (button && uiStatus) {
+				uiStatus.success(button, message);
+			}
+			toast(message, false);
+
+			if (dialog) {
+				if (result && result.refresh_nav) {
+					dialog.dataset.afcnRefreshPage = '1';
+				} else if (!result || result.reload !== false) {
+					dialog.dataset.afcnRefreshModule = module;
+				}
+				return;
+			}
+
 			if (result && result.refresh_nav) {
 				window.location.reload();
 				return;
@@ -389,7 +437,11 @@
 				await loadModule(module, true);
 			}
 		} catch (error) {
-			toast(error.message || cfg.labels.failed, true);
+			const message = error.message || cfg.labels.failed;
+			if (button && uiStatus) {
+				uiStatus.error(button, message);
+			}
+			toast(message, true);
 		} finally {
 			if (button) {
 				button.disabled = false;
@@ -398,6 +450,10 @@
 	}
 
 	function wireModule(root) {
+		if (uiStatus) {
+			uiStatus.wire(root);
+		}
+
 		root.querySelectorAll('form[data-afcn-action]').forEach(function (form) {
 			if (form.dataset.afcnWired) {
 				return;
@@ -433,13 +489,35 @@
 	}
 
 	nav.forEach(function (button) {
-		button.addEventListener('click', function () {
+		button.addEventListener('click', async function () {
 			const id = button.dataset.afcnModule;
 			if (window.location.hash !== '#' + id) {
 				history.pushState(null, '', '#' + id);
 			}
-			loadModule(id, false);
+			if (uiStatus) {
+				uiStatus.loading(button, 'Loading…', { alert: false });
+			}
+			const loaded = await loadModule(id, false);
+			if (uiStatus) {
+				if (loaded) {
+					uiStatus.success(button, 'Loaded.', { alert: false, transient: true, delay: 1000 });
+				} else {
+					uiStatus.error(button, 'This module could not be loaded.', { alert: false });
+				}
+			}
 		});
+	});
+
+	document.addEventListener('afcn:dialog:closed', function (event) {
+		const detail = event.detail || {};
+		if (detail.refreshPage) {
+			window.location.reload();
+			return;
+		}
+		if (detail.refreshModule) {
+			state.cache.delete(detail.refreshModule);
+			loadModule(detail.refreshModule, true);
+		}
 	});
 
 	window.addEventListener('hashchange', function () {
@@ -459,8 +537,13 @@
 		openDialog: openDialog,
 		closeDialog: closeDialog,
 		wire: wireModule,
+		status: uiStatus,
 		config: cfg
 	});
+
+	if (uiStatus) {
+		uiStatus.wire(document);
+	}
 
 	const requested = window.location.hash.replace(/^#/, '');
 	const initial = nav.some(function (button) {
