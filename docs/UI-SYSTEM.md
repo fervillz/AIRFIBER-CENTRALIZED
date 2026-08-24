@@ -94,9 +94,14 @@ Every dialog header close button uses the existing shared markup:
 
 Do not create `afcn-dialog-close` or another module-specific close-button class. The shared `.afcn-icon-button` deliberately copies the proven Classic Connections modal close control: 32 × 32 px, 1 px `#dce4ec` border, 10 px radius, white background and muted blue-grey icon/text. Core owns its hover/focus state.
 
-Footer **Cancel** controls are also Core-managed. They are hidden when the dialog opens and appear only when an editable `input`, `select` or `textarea` differs from the baseline captured after the dialog is populated. Returning every edited value to its original value hides Cancel again. Hidden/internal fields are not part of the dirty comparison. A successful submit establishes the current values as the new baseline, while non-persistent actions such as an OLT Connect probe do not clear unsaved-change state.
+Footer **Cancel** controls follow two shared rules:
 
-Modules should therefore keep using the normal `.afcn-dialog-footer [data-afcn-dialog-close]` Cancel markup and must not implement their own dirty trackers merely to show or hide Cancel.
+- **Create/Add dialogs:** Cancel is visible from the moment the dialog opens because there is no existing record to return to.
+- **Edit dialogs:** Cancel is hidden when the dialog opens and appears only when an editable `input`, `select` or `textarea` differs from the baseline captured after the existing record is populated. Returning every edited value to its original value hides Cancel again.
+
+Hidden/internal fields are not part of the dirty comparison. A successful submit establishes the current values as the new baseline, while non-persistent actions such as an OLT Connect probe do not clear unsaved-change state.
+
+Core recognizes create/add dialogs from the established `create-*`, `*-create`, `add-*` and `*-add` action naming convention. New dialog implementations may also declare `data-afcn-dialog-mode="create"` explicitly. Modules should keep using the normal `.afcn-dialog-footer [data-afcn-dialog-close]` Cancel markup and must not implement separate dirty trackers merely to show or hide Cancel.
 
 This keeps Connections, Users and future OLT/PPP/Billing forms visually stable even when one form contains many more fields than another.
 
