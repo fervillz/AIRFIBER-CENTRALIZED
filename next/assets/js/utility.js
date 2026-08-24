@@ -9,6 +9,7 @@
 	const stage = drawer ? drawer.querySelector('[data-afcn-utility-stage]') : null;
 	const title = drawer ? drawer.querySelector('[data-afcn-utility-title]') : null;
 	const closeButton = drawer ? drawer.querySelector('[data-afcn-utility-close]') : null;
+	const status = window.AirfiberNext.status || window.AirfiberUIStatus || null;
 	const loadedAssets = new Set();
 	let current = '';
 	let currentHtml = '';
@@ -81,7 +82,8 @@
 			warning: element.dataset.afcnUtilityWarning || '',
 			module: element.dataset.afcnUtilityModuleTarget || '',
 			phase: element.dataset.afcnUtilityPhase || '',
-			cause: element.dataset.afcnUtilityCause || ''
+			cause: element.dataset.afcnUtilityCause || '',
+			sourceButton: element.tagName === 'BUTTON' ? element : null
 		};
 	}
 
@@ -102,10 +104,19 @@
 			return;
 		}
 
+		context = context || {};
+		const sourceButton = context.sourceButton || null;
+		if (status && sourceButton) {
+			status.loading(sourceButton, context.action === 'fix' ? 'Opening performance tools…' : 'Opening tools…', { alert: false });
+		}
+
 		openDrawer();
 
 		if (!force && current === id && currentHtml) {
 			dispatchOpened(id, context, { cached: true });
+			if (status && sourceButton && context.action !== 'fix') {
+				status.success(sourceButton, 'Tools opened.', { alert: false, transient: true, delay: 1200 });
+			}
 			return;
 		}
 
@@ -121,15 +132,22 @@
 				title.textContent = data.name || 'Tools';
 			}
 			dispatchOpened(id, context, data);
+			if (status && sourceButton && context.action !== 'fix') {
+				status.success(sourceButton, 'Tools opened.', { alert: false, transient: true, delay: 1200 });
+			}
 		} catch (error) {
+			const message = error.message || 'The tool could not be loaded.';
 			stage.innerHTML = '<div class="afcn-card afcn-module-error"><h2>Tool unavailable</h2><p></p></div>';
-			stage.querySelector('p').textContent = error.message || 'The tool could not be loaded.';
+			stage.querySelector('p').textContent = message;
+			if (status && sourceButton) {
+				status.error(sourceButton, message, { alert: false });
+			}
 		}
 	}
 
 	document.querySelectorAll('[data-afcn-utility-module]').forEach(function (button) {
 		button.addEventListener('click', function () {
-			openUtility(button.dataset.afcnUtilityModule, { source: 'navigation' }, false);
+			openUtility(button.dataset.afcnUtilityModule, { source: 'navigation', sourceButton: button }, false);
 		});
 	});
 
