@@ -157,7 +157,7 @@ body.afcn-page button:disabled:not(.is-afcn-loading){border-color:var(--afcn-sta
 	top:-8px;
 	right:-8px;
 	left:auto;
-	dis:inline-flex;
+	display:inline-flex;
 	width:18px;
 	height:18px;
 	align-items:center;
