@@ -3,6 +3,7 @@
 
 	const STATUS_CLASSES = ['loading', 'success', 'warning', 'error', 'disabled'];
 	const transientTimers = new WeakMap();
+	const dialogBaselines = new WeakMap();
 
 	function normalizeStatus(status) {
 		status = String(status || '').toLowerCase();
@@ -152,6 +153,86 @@
 		return target.closest('dialog.afcn-dialog');
 	}
 
+	function dialogCancelButtons(dialog) {
+		return dialog ? Array.from(dialog.querySelectorAll('.afcn-dialog-footer [data-afcn-dialog-close]')) : [];
+	}
+
+	function dialogFormSnapshot(dialog) {
+		if (!dialog) {
+			return '[]';
+		}
+
+		const controls = Array.from(dialog.querySelectorAll('input,select,textarea')).filter(function (control) {
+			const type = String(control.type || '').toLowerCase();
+			return !['hidden', 'button', 'submit', 'reset'].includes(type);
+		});
+
+		return JSON.stringify(controls.map(function (control, index) {
+			let value;
+			const type = String(control.type || '').toLowerCase();
+
+			if (type === 'checkbox' || type === 'radio') {
+				value = [control.checked ? 1 : 0, String(control.value || '')];
+			} else if (control.tagName === 'SELECT' && control.multiple) {
+				value = Array.from(control.options).filter(function (option) {
+					return option.selected;
+				}).map(function (option) {
+					return String(option.value || '');
+				});
+			} else {
+				value = String(control.value || '');
+			}
+
+			return [index, control.name || control.id || '', type || control.tagName.toLowerCase(), value];
+		}));
+	}
+
+	function setDialogCancelVisible(dialog, visible) {
+		dialogCancelButtons(dialog).forEach(function (button) {
+			button.hidden = !visible;
+			button.setAttribute('aria-hidden', visible ? 'false' : 'true');
+		});
+	}
+
+	function snapshotDialog(dialog) {
+		if (!dialog) {
+			return;
+		}
+		dialogBaselines.set(dialog, dialogFormSnapshot(dialog));
+		dialog.dataset.afcnDialogDirty = '0';
+		setDialogCancelVisible(dialog, false);
+	}
+
+	function syncDialogDirty(dialog) {
+		if (!dialog || !dialogBaselines.has(dialog)) {
+			return;
+		}
+		const dirty = dialogFormSnapshot(dialog) !== dialogBaselines.get(dialog);
+		dialog.dataset.afcnDialogDirty = dirty ? '1' : '0';
+		setDialogCancelVisible(dialog, dirty);
+	}
+
+	function scheduleDialogSnapshot(dialog) {
+		const takeSnapshot = function () {
+			if (dialog && dialog.hasAttribute('open')) {
+				snapshotDialog(dialog);
+			}
+		};
+
+		if (typeof window.requestAnimationFrame === 'function') {
+			window.requestAnimationFrame(takeSnapshot);
+		} else {
+			window.setTimeout(takeSnapshot, 0);
+		}
+	}
+
+	function commitDialog(target) {
+		const dialog = dialogFrom(target);
+		if (dialog) {
+			snapshotDialog(dialog);
+		}
+	}
+
 	function setDialogState(target, status) {
 		const dialog = dialogFrom(target);
 		if (!dialog) {
@@ -242,6 +323,9 @@
 
 	function success(button, message, options) {
 		apply(button, 'success', message || defaultMessage('success'), options);
+		if (button && button.type === 'submit' && dialogFrom(button)) {
+			commitDialog(button);
+		}
 	}
 
 	function warning(button, message, options) {
@@ -291,6 +375,18 @@
 		}
 		dialog.dataset.afcnStatusWired = '1';
 		ensureDialogAlert(dialog);
+		setDialogCancelVisible(dialog, false);
+
+		const openObserver = new MutationObserver(function (mutations) {
+			if (mutations.some(function (mutation) { return mutation.attributeName === 'open'; }) && dialog.hasAttribute('open')) {
+				scheduleDialogSnapshot(dialog);
+			}
+		});
+		openObserver.observe(dialog, { attributes: true, attributeFilter: ['open'] });
+
+		if (dialog.hasAttribute('open')) {
+			scheduleDialogSnapshot(dialog);
+		}
 
 		dialog.addEventListener('cancel', function (event) {
 			event.preventDefault();
@@ -307,7 +403,7 @@
 			}
 		});
 
-		dialog.addEventListener('input', function (event) {
+		function handleFieldChange(event) {
 			if (!event.target.matches('input,select,textarea')) {
 				return;
 			}
@@ -319,10 +415,22 @@
 			if (!dialog.querySelector('button.is-afcn-loading')) {
 				clearModalAlert(event.target);
 			}
+			syncDialogDirty(dialog);
+		}
+
+		dialog.addEventListener('input', handleFieldChange);
+		dialog.addEventListener('change', handleFieldChange);
+		dialog.addEventListener('reset', function () {
+			window.setTimeout(function () {
+				syncDialogDirty(dialog);
+			}, 0);
 		});
 
 		dialog.addEventListener('close', function () {
 			clearModalAlert(dialog);
+			dialogBaselines.delete(dialog);
+			dialog.dataset.afcnDialogDirty = '0';
+			setDialogCancelVisible(dialog, false);
 			document.dispatchEvent(new CustomEvent('afcn:dialog:closed', {
 				detail: {
 					dialog: dialog,
@@ -386,6 +494,8 @@
 		modalAlert: modalAlert,
 		clearModalAlert: clearModalAlert,
 		setDialogState: setDialogState,
+		snapshotDialog: snapshotDialog,
+		syncDialogDirty: syncDialogDirty,
 		prepareDialog: prepareDialog,
 		wire: wire
 	});
