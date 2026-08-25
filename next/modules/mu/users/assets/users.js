@@ -1,8 +1,6 @@
 (function () {
 	'use strict';
 
-	const storageKey = 'afcn-users-view';
-
 	function parseData(root) {
 		const node = root.querySelector('[data-afcn-users-data]');
 		if (!node) {
@@ -12,30 +10,6 @@
 			return JSON.parse(node.textContent || '{}');
 		} catch (error) {
 			return { users: [], modules: [] };
-		}
-	}
-
-	function setView(root, view) {
-		const grid = root.querySelector('[data-afcn-user-grid]');
-		const list = root.querySelector('[data-afcn-user-list]');
-		const toggle = root.querySelector('[data-afcn-users-view-toggle]');
-		const useList = view === 'list';
-
-		if (grid) {
-			grid.hidden = useList;
-		}
-		if (list) {
-			list.hidden = !useList;
-		}
-		if (toggle) {
-			toggle.classList.toggle('is-list', useList);
-			toggle.setAttribute('aria-label', useList ? 'Show cards' : 'Show list');
-		}
-
-		try {
-			window.localStorage.setItem(storageKey, useList ? 'list' : 'cards');
-		} catch (error) {
-			// Local storage is only a convenience. The view still works without it.
 		}
 	}
 
@@ -134,19 +108,13 @@
 		}
 		root.dataset.afcnUsersWired = '1';
 		const data = parseData(root);
-		const toggle = root.querySelector('[data-afcn-users-view-toggle]');
 
-		let view = 'cards';
-		try {
-			view = window.localStorage.getItem(storageKey) === 'list' ? 'list' : 'cards';
-		} catch (error) {
-			view = 'cards';
-		}
-		setView(root, view);
-
-		if (toggle) {
-			toggle.addEventListener('click', function () {
-				setView(root, toggle.classList.contains('is-list') ? 'cards' : 'list');
+		if (window.AirfiberViewMode) {
+			window.AirfiberViewMode.attach(root, {
+				key: 'users',
+				cards: '[data-afcn-user-grid]',
+				list: '[data-afcn-user-list]',
+				toggle: '[data-afcn-users-view-toggle]'
 			});
 		}
 
