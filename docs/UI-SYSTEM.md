@@ -36,6 +36,7 @@ Core CSS currently includes:
 - shared button/action status feedback
 - shared dialog alert and state shadow feedback
 - shared dialog dirty-state / conditional Cancel behavior
+- shared card arrangement / drag ordering
 - shared hover/lift behavior
 - shared tooltip styling and motion
 - shared SVG icon sizing
@@ -104,6 +105,23 @@ Hidden/internal fields are not part of the dirty comparison. A successful submit
 Core recognizes create/add dialogs from the established `create-*`, `*-create`, `add-*` and `*-add` action naming convention. New dialog implementations may also declare `data-afcn-dialog-mode="create"` explicitly. Modules should keep using the normal `.afcn-dialog-footer [data-afcn-dialog-close]` Cancel markup and must not implement separate dirty trackers merely to show or hide Cancel.
 
 This keeps Connections, Users and future OLT/PPP/Billing forms visually stable even when one form contains many more fields than another.
+
+## Site-wide card arrangement
+
+Core 0.4.13 adds an Android-style arrangement mode for BETA cards. It applies to normal `.afcn-card` components and Module Manager `.afcn-module-card` cards.
+
+Interaction contract:
+
+- long press any card in a group containing at least two visible sibling cards to enter arrangement mode;
+- while arrangement mode is active, card controls are temporarily inert and eligible cards use a grab cursor;
+- drag a card to reorder it only among cards with the same direct parent; a card never crosses into another card group;
+- long press any eligible card again to save the current order and exit arrangement mode;
+- Escape is a desktop convenience that also saves and exits;
+- navigating away while arrangement mode is active saves the current order first.
+
+Saved order is a UI preference stored locally per Airfiber user/browser. It does not modify module data, database records, connection records or business ordering. Core restores the order when the same module/card group is rendered again. New cards that were not part of the saved order remain available and are appended after known saved cards.
+
+Cards should expose stable visible labels. Core already derives stable keys from common Airfiber identifiers such as module IDs, connection IDs, user IDs, browser search metadata and card headings. An unusual custom card may explicitly provide `data-afcn-card-key="..."` when it needs a stronger stable identity.
 
 ## Default card hover language
 
