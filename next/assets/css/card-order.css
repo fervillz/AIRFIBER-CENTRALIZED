@@ -1,1 +1,102 @@
-body.afcn-card-reorder-mode{user-select:none;-webkit-user-select:none}.is-afcn-card-pressing{user-select:none;-webkit-user-select:none}body.afcn-card-reorder-mode [data-afcn-card-reorder]{cursor:grab!important;touch-action:none;transition:transform 180ms ease,box-shadow 180ms ease,border-color 180ms ease,opacity 180ms ease!important}body.afcn-card-reorder-mode [data-afcn-card-reorder]>*{pointer-events:none!important}body.afcn-card-reorder-mode [data-afcn-card-reorder]:hover,body.afcn-card-reorder-mode [data-afcn-card-reorder]:focus-within{transform:none!important}body.afcn-card-reorder-mode [data-afcn-card-reorder].is-afcn-card-dragging{z-index:30;cursor:grabbing!important;opacity:.58;border-color:var(--afcn-primary)!important;box-shadow:0 16px 44px rgba(32,107,196,.20)!important;transform:scale(.985)!important}.afcn-card-order-indicator{position:fixed;z-index:1100;left:50%;bottom:20px;max-width:min(620px,calc(100vw - 28px));padding:9px 13px;border:1px solid rgba(255,255,255,.14);border-radius:999px;background:#182433;box-shadow:0 14px 38px rgba(8,15,24,.24);color:#fff;font-size:11px;font-weight:600;line-height:1.3;text-align:center;transform:translateX(-50%);pointer-events:none}.afcn-card-order-indicator[hidden]{display:none!important}@media(max-width:620px){.afcn-card-order-indicator{bottom:12px;width:calc(100vw - 24px);border-radius:12px}}@media(prefers-reduced-motion:reduce){body.afcn-card-reorder-mode [data-afcn-card-reorder]{transition:none!important}}
+/*
+ * Airfiber card arrangement mode.
+ *
+ * JavaScript owns pointer tracking and FLIP displacement. CSS only provides
+ * the lightweight visual states so dragging stays GPU-friendly and modules do
+ * not need their own drag-and-drop styling.
+ */
+body.afcn-card-reorder-mode {
+	user-select: none;
+	-webkit-user-select: none;
+}
+
+.is-afcn-card-pressing {
+	user-select: none;
+	-webkit-user-select: none;
+}
+
+body.afcn-card-reorder-mode [data-afcn-card-reorder] {
+	cursor: grab !important;
+	touch-action: none;
+	transition:
+		box-shadow 180ms cubic-bezier(.2,.8,.2,1),
+		border-color 180ms cubic-bezier(.2,.8,.2,1),
+		opacity 180ms cubic-bezier(.2,.8,.2,1) !important;
+}
+
+/* Normal card controls are intentionally inert while arrangement mode is on. */
+body.afcn-card-reorder-mode [data-afcn-card-reorder] > * {
+	pointer-events: none !important;
+}
+
+/* Disable the normal site-wide card lift while a layout is being arranged. */
+body.afcn-card-reorder-mode [data-afcn-card-reorder]:hover,
+body.afcn-card-reorder-mode [data-afcn-card-reorder]:focus-within {
+	transform: none !important;
+}
+
+body.afcn-card-reorder-mode [data-afcn-card-reorder].is-afcn-card-dragging {
+	cursor: grabbing !important;
+	border-color: var(--afcn-primary) !important;
+	box-shadow: 0 22px 54px rgba(24, 36, 51, .24), 0 7px 20px rgba(32, 107, 196, .16) !important;
+	opacity: .98;
+	pointer-events: none !important;
+	will-change: transform;
+}
+
+/* The placeholder remains in normal layout flow while the real card floats. */
+.afcn-card-drop-placeholder {
+	box-sizing: border-box;
+	min-width: 0;
+	min-height: 44px;
+	border: 1px dashed rgba(32, 107, 196, .46);
+	border-radius: var(--afcn-radius-card);
+	background: rgba(32, 107, 196, .055);
+	box-shadow: inset 0 0 0 2px rgba(32, 107, 196, .025);
+	pointer-events: none;
+}
+
+/* Compatible destination containers get a restrained cue only while hovered. */
+.is-afcn-card-drop-zone {
+	outline: 1px solid rgba(32, 107, 196, .18);
+	outline-offset: 5px;
+}
+
+.afcn-card-order-indicator {
+	position: fixed;
+	z-index: 2147482000;
+	left: 50%;
+	bottom: 20px;
+	max-width: min(620px, calc(100vw - 28px));
+	padding: 9px 13px;
+	border: 1px solid rgba(255, 255, 255, .14);
+	border-radius: 999px;
+	background: #182433;
+	box-shadow: 0 14px 38px rgba(8, 15, 24, .24);
+	color: #fff;
+	font-size: 11px;
+	font-weight: 600;
+	line-height: 1.3;
+	text-align: center;
+	transform: translateX(-50%);
+	pointer-events: none;
+}
+
+.afcn-card-order-indicator[hidden] {
+	display: none !important;
+}
+
+@media (max-width: 620px) {
+	.afcn-card-order-indicator {
+		bottom: 12px;
+		width: calc(100vw - 24px);
+		border-radius: 12px;
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	body.afcn-card-reorder-mode [data-afcn-card-reorder],
+	.afcn-card-drop-placeholder {
+		transition: none !important;
+	}
+}
