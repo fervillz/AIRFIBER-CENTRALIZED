@@ -11,34 +11,10 @@ body.afcn-card-reorder-mode {
 }
 
 /*
- * Normal browsing must keep draggable cards physically and visually stable.
- *
- * The card lift now belongs to arrangement mode only. This prevents the normal
- * hover state from competing with pointer hit-testing or the long-press runtime
- * before the user has actually chosen to arrange cards.
+ * Normal browsing intentionally keeps the shared site-wide card hover intact.
+ * The drag runtime must not rewrite/reinsert cards while idle; hover motion is
+ * owned by the existing shared card CSS, including translateY().
  */
-body:not(.afcn-card-reorder-mode) .afcn-card:hover,
-body:not(.afcn-card-reorder-mode) .afcn-card:focus-within {
-	transform: none !important;
-	border-color: var(--afcn-border) !important;
-	background: var(--afcn-surface) !important;
-	box-shadow: var(--afcn-shadow) !important;
-	transition: none !important;
-}
-
-body:not(.afcn-card-reorder-mode) .afcn-module-card:hover,
-body:not(.afcn-card-reorder-mode) .afcn-module-card:focus-within {
-	transform: none !important;
-	border-color: var(--afcn-border) !important;
-	background: #fff !important;
-	box-shadow: 0 3px 12px rgba(24, 36, 51, .04) !important;
-	transition: none !important;
-}
-
-body:not(.afcn-card-reorder-mode) .afcn-module-card.is-inactive:hover,
-body:not(.afcn-card-reorder-mode) .afcn-module-card.is-inactive:focus-within {
-	background: #fbfcfd !important;
-}
 
 /* Subtle tactile feedback while the long press is counting down. */
 .is-afcn-card-pressing {
@@ -65,9 +41,8 @@ body.afcn-card-reorder-mode [data-afcn-card-reorder] > * {
 }
 
 /*
- * The familiar lift is shown only after arrangement mode is active. It is a
- * drag affordance now, not a normal-page hover effect. The real floating card
- * is excluded because pointer tracking must own its transform completely.
+ * Keep the familiar hover lift while arrangement mode is active. The real
+ * floating card is excluded because pointer tracking owns its transform.
  */
 body.afcn-card-reorder-mode [data-afcn-card-reorder]:not(.is-afcn-card-dragging):hover,
 body.afcn-card-reorder-mode [data-afcn-card-reorder]:not(.is-afcn-card-dragging):focus-within {
