@@ -27,7 +27,7 @@
 		try {
 			window.localStorage.setItem(storageKey(key), view === 'list' ? 'list' : 'cards');
 		} catch (error) {
-			// View preference is only a convenience; switching still works without storage.
+			// View preference is only a convenience. Switching still works without it.
 		}
 	}
 
@@ -81,15 +81,31 @@
 		}
 	}
 
+	function existingController(root, key) {
+		const controller = registry.get(root);
+		if (!controller) {
+			return null;
+		}
+		if (controller.key === key && controller.cards.isConnected && controller.list.isConnected && controller.toggle.isConnected) {
+			return controller;
+		}
+		registry.delete(root);
+		delete root.dataset.afcnView;
+		return null;
+	}
+
 	function attach(root, options) {
 		if (!root || !root.querySelector) {
 			return null;
 		}
-		if (registry.has(root)) {
-			return registry.get(root);
-		}
 
 		options = options || {};
+		const key = options.key || root.dataset.afcnViewKey || 'default';
+		const existing = existingController(root, key);
+		if (existing) {
+			return existing;
+		}
+
 		const cards = resolve(root, options.cards);
 		const list = resolve(root, options.list);
 		let toggle = resolve(root, options.toggle || '[data-afcn-view-toggle]');
@@ -102,7 +118,7 @@
 
 		const controller = {
 			root: root,
-			key: options.key || root.dataset.afcnViewKey || 'default',
+			key: key,
 			cards: cards,
 			list: list,
 			toggle: toggle,
