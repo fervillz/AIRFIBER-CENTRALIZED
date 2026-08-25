@@ -134,6 +134,50 @@
 	font-size:12px;
 }
 
+/* Shared cards/list switch. Users keeps its existing aliases for compatibility. */
+.afcn-view-title-row,
+.afcn-users-title-row{
+	display:flex;
+	align-items:center;
+	gap:8px;
+}
+
+.afcn-view-toggle,
+.afcn-users-view-toggle{
+	display:grid;
+	width:32px;
+	height:32px;
+	place-items:center;
+	padding:0;
+	border:1px solid transparent;
+	border-radius:var(--afcn-radius-button);
+	background:transparent;
+	color:var(--afcn-muted);
+	cursor:pointer;
+	transition:background 160ms ease,border-color 160ms ease,box-shadow 160ms ease,transform 160ms ease;
+}
+
+.afcn-view-toggle:hover,
+.afcn-view-toggle:focus-visible,
+.afcn-users-view-toggle:hover,
+.afcn-users-view-toggle:focus-visible{
+	border-color:var(--afcn-border);
+	background:#fff;
+	color:var(--afcn-primary);
+	box-shadow:0 8px 22px rgba(24,36,51,.1);
+	outline:0;
+	transform:translateY(-1px);
+}
+
+.afcn-view-toggle .afcn-icon,
+.afcn-users-view-toggle .afcn-icon{width:17px;height:17px}
+.afcn-view-toggle .afcn-view-grid-icon,
+.afcn-users-view-toggle .afcn-users-grid-icon{display:none}
+.afcn-view-toggle.is-list .afcn-view-list-icon,
+.afcn-users-view-toggle.is-list .afcn-users-list-icon{display:none}
+.afcn-view-toggle.is-list .afcn-view-grid-icon,
+.afcn-users-view-toggle.is-list .afcn-users-grid-icon{display:block}
+
 /* Native hidden must always win over card/grid/button display rules. */
 .afcn-module-card[hidden],
 .afcn-module-empty[hidden],
@@ -141,7 +185,10 @@
 .afcn-connection-card[hidden],
 .afcn-connection-group[hidden],
 .afcn-connections-empty[hidden],
-.afcn-connector-fields[hidden]{
+.afcn-connector-fields[hidden],
+.afcn-connection-groups[hidden],
+.afcn-connections-list[hidden],
+.afcn-connections-table tr[hidden]{
 	display:none!important;
 }
 
@@ -373,6 +420,29 @@
 	color:var(--afcn-danger);
 }
 
+/* Connections list view is table-like but reuses the same card data/actions. */
+.afcn-connections-list{
+	border:1px solid var(--afcn-border);
+	border-radius:var(--afcn-radius-card);
+	background:#fff;
+	box-shadow:var(--afcn-shadow);
+	overflow:hidden;
+}
+
+.afcn-connections-table{min-width:760px}
+.afcn-connections-table td{font-size:12px}
+.afcn-connections-table .afcn-connection-list-name strong,
+.afcn-connections-table .afcn-connection-list-name small{display:block}
+.afcn-connections-table .afcn-connection-list-name strong{font-family:var(--afcn-font-heading);font-size:16px;font-weight:400}
+.afcn-connections-table .afcn-connection-list-name small,
+.afcn-connections-table .afcn-connection-list-meta{margin-top:2px;color:var(--afcn-muted);font-size:10px}
+.afcn-connections-table .afcn-connection-provider,
+.afcn-connections-table .afcn-connection-source{margin-right:5px}
+.afcn-connections-table .afcn-connection-list-status{display:inline-flex;align-items:center;gap:7px;white-space:nowrap}
+.afcn-connections-table .afcn-connection-actions{opacity:1;pointer-events:auto;transform:none}
+.afcn-connections-table .afcn-connection-actions form{display:inline-flex;margin:0}
+.afcn-connections-table td:last-child{width:1%;white-space:nowrap;text-align:right}
+
 .afcn-connections-empty{
 	padding:36px 16px;
 	border:1px dashed var(--afcn-border);
@@ -433,8 +503,14 @@
 }
 
 @media(prefers-reduced-motion:reduce){
+	.afcn-view-toggle,
+	.afcn-users-view-toggle,
 	.afcn-connection-actions,
 	.afcn-connection-action{transition:none}
+	.afcn-view-toggle:hover,
+	.afcn-view-toggle:focus-visible,
+	.afcn-users-view-toggle:hover,
+	.afcn-users-view-toggle:focus-visible,
 	.afcn-connection-action:hover,
 	.afcn-connection-action:focus-visible{transform:none}
 }
