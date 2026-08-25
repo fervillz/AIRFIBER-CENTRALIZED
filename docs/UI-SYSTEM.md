@@ -109,20 +109,42 @@ This keeps Connections, Users and future OLT/PPP/Billing forms visually stable e
 
 ## Site-wide card arrangement
 
-Core 0.4.13 adds an Android-style arrangement mode for BETA cards. It applies to normal `.afcn-card` components and Module Manager `.afcn-module-card` cards.
+Core 0.4.15 refines the BETA card arrangement runtime into a Trello-like pointer interaction while keeping the Android-style long-press entry and explicit save/exit behavior.
 
 Interaction contract:
 
-- long press any card in a group containing at least two visible sibling cards to enter arrangement mode;
+- long press an arrangeable card for about 420 ms to enter arrangement mode;
+- that same long press immediately lifts the held card and attaches it to the current pointer position — there is no second click or second drag gesture;
 - while arrangement mode is active, card controls are temporarily inert and eligible cards use a grab cursor;
-- drag a card to reorder it only among cards with the same direct parent; a card never crosses into another card group;
-- long press any eligible card again to save the current order and exit arrangement mode;
+- moving another card in active arrange mode begins dragging after only a tiny movement threshold;
+- the floating card tracks the pointer with `requestAnimationFrame` and GPU-friendly `translate3d()` transforms;
+- neighboring cards use FLIP displacement animations with a short cubic-bezier easing curve so they move out of the way instead of jumping;
+- dropping at the beginning/end of a list or grid is supported;
+- dragging near the viewport top/bottom performs bounded continuous edge scrolling;
+- dropping outside a compatible destination restores the placeholder to its original index and animates the floating card back into that position;
+- a valid drop animates the floating card into the placeholder before normal card styles/interactions are restored;
+- long press any card again while arrange mode is active to save the current order and exit;
 - Escape is a desktop convenience that also saves and exits;
 - navigating away while arrangement mode is active saves the current order first.
 
-Saved order is a UI preference stored locally per Airfiber user/browser. It does not modify module data, database records, connection records or business ordering. Core restores the order when the same module/card group is rendered again. New cards that were not part of the saved order remain available and are appended after known saved cards.
+Saved order remains a UI preference stored locally per Airfiber user/browser. Core 0.4.15 migrates the original v1 browser preference into the v2 storage format rather than discarding an existing arrangement.
+
+### Compatible cross-list dragging
+
+Card containers are isolated by default. This is intentional: moving an OLT card into a visually different Connections category must not silently change the meaning of business data.
+
+A board-style module can explicitly allow cards to move between multiple direct parent lists by giving those parents the same compatibility key:
+
+```html
+<div data-afcn-card-drop-group="work-board">...</div>
+<div data-afcn-card-drop-group="work-board">...</div>
+```
+
+Only containers in the same current Airfiber module/scope and with the same `data-afcn-card-drop-group` can exchange cards. Cross-list membership and order are persisted with the same per-user layout preference. Empty compatible lists are valid drop zones because the marker is discovered even when they contain no cards.
 
 Cards should expose stable visible labels. Core already derives stable keys from common Airfiber identifiers such as module IDs, connection IDs, user IDs, browser search metadata and card headings. An unusual custom card may explicitly provide `data-afcn-card-key="..."` when it needs a stronger stable identity.
+
+The runtime is dependency-free vanilla Pointer Events + `requestAnimationFrame` + Web Animations/FLIP. No drag library or AJAX request is required for purely personal layout changes, which keeps site-wide overhead small. `prefers-reduced-motion` removes the settle/displacement animation while preserving ordering behavior.
 
 ## Shared cards / list view
 
