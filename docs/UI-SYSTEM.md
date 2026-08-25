@@ -37,6 +37,7 @@ Core CSS currently includes:
 - shared dialog alert and state shadow feedback
 - shared dialog dirty-state / conditional Cancel behavior
 - shared card arrangement / drag ordering
+- shared cards/list view controller and title toggle
 - shared hover/lift behavior
 - shared tooltip styling and motion
 - shared SVG icon sizing
@@ -122,6 +123,20 @@ Interaction contract:
 Saved order is a UI preference stored locally per Airfiber user/browser. It does not modify module data, database records, connection records or business ordering. Core restores the order when the same module/card group is rendered again. New cards that were not part of the saved order remain available and are appended after known saved cards.
 
 Cards should expose stable visible labels. Core already derives stable keys from common Airfiber identifiers such as module IDs, connection IDs, user IDs, browser search metadata and card headings. An unusual custom card may explicitly provide `data-afcn-card-key="..."` when it needs a stronger stable identity.
+
+## Shared cards / list view
+
+Core 0.4.14 owns the cards/list switch through `window.AirfiberViewMode`. The control uses the same list and grid/thumbnail icons, tooltip behavior and 32 px title control that Users originally introduced. Feature modules should not create another view-toggle component.
+
+The shared controller:
+
+- defaults to cards;
+- remembers the selected view in local browser storage;
+- changes the list icon to the existing grid/thumbnail icon while list mode is active;
+- keeps the toggle next to the page title;
+- accepts a module-owned cards container and list/table container so business-specific columns stay inside the feature module while switching behavior stays in Core.
+
+Users now delegates its existing cards/list switching to this Core controller. Connections uses the same controller and produces a table view from the same currently rendered connection cards, so filters, search, status, Classic/BETA source and actions remain consistent. Switching Connections to list rebuilds the table from the current card DOM order, including any saved card arrangement inside each group.
 
 ## Default card hover language
 
