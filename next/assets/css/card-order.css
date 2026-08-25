@@ -11,33 +11,33 @@ body.afcn-card-reorder-mode {
 }
 
 /*
- * Keep the hit-tested card itself stationary during normal hover.
+ * Normal browsing must keep draggable cards physically and visually stable.
  *
- * Translating a :hover element upward changes the area the browser is testing
- * against the pointer. Near an edge that can repeatedly drop/re-enter :hover,
- * which looks like the card is trembling. Use shadow/background/border for the
- * lift illusion instead and let those visuals settle over 300 ms.
- *
- * card-order.css is loaded after the shared interaction/module styles, so this
- * intentionally overrides their transform-based card hover without changing
- * button motion or the real drag transform.
+ * The card lift now belongs to arrangement mode only. This prevents the normal
+ * hover state from competing with pointer hit-testing or the long-press runtime
+ * before the user has actually chosen to arrange cards.
  */
-body:not(.afcn-card-reorder-mode) .afcn-card,
-body:not(.afcn-card-reorder-mode) .afcn-module-card {
-	transition:
-		box-shadow 300ms cubic-bezier(.2,.8,.2,1),
-		background-color 300ms cubic-bezier(.2,.8,.2,1),
-		border-color 300ms cubic-bezier(.2,.8,.2,1),
-		opacity 300ms cubic-bezier(.2,.8,.2,1) !important;
+body:not(.afcn-card-reorder-mode) .afcn-card:hover,
+body:not(.afcn-card-reorder-mode) .afcn-card:focus-within {
+	transform: none !important;
+	border-color: var(--afcn-border) !important;
+	background: var(--afcn-surface) !important;
+	box-shadow: var(--afcn-shadow) !important;
+	transition: none !important;
 }
 
-body:not(.afcn-card-reorder-mode) .afcn-card:hover,
-body:not(.afcn-card-reorder-mode) .afcn-card:focus-within,
 body:not(.afcn-card-reorder-mode) .afcn-module-card:hover,
 body:not(.afcn-card-reorder-mode) .afcn-module-card:focus-within {
 	transform: none !important;
-	transition-duration: 300ms !important;
-	transition-timing-function: cubic-bezier(.2,.8,.2,1) !important;
+	border-color: var(--afcn-border) !important;
+	background: #fff !important;
+	box-shadow: 0 3px 12px rgba(24, 36, 51, .04) !important;
+	transition: none !important;
+}
+
+body:not(.afcn-card-reorder-mode) .afcn-module-card.is-inactive:hover,
+body:not(.afcn-card-reorder-mode) .afcn-module-card.is-inactive:focus-within {
+	background: #fbfcfd !important;
 }
 
 /* Subtle tactile feedback while the long press is counting down. */
@@ -52,9 +52,11 @@ body.afcn-card-reorder-mode [data-afcn-card-reorder] {
 	cursor: grab !important;
 	touch-action: none;
 	transition:
-		box-shadow 180ms cubic-bezier(.2,.8,.2,1),
-		border-color 180ms cubic-bezier(.2,.8,.2,1),
-		opacity 180ms cubic-bezier(.2,.8,.2,1) !important;
+		transform 300ms cubic-bezier(.2,.8,.2,1),
+		box-shadow 300ms cubic-bezier(.2,.8,.2,1),
+		background-color 300ms cubic-bezier(.2,.8,.2,1),
+		border-color 300ms cubic-bezier(.2,.8,.2,1),
+		opacity 300ms cubic-bezier(.2,.8,.2,1) !important;
 }
 
 /* Normal card controls are intentionally inert while arrangement mode is on. */
@@ -63,13 +65,36 @@ body.afcn-card-reorder-mode [data-afcn-card-reorder] > * {
 }
 
 /*
- * Disable the normal site-wide card lift while arranging, but never override
- * the inline translate3d() of the floating card. The pointer runtime must own
- * that transform completely while dragging.
+ * The familiar lift is shown only after arrangement mode is active. It is a
+ * drag affordance now, not a normal-page hover effect. The real floating card
+ * is excluded because pointer tracking must own its transform completely.
  */
 body.afcn-card-reorder-mode [data-afcn-card-reorder]:not(.is-afcn-card-dragging):hover,
 body.afcn-card-reorder-mode [data-afcn-card-reorder]:not(.is-afcn-card-dragging):focus-within {
-	transform: none !important;
+	z-index: 10;
+	transform: translateY(var(--afcn-hover-lift)) !important;
+	border-color: #cbd6e2 !important;
+	background: var(--afcn-card-hover-bg) !important;
+	box-shadow: var(--afcn-hover-shadow) !important;
+}
+
+/*
+ * When a desktop pointer is near the lower edge, the lifted card needs a small
+ * hit bridge so the transform cannot repeatedly drop/re-enter :hover.
+ */
+@media (hover: hover) and (pointer: fine) {
+	body.afcn-card-reorder-mode [data-afcn-card-reorder]:not(.is-afcn-card-dragging) {
+		position: relative;
+	}
+
+	body.afcn-card-reorder-mode [data-afcn-card-reorder]:not(.is-afcn-card-dragging):hover::after {
+		position: absolute;
+		right: 0;
+		bottom: -12px;
+		left: 0;
+		height: 12px;
+		content: "";
+	}
 }
 
 body.afcn-card-reorder-mode [data-afcn-card-reorder].is-afcn-card-dragging {
@@ -152,5 +177,10 @@ body.afcn-card-reorder-mode [data-afcn-card-drop-group] {
 	body.afcn-card-reorder-mode [data-afcn-card-drop-group],
 	.afcn-card-drop-placeholder {
 		transition: none !important;
+	}
+
+	body.afcn-card-reorder-mode [data-afcn-card-reorder]:not(.is-afcn-card-dragging):hover,
+	body.afcn-card-reorder-mode [data-afcn-card-reorder]:not(.is-afcn-card-dragging):focus-within {
+		transform: none !important;
 	}
 }
