@@ -10,6 +10,28 @@ body.afcn-card-reorder-mode {
 	-webkit-user-select: none;
 }
 
+/*
+ * Lifted desktop cards need a tiny invisible hover bridge beneath them. Without
+ * it, a pointer sitting on the lower edge can repeatedly leave/re-enter the
+ * transformed card and make the hover animation tremble.
+ */
+@media (hover: hover) and (pointer: fine) {
+	body:not(.afcn-card-reorder-mode) .afcn-card,
+	body:not(.afcn-card-reorder-mode) .afcn-module-card {
+		position: relative;
+	}
+
+	body:not(.afcn-card-reorder-mode) .afcn-card:hover::after,
+	body:not(.afcn-card-reorder-mode) .afcn-module-card:hover::after {
+		position: absolute;
+		right: 0;
+		bottom: -14px;
+		left: 0;
+		height: 14px;
+		content: "";
+	}
+}
+
 /* Subtle tactile feedback while the long press is counting down. */
 .is-afcn-card-pressing {
 	outline: 1px solid rgba(32, 107, 196, .16);
@@ -32,9 +54,13 @@ body.afcn-card-reorder-mode [data-afcn-card-reorder] > * {
 	pointer-events: none !important;
 }
 
-/* Disable the normal site-wide card lift while a layout is being arranged. */
-body.afcn-card-reorder-mode [data-afcn-card-reorder]:hover,
-body.afcn-card-reorder-mode [data-afcn-card-reorder]:focus-within {
+/*
+ * Disable the normal site-wide card lift while arranging, but never override
+ * the inline translate3d() of the floating card. The pointer runtime must own
+ * that transform completely while dragging.
+ */
+body.afcn-card-reorder-mode [data-afcn-card-reorder]:not(.is-afcn-card-dragging):hover,
+body.afcn-card-reorder-mode [data-afcn-card-reorder]:not(.is-afcn-card-dragging):focus-within {
 	transform: none !important;
 }
 
@@ -44,6 +70,10 @@ body.afcn-card-reorder-mode [data-afcn-card-reorder].is-afcn-card-dragging {
 	box-shadow: 0 22px 54px rgba(24, 36, 51, .24), 0 7px 20px rgba(32, 107, 196, .16) !important;
 	opacity: .98;
 	pointer-events: none !important;
+	backface-visibility: hidden;
+	transform-origin: center center;
+	transition: none !important;
+	animation: none !important;
 	will-change: transform;
 }
 
