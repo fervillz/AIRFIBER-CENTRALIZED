@@ -1,6 +1,6 @@
 # AIRFIBER-CENTRALIZED — Continue Here
 
-Updated: 2026-08-25
+Updated: 2026-08-26
 
 ## Current goal
 
@@ -8,7 +8,7 @@ Build Airfiber Next/BETA as an isolated, very fast application platform inside t
 
 BETA URL: `/airfiber-beta/`.
 
-Airfiber Next Core version: **0.4.9**.
+Airfiber Next Core version: **0.4.15**.
 
 ## Boundary
 
@@ -24,6 +24,8 @@ Classic stays in `includes/`, `templates/`, and `assets/`. Next/BETA lives under
 - one shared BETA dialog header close control using `.afcn-icon-button`, styled from the proven Classic Connections modal
 - sitewide BETA button states with top-right loading/success/warning/error/disabled badges and shared tooltip messages
 - modal alert + modal box-shadow state feedback synchronized with the active button action
+- shared cards/list view controller with the Users-style list/grid title toggle
+- shared Trello-like card arrangement runtime with long-press lift, pointer-follow, FLIP displacement, edge scroll, float-back and per-user persistence
 - compiled cached module registry, numeric menu positions and lazy module PHP/assets/data
 - generic REST render/query/chunk/action runtime
 - browser SDK at `window.AirfiberNext`
@@ -214,6 +216,24 @@ MU also does not mean eagerly loaded. MU modules are lifecycle-protected, but th
 
 See `docs/MODULE-LOADING.md`.
 
+## Shared card UX — Core 0.4.14 / 0.4.15
+
+`window.AirfiberViewMode` owns the common cards/list toggle. Users and Connections reuse the same list/grid icons, tooltip and local view preference rather than implementing separate controls.
+
+`window.AirfiberCardOrder` owns the site-wide arrangement runtime. Core 0.4.15 keeps the existing long-press-to-enter / long-press-to-save-and-exit contract but makes the actual drag Trello-like:
+
+- about 420 ms long press immediately lifts the same card under the held pointer;
+- the floating card follows pointer movement with `requestAnimationFrame` + `translate3d()`;
+- neighboring cards move using FLIP/Web Animations instead of snapping;
+- top/bottom insertion and bounded edge scrolling are supported;
+- invalid drops animate back to the original index;
+- valid drops settle into the placeholder before normal card CSS is restored;
+- existing v1 saved card order migrates into the v2 preference key.
+
+Cross-list dragging is supported only for explicitly compatible containers. Board-like modules may put the same `data-afcn-card-drop-group="..."` on multiple direct card parents. Default containers remain isolated so user layout customization cannot visually move a semantic Connection category or similar business grouping by accident.
+
+See `docs/UI-SYSTEM.md`.
+
 ## Modules browser
 
 Normal add-ons live in `next/modules/<id>/`. MU components live in `next/modules/mu/<id>/`.
@@ -264,7 +284,7 @@ OLT provisioning writes, ONU mutations and full PON/ONU inventory remain deferre
 
 Do NOT bulk-migrate Classic.
 
-Verify Core 0.4.9 on the development installation:
+Verify Core 0.4.15 on the development installation:
 
 1. Open the BETA **GPON - LINGION** connection for `10.13.88.7`.
 2. With **SNMPv2c** selected, only the Community credential should be shown; SNMPv3 Username/Auth/Privacy must be hidden. Switching to SNMPv3 should reverse that visibility.
@@ -275,6 +295,7 @@ Verify Core 0.4.9 on the development installation:
 7. After saving, run the normal card **Test connection** once. A successful saved test marks the native card online and allows Connections to suppress the matching Classic OLT card.
 8. Open **OLT** and Dashboard; both must remain cache-only and cause no SNMP poll.
 9. Check Add/Edit User, Owner and Connection dialogs: all should use the same 680 × 680 frame and shared `.afcn-icon-button` close control.
+10. Long-press a card and verify it lifts automatically under the same pointer, neighboring cards displace smoothly, an outside drop floats back, edge scrolling remains responsive, and a second long press saves/exits arrangement mode.
 
 After the real GPON connection is verified, extend OLT read-only functionality with cached overview/inventory and lazy per-OLT/PON/ONU details. Keep remote reads explicit/background and bounded. Provisioning writes come only after the read-only path proves stable.
 
