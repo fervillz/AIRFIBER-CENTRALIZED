@@ -11,25 +11,33 @@ body.afcn-card-reorder-mode {
 }
 
 /*
- * Lifted desktop cards need a tiny invisible hover bridge beneath them. Without
- * it, a pointer sitting on the lower edge can repeatedly leave/re-enter the
- * transformed card and make the hover animation tremble.
+ * Keep the hit-tested card itself stationary during normal hover.
+ *
+ * Translating a :hover element upward changes the area the browser is testing
+ * against the pointer. Near an edge that can repeatedly drop/re-enter :hover,
+ * which looks like the card is trembling. Use shadow/background/border for the
+ * lift illusion instead and let those visuals settle over 300 ms.
+ *
+ * card-order.css is loaded after the shared interaction/module styles, so this
+ * intentionally overrides their transform-based card hover without changing
+ * button motion or the real drag transform.
  */
-@media (hover: hover) and (pointer: fine) {
-	body:not(.afcn-card-reorder-mode) .afcn-card,
-	body:not(.afcn-card-reorder-mode) .afcn-module-card {
-		position: relative;
-	}
+body:not(.afcn-card-reorder-mode) .afcn-card,
+body:not(.afcn-card-reorder-mode) .afcn-module-card {
+	transition:
+		box-shadow 300ms cubic-bezier(.2,.8,.2,1),
+		background-color 300ms cubic-bezier(.2,.8,.2,1),
+		border-color 300ms cubic-bezier(.2,.8,.2,1),
+		opacity 300ms cubic-bezier(.2,.8,.2,1) !important;
+}
 
-	body:not(.afcn-card-reorder-mode) .afcn-card:hover::after,
-	body:not(.afcn-card-reorder-mode) .afcn-module-card:hover::after {
-		position: absolute;
-		right: 0;
-		bottom: -14px;
-		left: 0;
-		height: 14px;
-		content: "";
-	}
+body:not(.afcn-card-reorder-mode) .afcn-card:hover,
+body:not(.afcn-card-reorder-mode) .afcn-card:focus-within,
+body:not(.afcn-card-reorder-mode) .afcn-module-card:hover,
+body:not(.afcn-card-reorder-mode) .afcn-module-card:focus-within {
+	transform: none !important;
+	transition-duration: 300ms !important;
+	transition-timing-function: cubic-bezier(.2,.8,.2,1) !important;
 }
 
 /* Subtle tactile feedback while the long press is counting down. */
