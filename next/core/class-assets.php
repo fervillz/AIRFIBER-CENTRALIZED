@@ -14,6 +14,7 @@ class Assets {
 		$browser        = AFCN_PATH . 'assets/css/browser.css';
 		$card_order_css = AFCN_PATH . 'assets/css/card-order.css';
 		$status_js      = AFCN_PATH . 'assets/js/ui-status.js';
+		$view_mode_js   = AFCN_PATH . 'assets/js/view-mode.js';
 		$js             = AFCN_PATH . 'assets/js/app.js';
 		$browser_js     = AFCN_PATH . 'assets/js/browser.js';
 		$card_order_js  = AFCN_PATH . 'assets/js/card-order.js';
@@ -31,7 +32,8 @@ class Assets {
 		wp_enqueue_style( 'afcn-browser', AFCN_URL . 'assets/css/browser.css', array( 'afcn-module-manager' ), file_exists( $browser ) ? (string) filemtime( $browser ) : AFCN_VERSION );
 		wp_enqueue_style( 'afcn-card-order', AFCN_URL . 'assets/css/card-order.css', array( 'afcn-browser' ), file_exists( $card_order_css ) ? (string) filemtime( $card_order_css ) : AFCN_VERSION );
 		wp_enqueue_script( 'afcn-ui-status', AFCN_URL . 'assets/js/ui-status.js', array(), file_exists( $status_js ) ? (string) filemtime( $status_js ) : AFCN_VERSION, true );
-		wp_enqueue_script( 'afcn-app', AFCN_URL . 'assets/js/app.js', array( 'afcn-ui-status' ), file_exists( $js ) ? (string) filemtime( $js ) : AFCN_VERSION, true );
+		wp_enqueue_script( 'afcn-view-mode', AFCN_URL . 'assets/js/view-mode.js', array(), file_exists( $view_mode_js ) ? (string) filemtime( $view_mode_js ) : AFCN_VERSION, true );
+		wp_enqueue_script( 'afcn-app', AFCN_URL . 'assets/js/app.js', array( 'afcn-ui-status', 'afcn-view-mode' ), file_exists( $js ) ? (string) filemtime( $js ) : AFCN_VERSION, true );
 		wp_enqueue_script( 'afcn-browser', AFCN_URL . 'assets/js/browser.js', array( 'afcn-app' ), file_exists( $browser_js ) ? (string) filemtime( $browser_js ) : AFCN_VERSION, true );
 		wp_enqueue_script( 'afcn-card-order', AFCN_URL . 'assets/js/card-order.js', array( 'afcn-browser' ), file_exists( $card_order_js ) ? (string) filemtime( $card_order_js ) : AFCN_VERSION, true );
 
