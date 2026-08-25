@@ -31,12 +31,28 @@
 		return 'afcn.card-order.v2.user.' + String(cfg.userId || 0);
 	}
 
+	function legacyStorageKey() {
+		return 'afcn.card-order.v1.user.' + String(cfg.userId || 0);
+	}
+
 	function readOrders() {
 		try {
-			return JSON.parse(window.localStorage.getItem(storageKey()) || '{}') || {};
+			const current = window.localStorage.getItem(storageKey());
+			if (current) {
+				return JSON.parse(current) || {};
+			}
+
+			/* Preserve layouts saved by the first arrangement runtime. */
+			const legacy = window.localStorage.getItem(legacyStorageKey());
+			if (legacy) {
+				const migrated = JSON.parse(legacy) || {};
+				window.localStorage.setItem(storageKey(), JSON.stringify(migrated));
+				return migrated;
+			}
 		} catch (error) {
 			return {};
 		}
+		return {};
 	}
 
 	function writeOrders(value) {
@@ -625,7 +641,7 @@
 		});
 		rows.sort(function (a, b) { return a.top - b.top; });
 
-		let row = rows.find(function (candidate) {
+		const row = rows.find(function (candidate) {
 			return y <= candidate.bottom;
 		}) || rows[rows.length - 1];
 		row.items.sort(function (a, b) { return a.rect.left - b.rect.left; });
@@ -663,7 +679,7 @@
 
 	function autoScroll(y) {
 		if (!drag) {
-			return;
+			return false;
 		}
 		let amount = 0;
 		if (y < EDGE_SCROLL_ZONE) {
@@ -671,9 +687,13 @@
 		} else if (y > window.innerHeight - EDGE_SCROLL_ZONE) {
 			amount = Math.ceil(EDGE_SCROLL_MAX * ((y - (window.innerHeight - EDGE_SCROLL_ZONE)) / EDGE_SCROLL_ZONE));
 		}
-		if (amount) {
-			window.scrollBy(0, amount);
+		if (!amount) {
+			return false;
 		}
+
+		const before = window.scrollY;
+		window.scrollBy(0, amount);
+		return window.scrollY !== before;
 	}
 
 	function processPointerFrame() {
@@ -683,12 +703,17 @@
 		}
 
 		updateMirrorPosition();
-		autoScroll(pointer.y);
+		const scrolling = autoScroll(pointer.y);
 		const target = containerAtPoint(pointer.x, pointer.y);
 		drag.overValidZone = Boolean(target);
 		setActiveDropZone(target);
 		if (target) {
 			movePlaceholder(target, pointer.x, pointer.y);
+		}
+
+		/* Keep edge scrolling alive even when the pointer itself is stationary. */
+		if (scrolling && drag && !pointerFrame) {
+			pointerFrame = window.requestAnimationFrame(processPointerFrame);
 		}
 	}
 
