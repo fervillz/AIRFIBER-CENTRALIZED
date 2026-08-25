@@ -2,15 +2,18 @@
  * Airfiber card arrangement mode.
  *
  * JavaScript owns pointer tracking and FLIP displacement. CSS only provides
- * the lightweight visual states so dragging stays GPU-friendly and modules do
- * not need their own drag-and-drop styling.
+ * lightweight visual states so dragging stays GPU-friendly and modules do not
+ * need their own drag-and-drop styling.
  */
 body.afcn-card-reorder-mode {
 	user-select: none;
 	-webkit-user-select: none;
 }
 
+/* Subtle tactile feedback while the long press is counting down. */
 .is-afcn-card-pressing {
+	outline: 1px solid rgba(32, 107, 196, .16);
+	outline-offset: 2px;
 	user-select: none;
 	-webkit-user-select: none;
 }
@@ -56,10 +59,22 @@ body.afcn-card-reorder-mode [data-afcn-card-reorder].is-afcn-card-dragging {
 	pointer-events: none;
 }
 
+/*
+ * Explicit board/list drop groups keep a small landing area while arranging,
+ * so an empty compatible list can still receive a card.
+ */
+body.afcn-card-reorder-mode [data-afcn-card-drop-group] {
+	min-height: 56px;
+	transition:
+		outline-color 160ms cubic-bezier(.2,.8,.2,1),
+		background-color 160ms cubic-bezier(.2,.8,.2,1);
+}
+
 /* Compatible destination containers get a restrained cue only while hovered. */
 .is-afcn-card-drop-zone {
-	outline: 1px solid rgba(32, 107, 196, .18);
+	outline: 1px solid rgba(32, 107, 196, .24);
 	outline-offset: 5px;
+	background-color: rgba(32, 107, 196, .018);
 }
 
 .afcn-card-order-indicator {
@@ -96,6 +111,7 @@ body.afcn-card-reorder-mode [data-afcn-card-reorder].is-afcn-card-dragging {
 
 @media (prefers-reduced-motion: reduce) {
 	body.afcn-card-reorder-mode [data-afcn-card-reorder],
+	body.afcn-card-reorder-mode [data-afcn-card-drop-group],
 	.afcn-card-drop-placeholder {
 		transition: none !important;
 	}
