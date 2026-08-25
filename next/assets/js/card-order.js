@@ -505,7 +505,6 @@
 		const rect = card.getBoundingClientRect();
 		const placeholder = createPlaceholder(card, rect);
 		const originalStyle = card.getAttribute('style');
-		const originalNextSibling = card.nextSibling;
 		const compatible = compatibleContainers(originalParent);
 
 		originalParent.insertBefore(placeholder, card);
@@ -529,13 +528,13 @@
 			pointerId: pointerId,
 			originalParent: originalParent,
 			originalIndex: originalCardIndex,
-			originalNextSibling: originalNextSibling,
 			originalStyle: originalStyle,
 			offsetX: Math.max(0, Math.min(rect.width, clientX - rect.left)),
 			offsetY: Math.max(0, Math.min(rect.height, clientY - rect.top)),
 			compatible: compatible,
 			currentContainer: originalParent,
-			overValidZone: true
+			overValidZone: true,
+			settling: false
 		};
 
 		pointer = { x: clientX, y: clientY };
@@ -678,7 +677,7 @@
 	}
 
 	function autoScroll(y) {
-		if (!drag) {
+		if (!drag || drag.settling) {
 			return false;
 		}
 		let amount = 0;
@@ -712,12 +711,15 @@
 		}
 
 		/* Keep edge scrolling alive even when the pointer itself is stationary. */
-		if (scrolling && drag && !pointerFrame) {
+		if (scrolling && drag && !drag.settling && !pointerFrame) {
 			pointerFrame = window.requestAnimationFrame(processPointerFrame);
 		}
 	}
 
 	function schedulePointerFrame(x, y) {
+		if (!drag || drag.settling) {
+			return;
+		}
 		pointer = { x: x, y: y };
 		if (!pointerFrame) {
 			pointerFrame = window.requestAnimationFrame(processPointerFrame);
@@ -791,14 +793,26 @@
 			easing: 'cubic-bezier(.2,.85,.25,1)',
 			fill: 'forwards'
 		});
-		animation.onfinish = callback;
-		animation.oncancel = callback;
+		let completed = false;
+		function complete() {
+			if (completed) {
+				return;
+			}
+			completed = true;
+			animation.onfinish = null;
+			animation.oncancel = null;
+			animation.cancel();
+			callback();
+		}
+		animation.onfinish = complete;
+		animation.oncancel = complete;
 	}
 
 	function finishDrag(validDrop) {
-		if (!drag) {
+		if (!drag || drag.settling) {
 			return;
 		}
+		drag.settling = true;
 		if (pointerFrame) {
 			window.cancelAnimationFrame(pointerFrame);
 			pointerFrame = 0;
@@ -820,6 +834,10 @@
 	function finishDragImmediately(keepCurrentPosition) {
 		if (!drag) {
 			return;
+		}
+		if (pointerFrame) {
+			window.cancelAnimationFrame(pointerFrame);
+			pointerFrame = 0;
 		}
 		if (!keepCurrentPosition) {
 			movePlaceholderToOriginalPosition();
@@ -879,8 +897,10 @@
 
 	document.addEventListener('pointermove', function (event) {
 		if (drag && event.pointerId === drag.pointerId) {
-			event.preventDefault();
-			schedulePointerFrame(event.clientX, event.clientY);
+			if (!drag.settling) {
+				event.preventDefault();
+				schedulePointerFrame(event.clientX, event.clientY);
+			}
 			return;
 		}
 
@@ -911,8 +931,10 @@
 
 	function endPointer(event) {
 		if (drag && event.pointerId === drag.pointerId) {
-			schedulePointerFrame(event.clientX, event.clientY);
-			finishDrag(true);
+			if (!drag.settling) {
+				pointer = { x: event.clientX, y: event.clientY };
+				finishDrag(true);
+			}
 			return;
 		}
 		if (hold && event.pointerId === hold.pointerId) {
