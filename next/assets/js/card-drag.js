@@ -25,6 +25,7 @@
 	let pointerFrame = 0;
 	let wireTimer = 0;
 	let blockClickUntil = 0;
+	let restoringSavedOrder = false;
 	let pointer = { x: 0, y: 0 };
 
 	function storageKey() {
@@ -248,6 +249,20 @@
 		return lastCardIndex >= 0 ? (children[lastCardIndex + 1] || null) : null;
 	}
 
+	function sameCardSequence(current, desired) {
+		return current.length === desired.length && current.every(function (card, index) {
+			return card === desired[index];
+		});
+	}
+
+	/*
+	 * Restore a saved order only when the DOM is actually different.
+	 *
+	 * The previous implementation reinserted every card on every wire() call,
+	 * even when the saved order already matched the DOM. Because the runtime also
+	 * watches card childList mutations, those no-op-looking reinserts triggered
+	 * the observer again every 50ms and made card markup visibly refresh/blink.
+	 */
 	function restoreGroup(groupContainers, saved) {
 		const cardMap = new Map();
 		groupContainers.forEach(function (parent) {
@@ -269,24 +284,47 @@
 			});
 		});
 
+		const plans = [];
 		groupContainers.forEach(function (parent) {
 			const order = saved[parentToken(parent)];
 			if (!Array.isArray(order)) {
 				return;
 			}
 
+			const current = directCards(parent);
 			const ordered = order.map(function (key) {
 				return desiredOwner.get(key) === parent ? cardMap.get(key) : null;
 			}).filter(Boolean);
-			const extras = directCards(parent).filter(function (card, index) {
+			const extras = current.filter(function (card, index) {
 				const key = cardKey(card, index);
 				return (!desiredOwner.has(key) || desiredOwner.get(key) === parent) && !ordered.includes(card);
 			});
-			const anchor = orderAnchor(parent);
-			ordered.concat(extras).forEach(function (card) {
-				parent.insertBefore(card, anchor);
+			const desired = ordered.concat(extras);
+			if (!sameCardSequence(current, desired)) {
+				plans.push({
+					parent: parent,
+					desired: desired,
+					anchor: orderAnchor(parent)
+				});
+			}
+		});
+
+		if (!plans.length) {
+			return false;
+		}
+
+		restoringSavedOrder = true;
+		plans.forEach(function (plan) {
+			plan.desired.forEach(function (card) {
+				plan.parent.insertBefore(card, plan.anchor);
 			});
 		});
+
+		/* MutationObserver callbacks run before the next timer task. */
+		window.setTimeout(function () {
+			restoringSavedOrder = false;
+		}, 0);
+		return true;
 	}
 
 	function restoreSavedOrders() {
@@ -1031,7 +1069,7 @@
 					return node.nodeType === 1 && (node.matches(CARD_SELECTOR) || (node.querySelector && node.querySelector(CARD_SELECTOR)));
 				});
 			});
-			if (changed && !drag) {
+			if (changed && !drag && !restoringSavedOrder) {
 				scheduleWire();
 			}
 		}).observe(root, { childList: true, subtree: true });
