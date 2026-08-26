@@ -8,6 +8,7 @@
 	const CARD_SELECTOR = '.afcn-card,.afcn-module-card';
 	const DROP_GROUP_SELECTOR = '[data-afcn-card-drop-group]';
 	const LONG_PRESS_MS = 380;
+	const ARRANGE_IDLE_MS = 10000;
 	const PRESS_MOVE_TOLERANCE = 9;
 	const ACTIVE_DRAG_THRESHOLD = 3;
 	const FLIP_DURATION_MS = 180;
@@ -24,6 +25,7 @@
 	let drag = null;
 	let pointerFrame = 0;
 	let wireTimer = 0;
+	let arrangeIdleTimer = 0;
 	let blockClickUntil = 0;
 	let restoringSavedOrder = false;
 	let pointer = { x: 0, y: 0 };
@@ -328,7 +330,11 @@
 	}
 
 	function restoreSavedOrders() {
-		if (drag) {
+		/*
+		 * Never restore the last persisted order while the user is arranging.
+		 * The current DOM is the pending preference until arrange mode saves/exits.
+		 */
+		if (drag || arrangeMode) {
 			return;
 		}
 
@@ -370,11 +376,37 @@
 			node.dataset.afcnCardOrderIndicator = '1';
 			node.setAttribute('role', 'status');
 			node.setAttribute('aria-live', 'polite');
-			node.textContent = 'Arrange cards · drag to reorder · long press a card to save and exit';
+			node.textContent = 'Arrange cards · drag to reorder · auto-saves after 10s idle · long press to save and exit';
 			node.hidden = true;
 			document.body.appendChild(node);
 		}
 		return node;
+	}
+
+	function clearArrangeIdleTimer() {
+		if (!arrangeIdleTimer) {
+			return;
+		}
+		window.clearTimeout(arrangeIdleTimer);
+		arrangeIdleTimer = 0;
+	}
+
+	function scheduleArrangeIdleTimer() {
+		clearArrangeIdleTimer();
+		if (!arrangeMode || drag || hold) {
+			return;
+		}
+		arrangeIdleTimer = window.setTimeout(function () {
+			arrangeIdleTimer = 0;
+			if (!arrangeMode) {
+				return;
+			}
+			if (drag || hold) {
+				scheduleArrangeIdleTimer();
+				return;
+			}
+			exitArrangeMode(true);
+		}, ARRANGE_IDLE_MS);
 	}
 
 	function markArrangeableCards() {
@@ -398,6 +430,7 @@
 		document.body.classList.add('afcn-card-reorder-mode');
 		markArrangeableCards();
 		indicator().hidden = false;
+		scheduleArrangeIdleTimer();
 		if (window.navigator.vibrate) {
 			window.navigator.vibrate(16);
 		}
@@ -413,6 +446,7 @@
 		if (!arrangeMode) {
 			return;
 		}
+		clearArrangeIdleTimer();
 		if (drag) {
 			finishDragImmediately(true);
 		}
@@ -535,6 +569,7 @@
 		if (drag || !card || !canArrangeCard(card)) {
 			return false;
 		}
+		clearArrangeIdleTimer();
 
 		const originalParent = card.parentElement;
 		const originalIndex = directCards(originalParent).indexOf(card);
@@ -803,6 +838,7 @@
 		drag = null;
 		clearActiveDropZone();
 		markArrangeableCards();
+		scheduleArrangeIdleTimer();
 	}
 
 	function animateMirrorToPlaceholder(callback) {
@@ -893,6 +929,9 @@
 			return;
 		}
 
+		if (arrangeMode) {
+			clearArrangeIdleTimer();
+		}
 		clearHold();
 		card.classList.add('is-afcn-card-pressing');
 		hold = {
@@ -979,6 +1018,9 @@
 		}
 		if (hold && event.pointerId === hold.pointerId) {
 			clearHold();
+			if (arrangeMode) {
+				scheduleArrangeIdleTimer();
+			}
 		}
 	}
 
@@ -990,6 +1032,9 @@
 		}
 		if (hold && event.pointerId === hold.pointerId) {
 			clearHold();
+			if (arrangeMode) {
+				scheduleArrangeIdleTimer();
+			}
 		}
 	}, true);
 	document.addEventListener('lostpointercapture', function (event) {
@@ -1035,10 +1080,14 @@
 			finishDrag(false);
 		} else if (hold) {
 			clearHold();
+			if (arrangeMode) {
+				scheduleArrangeIdleTimer();
+			}
 		}
 	});
 
 	window.addEventListener('beforeunload', function () {
+		clearArrangeIdleTimer();
 		if (drag) {
 			finishDragImmediately(true);
 		}
@@ -1048,8 +1097,9 @@
 	});
 
 	function wire() {
-		restoreSavedOrders();
-		if (arrangeMode) {
+		if (!arrangeMode) {
+			restoreSavedOrders();
+		} else {
 			markArrangeableCards();
 		}
 	}
