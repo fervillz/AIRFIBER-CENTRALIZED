@@ -39,6 +39,9 @@
 		if (browserHead) {
 			browserHead.hidden = selected;
 		}
+		if (selected && window.AirfiberCardOrder && typeof window.AirfiberCardOrder.wire === 'function') {
+			window.AirfiberCardOrder.wire();
+		}
 
 		const context = selected ? connectionId : '';
 		setNavigationActive(context);

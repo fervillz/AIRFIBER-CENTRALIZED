@@ -309,10 +309,10 @@ class Routers_Module implements Module_Contract {
 			<?php if ( ! $scopes ) : ?>
 				<div class="afcn-notice"><strong><?php esc_html_e( 'No data scopes selected.', 'airfiber-centralized' ); ?></strong> <?php esc_html_e( 'Open Settings and choose what this router may expose.', 'airfiber-centralized' ); ?></div>
 			<?php else : ?>
-				<div class="afcn-router-scope-grid">
+				<div class="afcn-router-scope-grid" data-afcn-card-drop-group="router-scopes-<?php echo esc_attr( $id ); ?>">
 					<?php foreach ( $scopes as $scope ) : ?>
 						<?php $definition = $defs[ $scope ]; ?>
-						<article class="afcn-card afcn-router-scope-card">
+						<article class="afcn-card afcn-router-scope-card" data-afcn-card-key="router-scope-<?php echo esc_attr( $id . '-' . $scope ); ?>">
 							<div class="afcn-router-scope-card-head"><span class="afcn-router-scope-icon"><?php echo Icon::svg( $definition['icon'] ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></span></div>
 							<h3 title="<?php echo esc_attr( $definition['label'] ); ?>"><?php echo esc_html( $definition['label'] ); ?></h3>
 							<p title="<?php echo esc_attr( $definition['description'] ); ?>"><?php echo esc_html( $definition['description'] ); ?></p>
