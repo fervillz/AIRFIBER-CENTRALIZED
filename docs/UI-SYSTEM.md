@@ -49,6 +49,10 @@ Core CSS currently includes:
 
 `Airfiber\Next\Icon` supplies small dependency-free SVG icons for shared controls.
 
+## Connection submenu labels
+
+Modules using the Core `connection_submenu` contract receive the normal nested-navigation component. The primary line is the saved connection name; an optional muted `<small>` line shows its endpoint. Core owns truncation, spacing, hover and active states so provider modules do not add menu-specific CSS.
+
 ## Shared action status feedback
 
 Core owns action feedback for BETA buttons through the shared browser status manager. Modules should report the result of an action rather than inventing separate button-state CSS.

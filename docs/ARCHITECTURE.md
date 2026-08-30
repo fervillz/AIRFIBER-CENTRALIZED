@@ -127,6 +127,12 @@ While Classic remains active, Connections still exposes existing Classic OLT, Mi
 
 See `docs/CONNECTORS.md` for the provider contract and security rules.
 
+### Native Routers
+
+`next/modules/routers/` is the native RouterOS inventory module. Its manifest advertises the connector and opts into the generic connection-backed submenu. Core therefore needs no MikroTik knowledge: it displays saved router name/endpoint metadata, while all RouterOS transport, allow-listed commands, property lists and redaction rules remain inside the feature module.
+
+The Routers page is cache-first. Opening it renders stored connection configuration and cached health only. A live RouterOS socket is opened only for an explicit connection test or one explicitly selected data scope. Scope reads are bounded, measured as external latency and never execute a browser-supplied RouterOS command.
+
 ## Background work
 
 `Task_Queue` stores a small bounded queue and wakes through WP-Cron. Only the module attached to a due task is loaded. Jobs retry with bounded exponential backoff. Payloads are size-limited and should contain identifiers, never large datasets/secrets.

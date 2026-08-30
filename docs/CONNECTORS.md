@@ -181,6 +181,23 @@ Classic OLT cards remain as a migration safety net. When a native BETA OLT with 
 
 This slice does **not** provision ONUs or copy Classic credentials. Provisioning and deeper PON/ONU inventory come only after the native read-only connection path is verified.
 
+## Native MikroTik RouterOS connector — Core 0.4.22
+
+`next/modules/routers/` advertises `mikrotik-routeros` for RouterOS API (`8728`) or API over TLS (`8729`). Credentials are encrypted through `Secret_Store`; Classic MikroTik credentials are never copied.
+
+The first native router slice is deliberately read-only and explicit:
+
+- opening Routers reads only `Connection_Store` and cached `Connection_Health`;
+- Test connection reads bounded identity and system-resource properties;
+- administrators choose which scopes the connection is allowed to expose;
+- each PPP, Interfaces, System scripts, Firewall, Netwatch, Logs, SSH, Services, Hotspot or Neighbors read is a separate explicit request;
+- the browser supplies only the saved connection ID and a server-defined scope key, never a RouterOS sentence;
+- responses are row/property/length bounded and remote latency is diagnostic;
+- PPP passwords/comments, script source, Netwatch script bodies, Hotspot passwords and private SSH key material are never requested;
+- the module does not mutate RouterOS configuration.
+
+The saved RouterOS account should itself have the narrowest read-only RouterOS policy that supports the selected scopes. Application-side allow lists are defense in depth, not a replacement for device-side least privilege.
+
 ## Connections Hub grouping
 
 Current built-in groups are:

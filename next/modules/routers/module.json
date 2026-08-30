@@ -1,0 +1,46 @@
+{
+  "name": "Routers",
+  "description": "Read-only MikroTik RouterOS inventory with explicit, on-demand data scopes.",
+  "version": "0.1.0",
+  "position": 25,
+  "icon": "router",
+  "capability": "afcn_manage_connections",
+  "default_enabled": true,
+  "settings": "routers",
+  "connection_submenu": true,
+  "assets": {
+    "css": [],
+    "js": ["assets/routers.js"]
+  },
+  "connectors": [
+    {
+      "id": "mikrotik-routeros",
+      "name": "MikroTik RouterOS",
+      "description": "Read-only RouterOS API connection. Device data is loaded only when explicitly requested.",
+      "group": "network",
+      "icon": "router",
+      "test_action": "test-connection",
+      "fields": [
+        {"key":"host","label":"Router IP / Host","type":"text","required":true,"display":"endpoint","placeholder":"10.13.88.1"},
+        {"key":"port","label":"RouterOS API Port","type":"number","placeholder":"8728"},
+        {"key":"protocol","label":"Protocol","type":"select","options":{"api":"API","api-ssl":"API over TLS"}},
+        {"key":"verify_ssl","label":"Verify TLS certificate","type":"checkbox","show_when":{"field":"protocol","value":"api-ssl"}},
+        {"key":"username","label":"Username","type":"text","required":true,"display":"meta","placeholder":"airfiber-readonly"},
+        {"key":"password","label":"Password","type":"password","required":true,"secret":true},
+        {"key":"timeout_ms","label":"Timeout (ms)","type":"number","placeholder":"5000"},
+        {"key":"read_all","label":"All available read-only data","type":"checkbox"},
+        {"key":"read_ppp","label":"PPP","type":"checkbox"},
+        {"key":"read_interfaces","label":"Interfaces","type":"checkbox"},
+        {"key":"read_scripts","label":"System scripts metadata","type":"checkbox"},
+        {"key":"read_firewall","label":"Firewall","type":"checkbox"},
+        {"key":"read_netwatch","label":"Netwatch","type":"checkbox"},
+        {"key":"read_logs","label":"Logs","type":"checkbox"},
+        {"key":"read_ssh","label":"SSH settings and public-key fingerprints","type":"checkbox"},
+        {"key":"read_services","label":"IP services","type":"checkbox"},
+        {"key":"read_hotspot","label":"Hotspot","type":"checkbox"},
+        {"key":"read_neighbors","label":"Neighbors","type":"checkbox"}
+      ]
+    }
+  ],
+  "requires": {"core": ">=0.4.22"}
+}

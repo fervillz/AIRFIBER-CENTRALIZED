@@ -324,6 +324,9 @@ dialog.afcn-dialog form[data-afcn-action$="-add"] .afcn-dialog-footer [data-afcn
 }
 .afcn-nav-submenu button:hover,.afcn-nav-submenu button:focus-visible{background:#e7f0fb;color:var(--afcn-primary);outline:0}
 .afcn-nav-submenu .afcn-icon{width:15px;height:15px}
+.afcn-nav-submenu-copy{display:grid;min-width:0;gap:2px;text-align:left}
+.afcn-nav-submenu-copy>span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.afcn-nav-submenu-copy small{overflow:hidden;color:var(--afcn-muted);font-size:9px;font-weight:500;text-overflow:ellipsis;white-space:nowrap}
 
 /* Chrome-devtools-style utility drawer. It overlays the app instead of resizing it. */
 .afcn-utility-drawer{

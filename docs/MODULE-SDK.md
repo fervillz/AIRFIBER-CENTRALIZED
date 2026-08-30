@@ -79,6 +79,31 @@ file      includes/class-speed-test-module.php
 
 `position` works like WordPress menu numbering: lower values appear earlier.
 
+## Connection-backed submenus
+
+A page module that represents multiple configured endpoints may ask Core to build a lightweight submenu from its saved connection records:
+
+```json
+{
+  "name": "Routers",
+  "connection_submenu": true
+}
+```
+
+Core reads only the bounded `Connection_Store` metadata for that module. It does not boot the module PHP or contact any endpoint while building navigation. Each generated child keeps the parent module ID, uses the connection ID as its navigation context, and renders the saved endpoint below the connection name.
+
+The route format is `#module-id/<encoded-context>`. Module JavaScript can react without inventing another router:
+
+```js
+document.addEventListener('afcn:navigation:context', function (event) {
+    if (event.detail.module === 'routers') {
+        openConnection(event.detail.context);
+    }
+});
+```
+
+Connection context selects already-rendered/cached module UI; it must not itself trigger a remote fan-out.
+
 `settings` is optional. When present, the Modules card can expose the shared gear action and open that module target.
 
 `updates` declares that an update provider may manage the add-on. Actual available versions are supplied through the `afcn_module_update_catalog` filter; Core does not hard-code an update server.

@@ -72,6 +72,18 @@ Decision: existing Classic OLT, MikroTik and Google Sheets configuration can app
 
 Reason: users keep infrastructure visibility in BETA without creating two writable sources of truth.
 
+## 2026-08-31 — Connection-backed submenus stay generic and cache-only
+
+Decision: a module may declare `connection_submenu: true`. Core then builds bounded child navigation from that module's saved `Connection_Store` records, using the record ID as route context and the endpoint as secondary text. Core does not know the provider protocol and does not load feature PHP or contact endpoints to build the menu.
+
+Reason: Routers needs one submenu entry per configured device, but MikroTik behavior does not belong in Core and navigation must remain fast.
+
+## 2026-08-31 — Native RouterOS begins with explicit bounded reads
+
+Decision: the first native Routers module supports connection management, cached health and individually requested read-only scopes. Browser input chooses only an allow-listed scope; the server owns every RouterOS sentence and property list. Configuration writes and arbitrary command consoles are excluded.
+
+Reason: operators gain useful PPP/interface/firewall/log visibility without turning the BETA web application into a general router shell or making page navigation wait on network devices.
+
 ## 2026-08-23 — `module.json` is the Airfiber plugin header
 
 Decision: keep `module.json` as the lightweight registration marker, but infer the module ID and main class from the folder convention. A convention-following module therefore needs only a `name` in its manifest plus its main class file.

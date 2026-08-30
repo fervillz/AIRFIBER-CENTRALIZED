@@ -12,6 +12,7 @@
 	const metricSampleRate = 0.15;
 	const state = {
 		current: '',
+		context: '',
 		cache: new Map(),
 		styles: new Set(),
 		scripts: new Set(),
@@ -91,12 +92,39 @@
 		stage.querySelector('strong').textContent = label || cfg.labels.loading;
 	}
 
-	function setActive(id) {
+	function setActive(id, context) {
 		nav.forEach(function (button) {
-			const active = button.dataset.afcnModule === id;
+			const buttonContext = button.dataset.afcnModuleContext || '';
+			const inSubmenu = Boolean(button.closest('.afcn-nav-submenu'));
+			const active = button.dataset.afcnModule === id && (!inSubmenu || (context && buttonContext === context));
 			button.classList.toggle('is-active', active);
 			button.setAttribute('aria-pressed', active ? 'true' : 'false');
 		});
+	}
+
+	function routeFromHash() {
+		const raw = window.location.hash.replace(/^#/, '');
+		const separator = raw.indexOf('/');
+		if (separator === -1) {
+			return { id: raw, context: '' };
+		}
+		let context = '';
+		try {
+			context = decodeURIComponent(raw.slice(separator + 1));
+		} catch (error) {
+			context = '';
+		}
+		return { id: raw.slice(0, separator), context: context };
+	}
+
+	function routeHash(id, context) {
+		return '#' + id + (context ? '/' + encodeURIComponent(context) : '');
+	}
+
+	function dispatchNavigationContext(id, context) {
+		document.dispatchEvent(new CustomEvent('afcn:navigation:context', {
+			detail: { module: id, context: context || '' }
+		}));
 	}
 
 	function assetUrl(asset) {
@@ -176,13 +204,17 @@
 		return performance.now() - started;
 	}
 
-	async function loadModule(id, force) {
+	async function loadModule(id, force, context) {
 		if (!id) {
 			return false;
 		}
 
+		if (context === undefined || context === null) {
+			context = state.current === id ? state.context : '';
+		}
 		state.current = id;
-		setActive(id);
+		state.context = String(context || '');
+		setActive(id, state.context);
 		const sampleMetrics = shouldSampleMetrics();
 
 		if (!force && state.cache.has(id)) {
@@ -191,6 +223,7 @@
 			if (sampleMetrics) {
 				reportMetric(id, 'client', clientMs);
 			}
+			dispatchNavigationContext(id, state.context);
 			return true;
 		}
 
@@ -216,6 +249,7 @@
 				reportMetric(id, 'client', clientMs);
 				reportMetric(id, 'navigation', navigationMs);
 			}
+			dispatchNavigationContext(id, state.context);
 			return true;
 		} catch (error) {
 			showError(error);
@@ -491,13 +525,15 @@
 	nav.forEach(function (button) {
 		button.addEventListener('click', async function () {
 			const id = button.dataset.afcnModule;
-			if (window.location.hash !== '#' + id) {
-				history.pushState(null, '', '#' + id);
+			const context = button.dataset.afcnModuleContext || '';
+			const targetHash = routeHash(id, context);
+			if (window.location.hash !== targetHash) {
+				history.pushState(null, '', targetHash);
 			}
 			if (uiStatus) {
 				uiStatus.loading(button, 'Loading…', { alert: false });
 			}
-			const loaded = await loadModule(id, false);
+			const loaded = await loadModule(id, false, context);
 			if (uiStatus) {
 				if (loaded) {
 					uiStatus.success(button, 'Loaded.', { alert: false, transient: true, delay: 1000 });
@@ -521,9 +557,9 @@
 	});
 
 	window.addEventListener('hashchange', function () {
-		const id = window.location.hash.replace(/^#/, '');
-		if (nav.some(function (button) { return button.dataset.afcnModule === id; })) {
-			loadModule(id, false);
+		const route = routeFromHash();
+		if (nav.some(function (button) { return button.dataset.afcnModule === route.id; })) {
+			loadModule(route.id, false, route.context);
 		}
 	});
 
@@ -545,10 +581,10 @@
 		uiStatus.wire(document);
 	}
 
-	const requested = window.location.hash.replace(/^#/, '');
+	const requested = routeFromHash();
 	const initial = nav.some(function (button) {
-		return button.dataset.afcnModule === requested;
-	}) ? requested : cfg.defaultModule;
+		return button.dataset.afcnModule === requested.id;
+	}) ? requested.id : cfg.defaultModule;
 
-	loadModule(initial, false);
+	loadModule(initial, false, initial === requested.id ? requested.context : '');
 }());

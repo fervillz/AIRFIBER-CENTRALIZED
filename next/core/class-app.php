@@ -37,9 +37,9 @@ class App {
 												<span><?php echo esc_html( $child['name'] ); ?></span>
 											</button>
 										<?php else : ?>
-											<button type="button" role="menuitem" data-afcn-module="<?php echo esc_attr( $child['id'] ); ?>" aria-pressed="false">
+											<button type="button" role="menuitem" data-afcn-module="<?php echo esc_attr( $child['id'] ); ?>"<?php echo ! empty( $child['context'] ) ? ' data-afcn-module-context="' . esc_attr( $child['context'] ) . '"' : ''; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?> aria-pressed="false">
 												<?php echo Icon::svg( $child['icon'] ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
-												<span><?php echo esc_html( $child['name'] ); ?></span>
+												<span class="afcn-nav-submenu-copy"><span><?php echo esc_html( $child['name'] ); ?></span><?php if ( ! empty( $child['meta'] ) ) : ?><small><?php echo esc_html( $child['meta'] ); ?></small><?php endif; ?></span>
 											</button>
 										<?php endif; ?>
 									<?php endforeach; ?>
@@ -96,8 +96,26 @@ class App {
 				'position'     => $item['position'],
 				'parent'       => isset( $meta['parent'] ) ? sanitize_key( $meta['parent'] ) : '',
 				'presentation' => isset( $meta['presentation'] ) ? sanitize_key( $meta['presentation'] ) : 'page',
+				'context'      => '',
+				'meta'         => '',
 				'children'     => array(),
 			);
+
+			if ( ! empty( $meta['connection_submenu'] ) ) {
+				foreach ( array_slice( Connection_Store::for_module( $id ), 0, 30, true ) as $connection_id => $connection ) {
+					$flat[ $id ]['children'][] = array(
+						'id'           => $id,
+						'name'         => isset( $connection['name'] ) ? $connection['name'] : $meta['name'],
+						'icon'         => $item['icon'],
+						'position'     => isset( $connection['position'] ) ? (int) $connection['position'] : 100,
+						'parent'       => $id,
+						'presentation' => 'page',
+						'context'      => sanitize_text_field( $connection_id ),
+						'meta'         => isset( $connection['endpoint'] ) ? sanitize_text_field( $connection['endpoint'] ) : '',
+						'children'     => array(),
+					);
+				}
+			}
 		}
 
 		$tree = array();

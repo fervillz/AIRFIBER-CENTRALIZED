@@ -156,6 +156,7 @@ class Module_Registry {
 			'capability'      => isset( $data['capability'] ) ? sanitize_key( $data['capability'] ) : Capabilities::ACCESS,
 			'parent'          => isset( $data['parent'] ) ? sanitize_key( $data['parent'] ) : '',
 			'presentation'    => $presentation,
+			'connection_submenu' => ! empty( $data['connection_submenu'] ),
 			'system'          => $is_mu,
 			'source'          => $is_mu ? 'mu' : 'module',
 			'default_enabled' => ! isset( $data['default_enabled'] ) || (bool) $data['default_enabled'],
