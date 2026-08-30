@@ -593,10 +593,38 @@ class Routers_Module implements Module_Contract {
 				'columns' => array( 'name' => __( 'Name', 'airfiber-centralized' ), 'type' => __( 'Type', 'airfiber-centralized' ), 'running' => __( 'Running', 'airfiber-centralized' ), 'disabled' => __( 'Disabled', 'airfiber-centralized' ), 'actual-mtu' => __( 'MTU', 'airfiber-centralized' ), 'mac-address' => __( 'MAC', 'airfiber-centralized' ), 'last-link-up-time' => __( 'Last link up', 'airfiber-centralized' ), 'last-link-down-time' => __( 'Last link down', 'airfiber-centralized' ) ),
 				'requests' => array( 'interfaces' => array( 'label' => __( 'Interfaces', 'airfiber-centralized' ), 'words' => array( '/interface/print', '=.proplist=.id,name,type,running,disabled,actual-mtu,mac-address,last-link-up-time,last-link-down-time' ), 'limit' => 150 ) ),
 			),
+			'queues' => array(
+				'label' => __( 'Queues', 'airfiber-centralized' ), 'icon' => 'list', 'description' => __( 'Simple queues and queue-tree summaries without write access.', 'airfiber-centralized' ),
+				'columns' => array( 'section' => __( 'Section', 'airfiber-centralized' ), 'name' => __( 'Name', 'airfiber-centralized' ), 'target' => __( 'Target', 'airfiber-centralized' ), 'parent' => __( 'Parent', 'airfiber-centralized' ), 'packet-marks' => __( 'Packet marks', 'airfiber-centralized' ), 'priority' => __( 'Priority', 'airfiber-centralized' ), 'queue' => __( 'Queue', 'airfiber-centralized' ), 'max-limit' => __( 'Max limit', 'airfiber-centralized' ), 'limit-at' => __( 'Limit at', 'airfiber-centralized' ), 'disabled' => __( 'Disabled', 'airfiber-centralized' ), 'comment' => __( 'Comment', 'airfiber-centralized' ) ),
+				'requests' => array(
+					'simple' => array( 'label' => __( 'Simple Queues', 'airfiber-centralized' ), 'words' => array( '/queue/simple/print', '=.proplist=.id,name,target,parent,priority,queue,max-limit,limit-at,disabled,comment' ), 'limit' => 150 ),
+					'tree' => array( 'label' => __( 'Queue Tree', 'airfiber-centralized' ), 'words' => array( '/queue/tree/print', '=.proplist=.id,name,parent,packet-marks,priority,queue,max-limit,limit-at,disabled,comment' ), 'limit' => 150 ),
+				),
+			),
+			'routes' => array(
+				'label' => __( 'Routes', 'airfiber-centralized' ), 'icon' => 'connections', 'description' => __( 'IPv4 route destinations, gateways, state and routing-table metadata.', 'airfiber-centralized' ),
+				'columns' => array( 'dst-address' => __( 'Destination', 'airfiber-centralized' ), 'gateway' => __( 'Gateway', 'airfiber-centralized' ), 'routing-table' => __( 'Routing table', 'airfiber-centralized' ), 'distance' => __( 'Distance', 'airfiber-centralized' ), 'scope' => __( 'Scope', 'airfiber-centralized' ), 'target-scope' => __( 'Target scope', 'airfiber-centralized' ), 'active' => __( 'Active', 'airfiber-centralized' ), 'dynamic' => __( 'Dynamic', 'airfiber-centralized' ), 'disabled' => __( 'Disabled', 'airfiber-centralized' ), 'comment' => __( 'Comment', 'airfiber-centralized' ) ),
+				'requests' => array( 'routes' => array( 'label' => __( 'Routes', 'airfiber-centralized' ), 'words' => array( '/ip/route/print', '=.proplist=.id,dst-address,gateway,routing-table,distance,scope,target-scope,active,dynamic,disabled,comment' ), 'limit' => 200 ) ),
+			),
+			'dhcp_servers' => array(
+				'label' => __( 'DHCP Servers', 'airfiber-centralized' ), 'icon' => 'server', 'description' => __( 'DHCP server identity, interface, pool and lease policy metadata.', 'airfiber-centralized' ),
+				'columns' => array( 'name' => __( 'Name', 'airfiber-centralized' ), 'interface' => __( 'Interface', 'airfiber-centralized' ), 'address-pool' => __( 'Address pool', 'airfiber-centralized' ), 'lease-time' => __( 'Lease time', 'airfiber-centralized' ), 'authoritative' => __( 'Authoritative', 'airfiber-centralized' ), 'disabled' => __( 'Disabled', 'airfiber-centralized' ) ),
+				'requests' => array( 'servers' => array( 'label' => __( 'DHCP Servers', 'airfiber-centralized' ), 'words' => array( '/ip/dhcp-server/print', '=.proplist=.id,name,interface,address-pool,lease-time,authoritative,disabled' ), 'limit' => 100 ) ),
+			),
+			'dhcp_leases' => array(
+				'label' => __( 'DHCP Leases', 'airfiber-centralized' ), 'icon' => 'users', 'description' => __( 'DHCP lease address, client identity, status and expiry metadata.', 'airfiber-centralized' ),
+				'columns' => array( 'address' => __( 'Address', 'airfiber-centralized' ), 'mac-address' => __( 'MAC', 'airfiber-centralized' ), 'host-name' => __( 'Host name', 'airfiber-centralized' ), 'client-id' => __( 'Client ID', 'airfiber-centralized' ), 'server' => __( 'Server', 'airfiber-centralized' ), 'status' => __( 'Status', 'airfiber-centralized' ), 'expires-after' => __( 'Expires after', 'airfiber-centralized' ), 'dynamic' => __( 'Dynamic', 'airfiber-centralized' ), 'disabled' => __( 'Disabled', 'airfiber-centralized' ), 'comment' => __( 'Comment', 'airfiber-centralized' ) ),
+				'requests' => array( 'leases' => array( 'label' => __( 'DHCP Leases', 'airfiber-centralized' ), 'words' => array( '/ip/dhcp-server/lease/print', '=.proplist=.id,address,mac-address,host-name,client-id,server,status,expires-after,dynamic,disabled,comment' ), 'limit' => 200 ) ),
+			),
 			'scripts' => array(
-				'label' => __( 'System scripts', 'airfiber-centralized' ), 'icon' => 'settings', 'description' => __( 'Script names and execution metadata only. Source code is intentionally never returned.', 'airfiber-centralized' ),
+				'label' => __( 'Scripts', 'airfiber-centralized' ), 'icon' => 'settings', 'description' => __( 'Script names and execution metadata only. Source code is intentionally never returned.', 'airfiber-centralized' ),
 				'columns' => array( 'section' => __( 'Section', 'airfiber-centralized' ), 'name' => __( 'Name', 'airfiber-centralized' ), 'owner' => __( 'Owner', 'airfiber-centralized' ), 'policy' => __( 'Policy', 'airfiber-centralized' ), 'run-count' => __( 'Runs', 'airfiber-centralized' ), 'last-started' => __( 'Last started', 'airfiber-centralized' ), 'disabled' => __( 'Disabled', 'airfiber-centralized' ) ),
 				'requests' => array( 'scripts' => array( 'label' => __( 'System Scripts', 'airfiber-centralized' ), 'words' => array( '/system/script/print', '=.proplist=.id,name,owner,policy,run-count,last-started,dont-require-permissions,disabled' ), 'limit' => 100 ) ),
+			),
+			'schedulers' => array(
+				'label' => __( 'Schedulers', 'airfiber-centralized' ), 'icon' => 'activity', 'description' => __( 'Scheduler timing, policy and run metadata. On-event script bodies are excluded.', 'airfiber-centralized' ),
+				'columns' => array( 'name' => __( 'Name', 'airfiber-centralized' ), 'start-date' => __( 'Start date', 'airfiber-centralized' ), 'start-time' => __( 'Start time', 'airfiber-centralized' ), 'interval' => __( 'Interval', 'airfiber-centralized' ), 'next-run' => __( 'Next run', 'airfiber-centralized' ), 'run-count' => __( 'Runs', 'airfiber-centralized' ), 'policy' => __( 'Policy', 'airfiber-centralized' ), 'disabled' => __( 'Disabled', 'airfiber-centralized' ) ),
+				'requests' => array( 'schedulers' => array( 'label' => __( 'Schedulers', 'airfiber-centralized' ), 'words' => array( '/system/scheduler/print', '=.proplist=.id,name,start-date,start-time,interval,next-run,run-count,policy,disabled' ), 'limit' => 100 ) ),
 			),
 			'firewall' => array(
 				'label' => __( 'Firewall', 'airfiber-centralized' ), 'icon' => 'shield', 'description' => __( 'Bounded filter, NAT and mangle rule summaries.', 'airfiber-centralized' ),
