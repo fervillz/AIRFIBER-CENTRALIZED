@@ -116,10 +116,74 @@
 		syncReadAll(form);
 	}
 
-	function appendCell(row, tag, value) {
+	function appendCell(row, tag, value, className) {
 		const cell = document.createElement(tag);
 		cell.textContent = value === undefined || value === null || value === '' ? '—' : String(value);
+		if (className) {
+			cell.className = className;
+		}
 		row.appendChild(cell);
+		return cell;
+	}
+
+	function interfaceFlag(value, positiveLabel, negativeLabel, positiveClass) {
+		const normalized = String(value === undefined || value === null ? '' : value).toLowerCase();
+		const active = normalized === 'true' || normalized === 'yes' || normalized === '1';
+		const badge = document.createElement('span');
+		badge.className = 'afcn-data-state ' + (active ? positiveClass : 'is-muted');
+		badge.textContent = active ? positiveLabel : negativeLabel;
+		return badge;
+	}
+
+	function interfaceDetailFields(item) {
+		return [
+			['Name', item.name],
+			['Type', item.type],
+			['Running', item.running],
+			['Disabled', item.disabled],
+			['MTU', item['actual-mtu']],
+			['MAC address', item['mac-address']],
+			['Last link up', item['last-link-up-time']],
+			['Last link down', item['last-link-down-time']]
+		];
+	}
+
+	function openInterfaceDetail(item) {
+		const dialog = document.getElementById('afcn-router-interface-detail');
+		if (!dialog || !window.AirfiberNext) {
+			return;
+		}
+		const title = dialog.querySelector('[data-afcn-interface-detail-title]');
+		const subtitle = dialog.querySelector('[data-afcn-interface-detail-subtitle]');
+		const body = dialog.querySelector('[data-afcn-interface-detail-body]');
+		if (!body) {
+			return;
+		}
+
+		const name = String(item.name || 'Interface');
+		const type = String(item.type || 'interface');
+		if (title) {
+			title.textContent = name;
+		}
+		if (subtitle) {
+			subtitle.textContent = type.toLowerCase().indexOf('ppp') !== -1 || name.toLowerCase().indexOf('pppoe') !== -1
+				? 'PPP interface · read-only Basic details'
+				: 'RouterOS interface · read-only Basic details';
+		}
+
+		body.replaceChildren();
+		const grid = document.createElement('dl');
+		grid.className = 'afcn-router-interface-detail-grid';
+		interfaceDetailFields(item).forEach(function (field) {
+			const label = document.createElement('dt');
+			label.textContent = field[0];
+			const value = document.createElement('dd');
+			value.textContent = field[1] === undefined || field[1] === null || field[1] === '' ? '—' : String(field[1]);
+			grid.appendChild(label);
+			grid.appendChild(value);
+		});
+		body.appendChild(grid);
+		window.AirfiberNext.openDialog(dialog);
 	}
 
 	function renderScope(output, result, button, options) {
@@ -189,6 +253,9 @@
 			(result.columns || []).forEach(function (column) {
 				appendCell(headRow, 'th', column.label || column.key);
 			});
+			if (result.scope === 'interfaces') {
+				appendCell(headRow, 'th', 'Action', 'afcn-data-action-column');
+			}
 			head.appendChild(headRow);
 			table.appendChild(head);
 
@@ -196,8 +263,36 @@
 			rows.forEach(function (item) {
 				const row = document.createElement('tr');
 				(result.columns || []).forEach(function (column) {
+					if (result.scope === 'interfaces' && column.key === 'name') {
+						appendCell(row, 'td', item[column.key], 'afcn-data-primary');
+						return;
+					}
+					if (result.scope === 'interfaces' && column.key === 'running') {
+						const cell = appendCell(row, 'td', '', 'afcn-data-state-cell');
+						cell.replaceChildren(interfaceFlag(item[column.key], 'Running', 'Down', 'is-success'));
+						return;
+					}
+					if (result.scope === 'interfaces' && column.key === 'disabled') {
+						const cell = appendCell(row, 'td', '', 'afcn-data-state-cell');
+						cell.replaceChildren(interfaceFlag(item[column.key], 'Disabled', 'Enabled', 'is-danger'));
+						return;
+					}
 					appendCell(row, 'td', item[column.key]);
 				});
+				if (result.scope === 'interfaces') {
+					const actionCell = document.createElement('td');
+					actionCell.className = 'afcn-data-action-column';
+					const action = document.createElement('button');
+					action.type = 'button';
+					action.className = 'afcn-data-row-action';
+					action.textContent = '•••';
+					action.setAttribute('aria-label', 'Open ' + String(item.name || 'interface') + ' details');
+					action.addEventListener('click', function () {
+						openInterfaceDetail(item);
+					});
+					actionCell.appendChild(action);
+					row.appendChild(actionCell);
+				}
 				body.appendChild(row);
 			});
 			table.appendChild(body);

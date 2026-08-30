@@ -95,6 +95,8 @@ class Routers_Module implements Module_Contract {
 				<?php self::render_router_detail( $id, $record, isset( $health[ $id ] ) ? $health[ $id ] : array() ); ?>
 			<?php endforeach; ?>
 
+			<?php self::render_interface_detail_dialog(); ?>
+
 			<?php if ( $can_manage ) : ?>
 				<?php self::render_add_dialog(); ?>
 				<?php foreach ( $connections as $id => $record ) : ?>
@@ -331,6 +333,31 @@ class Routers_Module implements Module_Contract {
 		<?php
 	}
 
+	private static function render_interface_detail_dialog() {
+		?>
+		<dialog class="afcn-dialog" id="afcn-router-interface-detail">
+			<div class="afcn-dialog-shell">
+				<div class="afcn-dialog-header">
+					<div>
+						<h2 data-afcn-interface-detail-title><?php esc_html_e( 'Interface details', 'airfiber-centralized' ); ?></h2>
+						<p data-afcn-interface-detail-subtitle><?php esc_html_e( 'Read-only RouterOS interface data', 'airfiber-centralized' ); ?></p>
+					</div>
+					<button type="button" class="afcn-icon-button" data-afcn-dialog-close aria-label="<?php esc_attr_e( 'Close', 'airfiber-centralized' ); ?>">×</button>
+				</div>
+				<div class="afcn-dialog-body">
+					<div class="afcn-router-detail-tabbar" role="tablist" aria-label="<?php esc_attr_e( 'Interface detail sections', 'airfiber-centralized' ); ?>">
+						<button type="button" class="afcn-router-detail-tab is-active" role="tab" aria-selected="true"><?php esc_html_e( 'Basic', 'airfiber-centralized' ); ?></button>
+					</div>
+					<div class="afcn-router-interface-basic" data-afcn-interface-detail-body></div>
+				</div>
+				<div class="afcn-dialog-footer">
+					<button type="button" class="afcn-button afcn-button-secondary" data-afcn-dialog-close><?php esc_html_e( 'Close', 'airfiber-centralized' ); ?></button>
+				</div>
+			</div>
+		</dialog>
+		<?php
+	}
+
 	private static function render_add_dialog() {
 		?>
 		<dialog class="afcn-dialog" id="afcn-add-router-dialog">
@@ -517,7 +544,7 @@ class Routers_Module implements Module_Contract {
 			$response = isset( $result[ $request_key ] ) ? $result[ $request_key ] : array( 'rows' => array(), 'truncated' => false );
 			$label    = isset( $request['label'] ) ? $request['label'] : $definition['label'];
 			foreach ( (array) ( isset( $response['rows'] ) ? $response['rows'] : array() ) as $row ) {
-				$clean = array( 'section' => $label );
+				$clean = isset( $definition['columns']['section'] ) ? array( 'section' => $label ) : array();
 				foreach ( $definition['columns'] as $column => $caption ) {
 					if ( 'section' !== $column && isset( $row[ $column ] ) ) {
 						$clean[ $column ] = $row[ $column ];
@@ -563,7 +590,7 @@ class Routers_Module implements Module_Contract {
 			),
 			'interfaces' => array(
 				'label' => __( 'Interfaces', 'airfiber-centralized' ), 'icon' => 'connections', 'description' => __( 'Interface identity, link state, MTU and MAC data.', 'airfiber-centralized' ),
-				'columns' => array( 'section' => __( 'Section', 'airfiber-centralized' ), 'name' => __( 'Name', 'airfiber-centralized' ), 'type' => __( 'Type', 'airfiber-centralized' ), 'running' => __( 'Running', 'airfiber-centralized' ), 'disabled' => __( 'Disabled', 'airfiber-centralized' ), 'actual-mtu' => __( 'MTU', 'airfiber-centralized' ), 'mac-address' => __( 'MAC', 'airfiber-centralized' ), 'last-link-up-time' => __( 'Last link up', 'airfiber-centralized' ), 'last-link-down-time' => __( 'Last link down', 'airfiber-centralized' ) ),
+				'columns' => array( 'name' => __( 'Name', 'airfiber-centralized' ), 'type' => __( 'Type', 'airfiber-centralized' ), 'running' => __( 'Running', 'airfiber-centralized' ), 'disabled' => __( 'Disabled', 'airfiber-centralized' ), 'actual-mtu' => __( 'MTU', 'airfiber-centralized' ), 'mac-address' => __( 'MAC', 'airfiber-centralized' ), 'last-link-up-time' => __( 'Last link up', 'airfiber-centralized' ), 'last-link-down-time' => __( 'Last link down', 'airfiber-centralized' ) ),
 				'requests' => array( 'interfaces' => array( 'label' => __( 'Interfaces', 'airfiber-centralized' ), 'words' => array( '/interface/print', '=.proplist=.id,name,type,running,disabled,actual-mtu,mac-address,last-link-up-time,last-link-down-time' ), 'limit' => 150 ) ),
 			),
 			'scripts' => array(
