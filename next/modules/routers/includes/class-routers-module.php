@@ -61,7 +61,7 @@ class Routers_Module implements Module_Contract {
 				<div class="afcn-page-head" style="margin-top:22px">
 					<div><h2 class="afcn-page-title" style="font-size:24px"><?php esc_html_e( 'Router library', 'airfiber-centralized' ); ?></h2></div>
 				</div>
-				<div class="afcn-grid" data-afcn-router-cards>
+				<div class="afcn-connection-grid" data-afcn-router-cards>
 					<?php foreach ( $connections as $id => $record ) : ?>
 						<?php self::render_router_card( $id, $record, $can_manage ); ?>
 					<?php endforeach; ?>
@@ -212,9 +212,9 @@ class Routers_Module implements Module_Contract {
 		$health = Connection_Health::get( $id );
 		$scopes = self::enabled_scopes( $record );
 		?>
-		<article class="afcn-card afcn-col-4" data-afcn-router-card="<?php echo esc_attr( $id ); ?>" data-afcn-card-key="<?php echo esc_attr( $id ); ?>">
+		<article class="afcn-card afcn-router-card" data-afcn-router-card="<?php echo esc_attr( $id ); ?>" data-afcn-card-key="<?php echo esc_attr( $id ); ?>">
 			<div class="afcn-card-header">
-				<h2><?php echo esc_html( $record['name'] ); ?></h2>
+				<h2 title="<?php echo esc_attr( $record['name'] ); ?>"><?php echo esc_html( $record['name'] ); ?></h2>
 				<?php echo UI::badge( self::health_label( $health ), self::health_tone( $health ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
 			</div>
 			<div class="afcn-card-body">
@@ -240,7 +240,7 @@ class Routers_Module implements Module_Contract {
 		<section data-afcn-router-detail="<?php echo esc_attr( $id ); ?>" hidden style="margin-top:24px">
 			<div class="afcn-page-head">
 				<div>
-					<h2 class="afcn-page-title" style="font-size:26px"><?php echo esc_html( $record['name'] ); ?></h2>
+					<h2 class="afcn-page-title afcn-router-detail-title" title="<?php echo esc_attr( $record['name'] ); ?>" style="font-size:26px"><?php echo esc_html( $record['name'] ); ?></h2>
 					<p class="afcn-page-description"><?php echo esc_html( isset( $record['endpoint'] ) ? $record['endpoint'] : '' ); ?> · <?php esc_html_e( 'Explicit read-only loads only', 'airfiber-centralized' ); ?></p>
 				</div>
 				<form data-afcn-module="routers" data-afcn-action="test-router">
@@ -272,18 +272,20 @@ class Routers_Module implements Module_Contract {
 			<?php if ( ! $scopes ) : ?>
 				<div class="afcn-notice"><strong><?php esc_html_e( 'No data scopes selected.', 'airfiber-centralized' ); ?></strong> <?php esc_html_e( 'Open Settings and choose what this router may expose.', 'airfiber-centralized' ); ?></div>
 			<?php else : ?>
-				<div class="afcn-grid">
+				<div class="afcn-router-scope-grid">
 					<?php foreach ( $scopes as $scope ) : ?>
 						<?php $definition = $defs[ $scope ]; ?>
-						<article class="afcn-card afcn-col-12">
-							<div class="afcn-card-header"><h3><?php echo esc_html( $definition['label'] ); ?></h3><?php echo Icon::svg( $definition['icon'] ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></div>
-							<div class="afcn-card-body">
-								<p class="afcn-page-description"><?php echo esc_html( $definition['description'] ); ?></p>
-								<div class="afcn-form-actions"><button type="button" class="afcn-button afcn-button-secondary afcn-button-small" data-afcn-router-scope-load data-afcn-connection-id="<?php echo esc_attr( $id ); ?>" data-afcn-scope="<?php echo esc_attr( $scope ); ?>"><?php esc_html_e( 'Load', 'airfiber-centralized' ); ?></button></div>
-								<div data-afcn-router-scope-output aria-live="polite"></div>
-							</div>
+						<article class="afcn-card afcn-router-scope-card">
+							<div class="afcn-router-scope-card-head"><span class="afcn-router-scope-icon"><?php echo Icon::svg( $definition['icon'] ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></span></div>
+							<h3 title="<?php echo esc_attr( $definition['label'] ); ?>"><?php echo esc_html( $definition['label'] ); ?></h3>
+							<p title="<?php echo esc_attr( $definition['description'] ); ?>"><?php echo esc_html( $definition['description'] ); ?></p>
+							<button type="button" class="afcn-button afcn-button-secondary afcn-button-small" data-afcn-router-scope-load data-afcn-connection-id="<?php echo esc_attr( $id ); ?>" data-afcn-scope="<?php echo esc_attr( $scope ); ?>" data-afcn-scope-label="<?php echo esc_attr( $definition['label'] ); ?>"><?php esc_html_e( 'Load', 'airfiber-centralized' ); ?></button>
 						</article>
 					<?php endforeach; ?>
+				</div>
+				<div class="afcn-card afcn-router-scope-results" data-afcn-router-scope-results hidden>
+					<div class="afcn-card-header"><h3 data-afcn-router-scope-result-title><?php esc_html_e( 'Router details', 'airfiber-centralized' ); ?></h3></div>
+					<div class="afcn-card-body" data-afcn-router-scope-output aria-live="polite"></div>
 				</div>
 			<?php endif; ?>
 		</section>

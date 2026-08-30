@@ -125,7 +125,17 @@
 		if (!window.AirfiberNext || typeof window.AirfiberNext.query !== 'function') {
 			return;
 		}
-		const output = button.closest('.afcn-card').querySelector('[data-afcn-router-scope-output]');
+		const detail = button.closest('[data-afcn-router-detail]');
+		const results = detail ? detail.querySelector('[data-afcn-router-scope-results]') : null;
+		const output = results ? results.querySelector('[data-afcn-router-scope-output]') : null;
+		const title = results ? results.querySelector('[data-afcn-router-scope-result-title]') : null;
+		if (!output || !results) {
+			return;
+		}
+		if (title) {
+			title.textContent = button.dataset.afcnScopeLabel || 'Router details';
+		}
+		results.hidden = false;
 		const status = window.AirfiberNext.status || window.AirfiberUIStatus;
 		button.disabled = true;
 		if (status) {

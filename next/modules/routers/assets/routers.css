@@ -1,0 +1,17 @@
+.afcn-router-card{min-width:0;overflow:hidden}
+.afcn-router-card .afcn-card-header{min-width:0}
+.afcn-router-card .afcn-card-header h2{min-width:0;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.afcn-router-card .afcn-card-header .afcn-badge{flex:0 0 auto}
+.afcn-router-card .afcn-page-description{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.afcn-router-detail-title{max-width:min(720px,70vw);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.afcn-router-scope-grid{display:grid;grid-template-columns:repeat(auto-fill,150px);gap:16px;align-items:start}
+.afcn-router-scope-card{display:flex;width:150px;height:150px;min-width:0;flex-direction:column;padding:12px;overflow:hidden}
+.afcn-router-scope-card-head{display:flex;align-items:flex-start;justify-content:space-between}
+.afcn-router-scope-icon{display:grid;width:34px;height:34px;place-items:center;border-radius:9px;background:#eef6ff;color:var(--afcn-primary)}
+.afcn-router-scope-icon .afcn-icon{width:18px;height:18px}
+.afcn-router-scope-card h3{max-width:100%;margin:9px 0 0;overflow:hidden;font-family:var(--afcn-font-heading);font-size:18px;font-weight:400;line-height:1.05;text-overflow:ellipsis;white-space:nowrap}
+.afcn-router-scope-card p{display:-webkit-box;margin:5px 0 0;overflow:hidden;color:var(--afcn-muted);font-size:9px;line-height:1.25;-webkit-box-orient:vertical;-webkit-line-clamp:2}
+.afcn-router-scope-card>.afcn-button{align-self:flex-end;margin-top:auto}
+.afcn-router-scope-results{margin-top:16px}
+.afcn-router-scope-results[hidden]{display:none!important}
+.afcn-router-scope-results .afcn-card-header h3{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}

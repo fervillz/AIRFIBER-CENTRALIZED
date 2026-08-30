@@ -1,7 +1,7 @@
 {
   "name": "Routers",
   "description": "Read-only MikroTik RouterOS inventory with explicit, on-demand data scopes.",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "position": 25,
   "icon": "router",
   "capability": "afcn_manage_connections",
@@ -9,7 +9,7 @@
   "settings": "routers",
   "connection_submenu": true,
   "assets": {
-    "css": [],
+    "css": ["assets/routers.css"],
     "js": ["assets/routers.js"]
   },
   "connectors": [
