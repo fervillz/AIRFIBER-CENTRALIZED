@@ -8,7 +8,7 @@ Build Airfiber Next/BETA as an isolated, very fast application platform inside t
 
 BETA URL: `/airfiber-beta/`.
 
-Airfiber Next Core version: **0.4.26**.
+Airfiber Next Core version: **0.4.27**.
 
 ## Boundary
 
@@ -28,7 +28,7 @@ Classic stays in `includes/`, `templates/`, and `assets/`. Next/BETA lives under
 - modal alert + modal box-shadow state feedback synchronized with the active button action
 - shared cards/list view controller with the Users-style list/grid title toggle
 - shared Trello-like card arrangement runtime with long-press lift, pointer-follow, FLIP displacement, edge scroll, float-back and per-user persistence
-- compiled cached module registry, numeric menu positions and lazy module PHP/assets/data
+- compiled cached module registry with 5-minute manifest self-refresh, numeric menu positions and lazy module PHP/assets/data
 - generic REST render/query/chunk/action runtime
 - browser SDK at `window.AirfiberNext`
 - module activation/deactivation, dependencies, Trash and MU separation

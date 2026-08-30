@@ -5,8 +5,9 @@ namespace Airfiber\Next;
 defined( 'ABSPATH' ) || exit;
 
 class Module_Registry {
-	const OPTION_CACHE = 'afcn_module_registry_v1';
-	const CACHE_SCHEMA = 8;
+	const OPTION_CACHE  = 'afcn_module_registry_v1';
+	const CACHE_SCHEMA  = 9;
+	const CACHE_MAX_AGE = 300;
 
 	private static $modules = null;
 
@@ -19,9 +20,10 @@ class Module_Registry {
 			$cached = get_option( self::OPTION_CACHE, array() );
 			if (
 				is_array( $cached )
-				&& isset( $cached['schema'], $cached['core_version'], $cached['modules'] )
+				&& isset( $cached['schema'], $cached['core_version'], $cached['built_at'], $cached['modules'] )
 				&& self::CACHE_SCHEMA === (int) $cached['schema']
 				&& (string) AFCN_VERSION === (string) $cached['core_version']
+				&& ( time() - absint( $cached['built_at'] ) ) < self::CACHE_MAX_AGE
 				&& is_array( $cached['modules'] )
 			) {
 				self::$modules = $cached['modules'];
