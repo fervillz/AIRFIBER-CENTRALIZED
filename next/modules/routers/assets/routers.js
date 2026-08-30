@@ -19,6 +19,35 @@
 		});
 	}
 
+	function scheduleDefaultScope(detail) {
+		if (!detail || detail.dataset.afcnDefaultScopeScheduled) {
+			return;
+		}
+		const button = detail.querySelector('[data-afcn-router-scope-load][data-afcn-scope="interfaces"]');
+		if (!button || button.dataset.afcnScopeLoaded) {
+			return;
+		}
+		detail.dataset.afcnDefaultScopeScheduled = '1';
+
+		const run = function () {
+			if (detail.hidden) {
+				delete detail.dataset.afcnDefaultScopeScheduled;
+				return;
+			}
+			loadScope(button, { page: 1, search: '', refresh: false, auto: true });
+		};
+
+		window.requestAnimationFrame(function () {
+			window.requestAnimationFrame(function () {
+				if ('requestIdleCallback' in window) {
+					window.requestIdleCallback(run, { timeout: 700 });
+				} else {
+					window.setTimeout(run, 160);
+				}
+			});
+		});
+	}
+
 	function selectRouter(connectionId, updateHistory) {
 		const root = routerRoot();
 		if (!root) {
@@ -28,9 +57,13 @@
 		const browser = root.querySelector('[data-afcn-router-browser]');
 		const browserHead = root.querySelector('[data-afcn-router-browser-head]');
 		let selected = false;
+		let selectedDetail = null;
 		root.querySelectorAll('[data-afcn-router-detail]').forEach(function (detail) {
 			const active = Boolean(connectionId) && detail.dataset.afcnRouterDetail === connectionId;
 			detail.hidden = !active;
+			if (active) {
+				selectedDetail = detail;
+			}
 			selected = selected || active;
 		});
 		if (browser) {
@@ -41,6 +74,9 @@
 		}
 		if (selected && window.AirfiberCardOrder && typeof window.AirfiberCardOrder.wire === 'function') {
 			window.AirfiberCardOrder.wire();
+		}
+		if (selectedDetail) {
+			scheduleDefaultScope(selectedDetail);
 		}
 
 		const context = selected ? connectionId : '';
@@ -86,49 +122,130 @@
 		row.appendChild(cell);
 	}
 
-	function renderScope(output, result) {
+	function renderScope(output, result, button, options) {
+		options = options || {};
 		output.replaceChildren();
 
-		const meta = document.createElement('p');
-		meta.className = 'afcn-page-description';
-		const count = Array.isArray(result.rows) ? result.rows.length : 0;
-		meta.textContent = count + (count === 1 ? ' row' : ' rows') + ' · ' + Number(result.latency_ms || 0).toFixed(0) + ' ms' + (result.truncated ? ' · bounded result' : '');
-		output.appendChild(meta);
+		const pagination = result.pagination || {};
+		const rows = Array.isArray(result.rows) ? result.rows : [];
+		const page = Number(pagination.page || 1);
+		const pages = Number(pagination.pages || 1);
+		const total = Number(pagination.total || 0);
+		const from = Number(pagination.from || 0);
+		const to = Number(pagination.to || 0);
+		const searchValue = String(result.search || options.search || '');
+		const totalLabel = String(total) + (result.truncated ? '+' : '');
 
-		if (!count) {
+		const browser = document.createElement('div');
+		browser.className = 'afcn-data-browser';
+
+		const toolbar = document.createElement('div');
+		toolbar.className = 'afcn-data-toolbar';
+
+		const summary = document.createElement('div');
+		summary.className = 'afcn-data-summary';
+		let summaryText = total ? (from + '–' + to + ' of ' + totalLabel) : '0 rows';
+		if (result.cache_hit) {
+			summaryText += ' · cached';
+		} else {
+			summaryText += ' · ' + Number(result.latency_ms || 0).toFixed(0) + ' ms';
+		}
+		summary.textContent = summaryText;
+
+		const search = document.createElement('label');
+		search.className = 'afcn-data-search';
+		const searchInput = document.createElement('input');
+		searchInput.type = 'search';
+		searchInput.value = searchValue;
+		searchInput.placeholder = 'Search ' + (result.label || 'rows') + '…';
+		searchInput.setAttribute('aria-label', 'Search ' + (result.label || 'router data'));
+		search.appendChild(searchInput);
+
+		toolbar.appendChild(summary);
+		toolbar.appendChild(search);
+		browser.appendChild(toolbar);
+
+		let searchTimer = 0;
+		searchInput.addEventListener('input', function () {
+			window.clearTimeout(searchTimer);
+			const value = searchInput.value;
+			searchTimer = window.setTimeout(function () {
+				loadScope(button, { page: 1, search: value, refresh: false, source: 'search', focusSearch: true });
+			}, 220);
+		});
+
+		if (!rows.length) {
 			const empty = document.createElement('div');
-			empty.className = 'afcn-notice';
-			empty.textContent = 'The router returned no rows for this scope.';
-			output.appendChild(empty);
-			return;
+			empty.className = 'afcn-data-empty';
+			empty.textContent = searchValue ? 'No rows match this search.' : 'The router returned no rows for this scope.';
+			browser.appendChild(empty);
+		} else {
+			const wrap = document.createElement('div');
+			wrap.className = 'afcn-data-table-wrap';
+			const table = document.createElement('table');
+			table.className = 'afcn-data-table';
+			const head = document.createElement('thead');
+			const headRow = document.createElement('tr');
+			(result.columns || []).forEach(function (column) {
+				appendCell(headRow, 'th', column.label || column.key);
+			});
+			head.appendChild(headRow);
+			table.appendChild(head);
+
+			const body = document.createElement('tbody');
+			rows.forEach(function (item) {
+				const row = document.createElement('tr');
+				(result.columns || []).forEach(function (column) {
+					appendCell(row, 'td', item[column.key]);
+				});
+				body.appendChild(row);
+			});
+			table.appendChild(body);
+			wrap.appendChild(table);
+			browser.appendChild(wrap);
 		}
 
-		const wrap = document.createElement('div');
-		wrap.className = 'afcn-table-wrap';
-		const table = document.createElement('table');
-		table.className = 'afcn-table';
-		const head = document.createElement('thead');
-		const headRow = document.createElement('tr');
-		(result.columns || []).forEach(function (column) {
-			appendCell(headRow, 'th', column.label || column.key);
-		});
-		head.appendChild(headRow);
-		table.appendChild(head);
+		const pager = document.createElement('div');
+		pager.className = 'afcn-data-pagination';
 
-		const body = document.createElement('tbody');
-		result.rows.forEach(function (item) {
-			const row = document.createElement('tr');
-			(result.columns || []).forEach(function (column) {
-				appendCell(row, 'td', item[column.key]);
-			});
-			body.appendChild(row);
+		const previous = document.createElement('button');
+		previous.type = 'button';
+		previous.className = 'afcn-button afcn-button-secondary afcn-button-small';
+		previous.textContent = 'Previous';
+		previous.disabled = page <= 1;
+		previous.addEventListener('click', function () {
+			loadScope(button, { page: page - 1, search: searchValue, refresh: false, source: 'page' });
 		});
-		table.appendChild(body);
-		wrap.appendChild(table);
-		output.appendChild(wrap);
+
+		const pageStatus = document.createElement('span');
+		pageStatus.className = 'afcn-data-page-status';
+		pageStatus.textContent = 'Page ' + page + ' of ' + pages;
+
+		const next = document.createElement('button');
+		next.type = 'button';
+		next.className = 'afcn-button afcn-button-secondary afcn-button-small';
+		next.textContent = 'Next';
+		next.disabled = page >= pages;
+		next.addEventListener('click', function () {
+			loadScope(button, { page: page + 1, search: searchValue, refresh: false, source: 'page' });
+		});
+
+		pager.appendChild(previous);
+		pager.appendChild(pageStatus);
+		pager.appendChild(next);
+		browser.appendChild(pager);
+		output.appendChild(browser);
+
+		if (options.focusSearch) {
+			window.setTimeout(function () {
+				searchInput.focus();
+				searchInput.setSelectionRange(searchInput.value.length, searchInput.value.length);
+			}, 0);
+		}
 	}
 
-	async function loadScope(button) {
+	async function loadScope(button, options) {
+		options = options || {};
 		if (!window.AirfiberNext || typeof window.AirfiberNext.query !== 'function') {
 			return;
 		}
@@ -139,37 +256,70 @@
 		if (!output || !results) {
 			return;
 		}
+
+		const page = Math.max(1, Number(options.page || 1));
+		const search = String(options.search || '');
+		const refresh = Boolean(options.refresh);
+		const source = options.source || (options.auto ? 'auto' : 'button');
+		const requestId = String((Number(results.dataset.afcnScopeRequestId || 0) + 1));
+		results.dataset.afcnScopeRequestId = requestId;
+
 		if (title) {
 			title.textContent = button.dataset.afcnScopeLabel || 'Router details';
 		}
 		results.hidden = false;
+		results.classList.add('is-loading');
+		results.setAttribute('aria-busy', 'true');
+
 		const status = window.AirfiberNext.status || window.AirfiberUIStatus;
-		button.disabled = true;
-		if (status) {
-			status.loading(button, 'Reading this scope from RouterOS…', { alert: false });
+		const showButtonStatus = source === 'button' || source === 'auto';
+		if (showButtonStatus) {
+			button.disabled = true;
+			if (status) {
+				status.loading(button, refresh ? 'Refreshing this scope from RouterOS…' : 'Loading this scope…', { alert: false });
+			}
 		}
 
 		try {
 			const result = await window.AirfiberNext.query('routers', 'scope', {
 				connection_id: button.dataset.afcnConnectionId || '',
-				scope: button.dataset.afcnScope || ''
+				scope: button.dataset.afcnScope || '',
+				page: page,
+				search: search,
+				refresh: refresh ? 1 : 0
 			});
-			renderScope(output, result || {});
-			if (status) {
-				status.success(button, 'Router data loaded.', { alert: false, transient: true, delay: 1600 });
+			if (results.dataset.afcnScopeRequestId !== requestId) {
+				return;
+			}
+			renderScope(output, result || {}, button, options);
+			button.dataset.afcnScopeLoaded = '1';
+			button.textContent = 'Refresh';
+			if (showButtonStatus && status) {
+				status.success(button, result && result.cache_hit ? 'Cached router data loaded.' : 'Router data loaded.', { alert: false, transient: true, delay: 1400 });
 			}
 		} catch (error) {
+			if (results.dataset.afcnScopeRequestId !== requestId) {
+				return;
+			}
 			output.replaceChildren();
 			const notice = document.createElement('div');
 			notice.className = 'afcn-notice afcn-notice-danger';
 			notice.textContent = error.message || 'Router data could not be loaded.';
 			output.appendChild(notice);
-			if (status) {
+			if (showButtonStatus && status) {
 				status.error(button, notice.textContent, { alert: false });
 			}
-			window.AirfiberNext.toast(notice.textContent, true);
+			if (!options.auto) {
+				window.AirfiberNext.toast(notice.textContent, true);
+			}
 		} finally {
-			button.disabled = false;
+			if (results.dataset.afcnScopeRequestId === requestId) {
+				results.classList.remove('is-loading');
+				results.removeAttribute('aria-busy');
+			}
+			if (showButtonStatus) {
+				button.disabled = false;
+			}
 		}
 	}
 
@@ -341,7 +491,7 @@
 			}
 			button.dataset.afcnRouterWired = '1';
 			button.addEventListener('click', function () {
-				loadScope(button);
+				loadScope(button, { page: 1, search: '', refresh: true, source: 'button' });
 			});
 		});
 	}

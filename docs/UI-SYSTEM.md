@@ -39,6 +39,7 @@ Core CSS currently includes:
 - shared card arrangement / drag ordering
 - shared cards/list view controller and title toggle
 - shared compact drill-down header for in-page child-card views
+- shared bounded data-table browser styling with search and pagination
 - shared hover/lift behavior
 - shared tooltip styling and motion
 - shared SVG icon sizing
@@ -49,6 +50,14 @@ Core CSS currently includes:
 `Airfiber\Next\Tooltip` is the single tooltip API. It supports plain text, up/down motion, alternate backgrounds and an optional tooltip action. Default background is black. Tooltip enter/exit uses opacity and vertical movement instead of abruptly appearing/disappearing.
 
 `Airfiber\Next\Icon` supplies small dependency-free SVG icons for shared controls.
+
+`Airfiber\Next\Data_Query` is the reusable server-side search/paging helper for bounded row sets. Modules keep ownership of retrieval and permissions, then pass safe rows into Core. By default search matches all scalar values in each row, so future modules can add fields without rewriting the search engine; an optional `search_fields` list can narrow matching when needed.
+
+## Shared bounded data tables
+
+Core 0.4.25 adds the reusable `.afcn-data-*` table browser language for large-but-bounded module results. The standard pattern is a compact result summary, one search field, a horizontally safe modern table, and Previous/Next pagination. Only the active page should be rendered into the DOM. Feature modules still define their business columns and data retrieval.
+
+For remote systems, prefer cache-first paging: the first explicit or deferred request may refresh a bounded safe dataset, then search/page requests should reuse that short-lived dataset rather than fan out repeatedly to the remote device. A manual Refresh/Load action may bypass that cache when freshness is requested.
 
 ## Connection submenu labels
 

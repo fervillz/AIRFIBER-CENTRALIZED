@@ -19,3 +19,5 @@
 .afcn-router-health-item.is-status .afcn-connection-status-dot{width:8px;height:8px}
 @media(max-width:720px){.afcn-router-health-strip{justify-content:flex-start}}
 [data-afcn-router-browser-head][hidden]{display:none!important}
+.afcn-router-scope-results.is-loading .afcn-card-body{opacity:.58;transition:opacity var(--afcn-transition)}
+.afcn-router-scope-results .afcn-card-body{transition:opacity var(--afcn-transition)}

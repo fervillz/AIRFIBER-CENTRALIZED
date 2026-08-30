@@ -5,6 +5,7 @@ namespace Airfiber\Next\Modules\Routers;
 use Airfiber\Next\Capabilities;
 use Airfiber\Next\Connection_Health;
 use Airfiber\Next\Connection_Store;
+use Airfiber\Next\Data_Query;
 use Airfiber\Next\Icon;
 use Airfiber\Next\Module_Contract;
 use Airfiber\Next\Performance_Monitor;
@@ -21,8 +22,10 @@ defined( 'ABSPATH' ) || exit;
  * test or one explicit scope query from a router detail card.
  */
 class Routers_Module implements Module_Contract {
-	const MODULE_ID      = 'routers';
-	const CONNECTOR_TYPE = 'mikrotik-routeros';
+	const MODULE_ID        = 'routers';
+	const CONNECTOR_TYPE   = 'mikrotik-routeros';
+	const SCOPE_PAGE_SIZE  = 10;
+	const SCOPE_CACHE_TTL  = 30;
 
 	public static function render( $context = array() ) {
 		$connections = array_slice( Connection_Store::for_module( self::MODULE_ID ), 0, 60, true );
@@ -137,6 +140,7 @@ class Routers_Module implements Module_Contract {
 			if ( self::connection_changed( $existing, $prepared['record'] ) || ! empty( $prepared['secrets'] ) ) {
 				Connection_Health::clear( $id );
 			}
+			self::clear_scope_cache( $id );
 			return array( 'message' => __( 'Router settings saved.', 'airfiber-centralized' ), 'refresh_nav' => true );
 		}
 
@@ -174,12 +178,16 @@ class Routers_Module implements Module_Contract {
 			return new \WP_Error( 'afcn_routers_read_forbidden', __( 'You cannot read router configuration data.', 'airfiber-centralized' ), array( 'status' => 403 ) );
 		}
 
-		$id     = isset( $payload['connection_id'] ) ? sanitize_text_field( $payload['connection_id'] ) : '';
-		$scope  = isset( $payload['scope'] ) ? sanitize_key( $payload['scope'] ) : '';
-		$record = self::connection( $id );
+		$id      = isset( $payload['connection_id'] ) ? sanitize_text_field( $payload['connection_id'] ) : '';
+		$scope   = isset( $payload['scope'] ) ? sanitize_key( $payload['scope'] ) : '';
+		$page    = isset( $payload['page'] ) ? max( 1, absint( $payload['page'] ) ) : 1;
+		$search  = isset( $payload['search'] ) ? substr( sanitize_text_field( (string) $payload['search'] ), 0, 120 ) : '';
+		$refresh = ! empty( $payload['refresh'] ) && '0' !== (string) $payload['refresh'];
+		$record  = self::connection( $id );
 		if ( is_wp_error( $record ) ) {
 			return $record;
 		}
+
 		$definitions = self::scope_definitions();
 		if ( ! isset( $definitions[ $scope ] ) ) {
 			return new \WP_Error( 'afcn_router_scope_unknown', __( 'That router data scope is not available.', 'airfiber-centralized' ), array( 'status' => 400 ) );
@@ -189,42 +197,36 @@ class Routers_Module implements Module_Contract {
 		}
 
 		$definition = $definitions[ $scope ];
-		$started    = microtime( true );
-		$result     = RouterOS_API_Client::request( $record, array(), $definition['requests'] );
-		$latency    = round( ( microtime( true ) - $started ) * 1000, 2 );
-		Performance_Monitor::record_external( self::MODULE_ID, $latency, 'RouterOS ' . $scope . ' read' );
-		if ( is_wp_error( $result ) ) {
-			return $result;
+		$dataset    = self::scope_dataset( $id, $record, $scope, $definition, $refresh );
+		if ( is_wp_error( $dataset ) ) {
+			return $dataset;
 		}
 
-		$rows      = array();
-		$truncated = false;
-		foreach ( $definition['requests'] as $request_key => $request ) {
-			$response = isset( $result[ $request_key ] ) ? $result[ $request_key ] : array( 'rows' => array(), 'truncated' => false );
-			$label    = isset( $request['label'] ) ? $request['label'] : $definition['label'];
-			foreach ( (array) ( isset( $response['rows'] ) ? $response['rows'] : array() ) as $row ) {
-				$clean = array( 'section' => $label );
-				foreach ( $definition['columns'] as $column => $caption ) {
-					if ( 'section' !== $column && isset( $row[ $column ] ) ) {
-						$clean[ $column ] = $row[ $column ];
-					}
-				}
-				$rows[] = $clean;
-			}
-			$truncated = $truncated || ! empty( $response['truncated'] );
-		}
+		$view = Data_Query::apply(
+			$dataset['rows'],
+			array(
+				'search'    => $search,
+				'page'      => $page,
+				'page_size' => self::SCOPE_PAGE_SIZE,
+			)
+		);
 
 		$columns = array();
 		foreach ( $definition['columns'] as $key => $label ) {
 			$columns[] = array( 'key' => $key, 'label' => $label );
 		}
+
 		return array(
 			'scope'      => $scope,
 			'label'      => $definition['label'],
 			'columns'    => $columns,
-			'rows'       => $rows,
-			'truncated'  => $truncated,
-			'latency_ms' => $latency,
+			'rows'       => $view['rows'],
+			'pagination' => $view['pagination'],
+			'search'     => $search,
+			'truncated'  => ! empty( $dataset['truncated'] ),
+			'latency_ms' => isset( $dataset['latency_ms'] ) ? (float) $dataset['latency_ms'] : 0,
+			'cache_hit'  => ! empty( $dataset['cache_hit'] ),
+			'cached_at'  => isset( $dataset['cached_at'] ) ? absint( $dataset['cached_at'] ) : 0,
 		);
 	}
 
@@ -481,8 +483,72 @@ class Routers_Module implements Module_Contract {
 				$output[] = $scope;
 			}
 		}
+
+		// Interfaces is the default lightweight router drill-down. Keep it first
+		// for new routers while still allowing the Core card-order preference to
+		// override the visual order after a user arranges the cards.
+		if ( in_array( 'interfaces', $output, true ) ) {
+			$output = array_merge( array( 'interfaces' ), array_values( array_diff( $output, array( 'interfaces' ) ) ) );
+		}
 		return $output;
 	}
+
+	private static function scope_dataset( $id, $record, $scope, $definition, $refresh = false ) {
+		$cache_key = self::scope_cache_key( $id, $scope );
+		if ( ! $refresh ) {
+			$cached = get_transient( $cache_key );
+			if ( is_array( $cached ) && isset( $cached['rows'] ) && is_array( $cached['rows'] ) ) {
+				$cached['cache_hit'] = true;
+				return $cached;
+			}
+		}
+
+		$started = microtime( true );
+		$result  = RouterOS_API_Client::request( $record, array(), $definition['requests'] );
+		$latency = round( ( microtime( true ) - $started ) * 1000, 2 );
+		Performance_Monitor::record_external( self::MODULE_ID, $latency, 'RouterOS ' . $scope . ' read' );
+		if ( is_wp_error( $result ) ) {
+			return $result;
+		}
+
+		$rows      = array();
+		$truncated = false;
+		foreach ( $definition['requests'] as $request_key => $request ) {
+			$response = isset( $result[ $request_key ] ) ? $result[ $request_key ] : array( 'rows' => array(), 'truncated' => false );
+			$label    = isset( $request['label'] ) ? $request['label'] : $definition['label'];
+			foreach ( (array) ( isset( $response['rows'] ) ? $response['rows'] : array() ) as $row ) {
+				$clean = array( 'section' => $label );
+				foreach ( $definition['columns'] as $column => $caption ) {
+					if ( 'section' !== $column && isset( $row[ $column ] ) ) {
+						$clean[ $column ] = $row[ $column ];
+					}
+				}
+				$rows[] = $clean;
+			}
+			$truncated = $truncated || ! empty( $response['truncated'] );
+		}
+
+		$dataset = array(
+			'rows'       => $rows,
+			'truncated'  => $truncated,
+			'latency_ms' => $latency,
+			'cached_at'  => time(),
+			'cache_hit'  => false,
+		);
+		set_transient( $cache_key, $dataset, self::SCOPE_CACHE_TTL );
+		return $dataset;
+	}
+
+	private static function scope_cache_key( $id, $scope ) {
+		return 'afcn_rs_' . md5( (string) $id . '|' . (string) $scope );
+	}
+
+	private static function clear_scope_cache( $id ) {
+		foreach ( array_keys( self::scope_definitions() ) as $scope ) {
+			delete_transient( self::scope_cache_key( $id, $scope ) );
+		}
+	}
+
 
 	private static function scope_definitions() {
 		return array(
