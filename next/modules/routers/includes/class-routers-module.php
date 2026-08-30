@@ -25,7 +25,6 @@ class Routers_Module implements Module_Contract {
 
 	public static function render( $context = array() ) {
 		$connections = array_slice( Connection_Store::for_module( self::MODULE_ID ), 0, 60, true );
-		$summary     = self::summary( $connections );
 		$can_manage  = self::can_manage_connections();
 
 		ob_start();
@@ -41,13 +40,6 @@ class Routers_Module implements Module_Contract {
 				<?php endif; ?>
 			</div>
 
-			<div class="afcn-grid">
-				<?php self::stat_card( __( 'Routers', 'airfiber-centralized' ), $summary['total'] ); ?>
-				<?php self::stat_card( __( 'Online', 'airfiber-centralized' ), $summary['online'] ); ?>
-				<?php self::stat_card( __( 'Attention', 'airfiber-centralized' ), $summary['warning'] ); ?>
-				<?php self::stat_card( __( 'Not checked', 'airfiber-centralized' ), $summary['unknown'] ); ?>
-			</div>
-
 			<?php if ( empty( $connections ) ) : ?>
 				<div class="afcn-card" style="margin-top:14px">
 					<div class="afcn-card-body">
@@ -58,14 +50,17 @@ class Routers_Module implements Module_Contract {
 					</div>
 				</div>
 			<?php else : ?>
-				<div class="afcn-page-head" style="margin-top:22px">
-					<div><h2 class="afcn-page-title" style="font-size:24px"><?php esc_html_e( 'Router library', 'airfiber-centralized' ); ?></h2></div>
-				</div>
-				<div class="afcn-connection-grid" data-afcn-router-cards>
-					<?php foreach ( $connections as $id => $record ) : ?>
-						<?php self::render_router_card( $id, $record, $can_manage ); ?>
-					<?php endforeach; ?>
-				</div>
+				<section class="afcn-connection-group" data-afcn-router-library>
+					<div class="afcn-connection-group-heading">
+						<h2><?php esc_html_e( 'Router Library', 'airfiber-centralized' ); ?></h2>
+						<span><?php echo esc_html( count( $connections ) ); ?></span>
+					</div>
+					<div class="afcn-connection-grid" data-afcn-router-cards>
+						<?php foreach ( $connections as $id => $record ) : ?>
+							<?php self::render_router_card( $id, $record, $can_manage ); ?>
+						<?php endforeach; ?>
+					</div>
+				</section>
 
 				<?php foreach ( $connections as $id => $record ) : ?>
 					<?php self::render_router_detail( $id, $record ); ?>
@@ -516,22 +511,6 @@ class Routers_Module implements Module_Contract {
 		);
 	}
 
-	private static function summary( $connections ) {
-		$output = array( 'total' => count( $connections ), 'online' => 0, 'warning' => 0, 'unknown' => 0 );
-		foreach ( $connections as $id => $record ) {
-			$health = Connection_Health::get( $id );
-			$state  = isset( $health['state'] ) ? sanitize_key( $health['state'] ) : 'unknown';
-			if ( 'online' === $state ) {
-				$output['online']++;
-			} elseif ( in_array( $state, array( 'warning', 'error', 'offline' ), true ) ) {
-				$output['warning']++;
-			} else {
-				$output['unknown']++;
-			}
-		}
-		return $output;
-	}
-
 	private static function connection_changed( $existing, $record ) {
 		$left  = wp_json_encode( array( isset( $existing['endpoint'] ) ? $existing['endpoint'] : '', isset( $existing['config'] ) ? $existing['config'] : array() ) );
 		$right = wp_json_encode( array( isset( $record['endpoint'] ) ? $record['endpoint'] : '', isset( $record['config'] ) ? $record['config'] : array() ) );
@@ -540,10 +519,6 @@ class Routers_Module implements Module_Contract {
 
 	private static function can_manage_connections() {
 		return Capabilities::is_super_admin_user() || current_user_can( 'manage_options' ) || current_user_can( Capabilities::MANAGE_CONNECTIONS );
-	}
-
-	private static function stat_card( $label, $value ) {
-		?><div class="afcn-card afcn-col-3"><div class="afcn-card-body"><div class="afcn-stat"><?php echo esc_html( $value ); ?></div><div class="afcn-stat-label"><?php echo esc_html( $label ); ?></div></div></div><?php
 	}
 
 	private static function health_row( $label, $value ) {
