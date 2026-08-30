@@ -9,6 +9,7 @@ use Airfiber\Next\Icon;
 use Airfiber\Next\Module_Contract;
 use Airfiber\Next\Performance_Monitor;
 use Airfiber\Next\Secret_Store;
+use Airfiber\Next\Tooltip;
 use Airfiber\Next\UI;
 
 defined( 'ABSPATH' ) || exit;
@@ -25,6 +26,9 @@ class Routers_Module implements Module_Contract {
 
 	public static function render( $context = array() ) {
 		$connections = array_slice( Connection_Store::for_module( self::MODULE_ID ), 0, 60, true );
+		$browser     = self::browser_snapshot( $connections );
+		$counts      = $browser['counts'];
+		$health      = $browser['health'];
 		$can_manage  = self::can_manage_connections();
 
 		ob_start();
@@ -40,32 +44,54 @@ class Routers_Module implements Module_Contract {
 				<?php endif; ?>
 			</div>
 
-			<?php if ( empty( $connections ) ) : ?>
-				<div class="afcn-card" style="margin-top:14px">
-					<div class="afcn-card-body">
-						<div class="afcn-notice">
-							<strong><?php esc_html_e( 'No native router connection yet.', 'airfiber-centralized' ); ?></strong>
-							<p class="afcn-page-description"><?php esc_html_e( 'Add a router here or from Connections. Classic MikroTik settings remain untouched and no credentials are copied automatically.', 'airfiber-centralized' ); ?></p>
-						</div>
-					</div>
-				</div>
-			<?php else : ?>
-				<section class="afcn-connection-group" data-afcn-router-library>
-					<div class="afcn-connection-group-heading">
-						<h2><?php esc_html_e( 'Router Library', 'airfiber-centralized' ); ?></h2>
-						<span><?php echo esc_html( count( $connections ) ); ?></span>
-					</div>
-					<div class="afcn-connection-grid" data-afcn-router-cards>
-						<?php foreach ( $connections as $id => $record ) : ?>
-							<?php self::render_router_card( $id, $record, $can_manage ); ?>
+			<div class="afcn-connections-browser" data-afcn-connections-browser data-afcn-router-browser>
+				<div class="afcn-connections-toolbar">
+					<nav class="afcn-connection-filters" aria-label="<?php esc_attr_e( 'Filter routers', 'airfiber-centralized' ); ?>">
+						<?php
+						$filters = array(
+							'all'          => __( 'All', 'airfiber-centralized' ),
+							'online'       => __( 'Online', 'airfiber-centralized' ),
+							'offline'      => __( 'Offline', 'airfiber-centralized' ),
+							'warning'      => __( 'Warning', 'airfiber-centralized' ),
+							'unconfigured' => __( 'Unconfigured', 'airfiber-centralized' ),
+						);
+						foreach ( $filters as $filter => $label ) :
+							?>
+							<button type="button" class="afcn-connection-filter<?php echo 'all' === $filter ? ' is-active' : ''; ?>" data-afcn-connection-filter="<?php echo esc_attr( $filter ); ?>">
+								<?php echo esc_html( $label ); ?> <span>(<?php echo esc_html( isset( $counts[ $filter ] ) ? $counts[ $filter ] : 0 ); ?>)</span>
+							</button>
 						<?php endforeach; ?>
-					</div>
-				</section>
+					</nav>
+					<label class="afcn-connections-search">
+						<?php echo Icon::svg( 'search' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+						<input type="search" data-afcn-connection-search placeholder="<?php esc_attr_e( 'Search routers', 'airfiber-centralized' ); ?>">
+					</label>
+				</div>
 
-				<?php foreach ( $connections as $id => $record ) : ?>
-					<?php self::render_router_detail( $id, $record ); ?>
-				<?php endforeach; ?>
-			<?php endif; ?>
+				<div class="afcn-connection-groups" data-afcn-router-card-view>
+					<?php if ( $connections ) : ?>
+						<section class="afcn-connection-group" data-afcn-connection-group data-afcn-router-library>
+							<div class="afcn-connection-group-heading">
+								<h2><?php esc_html_e( 'Router Library', 'airfiber-centralized' ); ?></h2>
+								<span><?php echo esc_html( count( $connections ) ); ?></span>
+							</div>
+							<div class="afcn-connection-grid" data-afcn-router-cards>
+								<?php foreach ( $connections as $id => $record ) : ?>
+									<?php self::render_router_card( $id, $record, $can_manage, isset( $health[ $id ] ) ? $health[ $id ] : array() ); ?>
+								<?php endforeach; ?>
+							</div>
+						</section>
+					<?php endif; ?>
+				</div>
+
+				<div class="afcn-connections-empty" data-afcn-connections-empty<?php echo $connections ? ' hidden' : ''; ?>>
+					<?php esc_html_e( 'No routers match the current view. Add a router here or from Connections.', 'airfiber-centralized' ); ?>
+				</div>
+			</div>
+
+			<?php foreach ( $connections as $id => $record ) : ?>
+				<?php self::render_router_detail( $id, $record, isset( $health[ $id ] ) ? $health[ $id ] : array() ); ?>
+			<?php endforeach; ?>
 
 			<?php if ( $can_manage ) : ?>
 				<?php self::render_add_dialog(); ?>
@@ -203,22 +229,38 @@ class Routers_Module implements Module_Contract {
 		);
 	}
 
-	private static function render_router_card( $id, $record, $can_manage ) {
-		$health = Connection_Health::get( $id );
-		$scopes = self::enabled_scopes( $record );
+	private static function render_router_card( $id, $record, $can_manage, $health = array() ) {
+		$health       = is_array( $health ) ? $health : array();
+		$state        = self::browser_state( $health );
+		$scopes       = self::enabled_scopes( $record );
+		$scope_label  = sprintf( _n( '%d selected data scope', '%d selected data scopes', count( $scopes ), 'airfiber-centralized' ), count( $scopes ) );
+		$endpoint     = isset( $record['endpoint'] ) ? $record['endpoint'] : '';
+		$status_label = self::health_label( $health );
+		$status_info  = $status_label;
+		if ( ! empty( $health['checked_at'] ) ) {
+			$status_info .= ' · ' . sprintf( __( 'checked %s ago', 'airfiber-centralized' ), human_time_diff( absint( $health['checked_at'] ), time() ) );
+		}
+		$search = strtolower( implode( ' ', array( $record['name'], $endpoint, $scope_label, 'mikrotik routeros', $status_label ) ) );
 		?>
-		<article class="afcn-card afcn-router-card" data-afcn-router-card="<?php echo esc_attr( $id ); ?>" data-afcn-card-key="<?php echo esc_attr( $id ); ?>">
-			<div class="afcn-card-header">
-				<h2 title="<?php echo esc_attr( $record['name'] ); ?>"><?php echo esc_html( $record['name'] ); ?></h2>
-				<?php echo UI::badge( self::health_label( $health ), self::health_tone( $health ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+		<article class="afcn-card afcn-connection-card afcn-router-card is-<?php echo esc_attr( $state ); ?>" data-afcn-connection-card data-afcn-state="<?php echo esc_attr( $state ); ?>" data-afcn-search="<?php echo esc_attr( $search ); ?>" data-afcn-router-card="<?php echo esc_attr( $id ); ?>" data-afcn-card-key="<?php echo esc_attr( $id ); ?>">
+			<div class="afcn-connection-card-top">
+				<span class="afcn-connection-icon"><?php echo Icon::svg( 'router' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></span>
+				<div class="afcn-connection-card-badges">
+					<span class="afcn-connection-provider"><?php esc_html_e( 'MikroTik RouterOS', 'airfiber-centralized' ); ?></span>
+				</div>
 			</div>
-			<div class="afcn-card-body">
-				<p class="afcn-page-description"><?php echo esc_html( isset( $record['endpoint'] ) ? $record['endpoint'] : '' ); ?></p>
-				<p class="afcn-page-description"><?php echo esc_html( sprintf( _n( '%d selected data scope', '%d selected data scopes', count( $scopes ), 'airfiber-centralized' ), count( $scopes ) ) ); ?></p>
-				<div class="afcn-form-actions">
-					<button type="button" class="afcn-button afcn-button-primary afcn-button-small" data-afcn-router-select="<?php echo esc_attr( $id ); ?>"><?php esc_html_e( 'Open', 'airfiber-centralized' ); ?></button>
+			<h3 title="<?php echo esc_attr( $record['name'] ); ?>"><?php echo esc_html( $record['name'] ); ?></h3>
+			<p class="afcn-connection-subtitle"><?php echo esc_html( $endpoint ); ?></p>
+			<p class="afcn-connection-meta"><?php echo esc_html( $scope_label ); ?></p>
+			<div class="afcn-connection-card-bottom">
+				<?php
+				$status_dot = '<span class="afcn-connection-status-dot is-' . esc_attr( $state ) . '" aria-hidden="true"></span><span>' . esc_html( $status_label ) . '</span>';
+				echo Tooltip::render( $status_dot, $status_info ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+				?>
+				<div class="afcn-connection-actions">
+					<?php echo Tooltip::render( '<button type="button" class="afcn-connection-action" data-afcn-router-select="' . esc_attr( $id ) . '" aria-label="' . esc_attr__( 'Open router', 'airfiber-centralized' ) . '">' . Icon::svg( 'server' ) . '</button>', __( 'Open router', 'airfiber-centralized' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
 					<?php if ( $can_manage ) : ?>
-						<button type="button" class="afcn-button afcn-button-secondary afcn-button-small" data-afcn-dialog-open="afcn-router-<?php echo esc_attr( $id ); ?>"><?php esc_html_e( 'Settings', 'airfiber-centralized' ); ?></button>
+						<?php echo Tooltip::render( '<button type="button" class="afcn-connection-action" data-afcn-dialog-open="afcn-router-' . esc_attr( $id ) . '" aria-label="' . esc_attr__( 'Router settings', 'airfiber-centralized' ) . '">' . Icon::svg( 'gear' ) . '</button>', __( 'Router settings', 'airfiber-centralized' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
 					<?php endif; ?>
 				</div>
 			</div>
@@ -226,8 +268,8 @@ class Routers_Module implements Module_Contract {
 		<?php
 	}
 
-	private static function render_router_detail( $id, $record ) {
-		$health  = Connection_Health::get( $id );
+	private static function render_router_detail( $id, $record, $health = array() ) {
+		$health  = is_array( $health ) ? $health : Connection_Health::get( $id );
 		$details = isset( $health['details'] ) && is_array( $health['details'] ) ? $health['details'] : array();
 		$scopes  = self::enabled_scopes( $record );
 		$defs    = self::scope_definitions();
@@ -509,6 +551,40 @@ class Routers_Module implements Module_Contract {
 				'requests' => array( 'neighbors' => array( 'label' => __( 'Neighbors', 'airfiber-centralized' ), 'words' => array( '/ip/neighbor/print', '=.proplist=.id,interface,address,mac-address,identity,platform,version,board' ), 'limit' => 150 ) ),
 			),
 		);
+	}
+
+	private static function browser_snapshot( $connections ) {
+		$counts = array(
+			'all'          => count( $connections ),
+			'online'       => 0,
+			'offline'      => 0,
+			'warning'      => 0,
+			'unconfigured' => 0,
+		);
+		$health = array();
+
+		foreach ( $connections as $id => $record ) {
+			$current       = Connection_Health::get( $id );
+			$health[ $id ] = is_array( $current ) ? $current : array();
+			$state         = self::browser_state( $health[ $id ] );
+			$counts[ $state ]++;
+		}
+
+		return array(
+			'counts' => $counts,
+			'health' => $health,
+		);
+	}
+
+	private static function browser_state( $health ) {
+		$state = isset( $health['state'] ) ? sanitize_key( $health['state'] ) : 'unknown';
+		if ( 'online' === $state || 'offline' === $state || 'warning' === $state ) {
+			return $state;
+		}
+		if ( 'error' === $state ) {
+			return 'warning';
+		}
+		return 'unconfigured';
 	}
 
 	private static function connection_changed( $existing, $record ) {

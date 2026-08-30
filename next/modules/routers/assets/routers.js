@@ -25,15 +25,15 @@
 			return;
 		}
 
-		const cards = root.querySelector('[data-afcn-router-cards]');
+		const browser = root.querySelector('[data-afcn-router-browser]');
 		let selected = false;
 		root.querySelectorAll('[data-afcn-router-detail]').forEach(function (detail) {
 			const active = Boolean(connectionId) && detail.dataset.afcnRouterDetail === connectionId;
 			detail.hidden = !active;
 			selected = selected || active;
 		});
-		if (cards) {
-			cards.hidden = selected;
+		if (browser) {
+			browser.hidden = selected;
 		}
 
 		const context = selected ? connectionId : '';
@@ -166,15 +166,12 @@
 		}
 	}
 
-	function init(root) {
-		root = root && root.querySelectorAll ? root : stage();
-		const current = root.querySelector('[data-afcn-routers-root]') || routerRoot();
-		if (!current) {
-			return;
-		}
+	function text(node) {
+		return node ? String(node.textContent || '').replace(/\s+/g, ' ').trim() : '';
+	}
 
-		current.querySelectorAll('[data-afcn-router-form]').forEach(wireRouterForm);
-		current.querySelectorAll('[data-afcn-router-select]').forEach(function (button) {
+	function wireRouterSelectButtons(root) {
+		root.querySelectorAll('[data-afcn-router-select]').forEach(function (button) {
 			if (button.dataset.afcnRouterWired) {
 				return;
 			}
@@ -183,6 +180,154 @@
 				selectRouter(button.dataset.afcnRouterSelect || '', true);
 			});
 		});
+	}
+
+	function ensureRouterList(browser) {
+		let list = browser.querySelector('[data-afcn-router-list]');
+		if (list) {
+			return list;
+		}
+
+		list = document.createElement('div');
+		list.className = 'afcn-connections-list';
+		list.dataset.afcnRouterList = '1';
+		list.hidden = true;
+		list.innerHTML = '<div class="afcn-table-wrap"><table class="afcn-table afcn-connections-table"><thead><tr><th>Name</th><th>Provider</th><th>Endpoint</th><th>Scopes</th><th>Status</th><th>Actions</th></tr></thead><tbody></tbody></table></div>';
+
+		const empty = browser.querySelector('[data-afcn-connections-empty]');
+		if (empty) {
+			browser.insertBefore(list, empty);
+		} else {
+			browser.appendChild(list);
+		}
+		return list;
+	}
+
+	function routerStatusContent(card) {
+		const trigger = card.querySelector('.afcn-connection-card-bottom .afcn-tooltip-trigger');
+		if (!trigger) {
+			return document.createTextNode('—');
+		}
+		const clone = trigger.cloneNode(true);
+		clone.classList.add('afcn-connection-list-status');
+		return clone;
+	}
+
+	function buildRouterList(browser, list) {
+		const tbody = list.querySelector('tbody');
+		if (!tbody) {
+			return;
+		}
+
+		tbody.innerHTML = '';
+		browser.querySelectorAll('[data-afcn-router-card]').forEach(function (card) {
+			const row = document.createElement('tr');
+			const name = text(card.querySelector('h3')) || 'Router';
+			const provider = text(card.querySelector('.afcn-connection-provider')) || 'MikroTik RouterOS';
+			const endpoint = text(card.querySelector('.afcn-connection-subtitle')) || '—';
+			const scopes = text(card.querySelector('.afcn-connection-meta')) || '—';
+			const actions = card.querySelector('.afcn-connection-actions');
+
+			row.hidden = card.hidden;
+			row.__afcnSourceCard = card;
+
+			const nameCell = document.createElement('td');
+			nameCell.className = 'afcn-connection-list-name';
+			const strong = document.createElement('strong');
+			strong.textContent = name;
+			nameCell.appendChild(strong);
+			row.appendChild(nameCell);
+
+			[provider, endpoint, scopes].forEach(function (value) {
+				const cell = document.createElement('td');
+				cell.textContent = value;
+				row.appendChild(cell);
+			});
+
+			const statusCell = document.createElement('td');
+			statusCell.appendChild(routerStatusContent(card));
+			row.appendChild(statusCell);
+
+			const actionCell = document.createElement('td');
+			if (actions) {
+				actionCell.appendChild(actions.cloneNode(true));
+				actionCell.querySelectorAll('[data-afcn-router-select]').forEach(function (button) {
+					delete button.dataset.afcnRouterWired;
+				});
+			}
+			row.appendChild(actionCell);
+			tbody.appendChild(row);
+		});
+
+		wireRouterSelectButtons(list);
+		if (window.AirfiberNext && typeof window.AirfiberNext.wire === 'function') {
+			window.AirfiberNext.wire(list);
+		}
+	}
+
+	function syncRouterList(list) {
+		list.querySelectorAll('tbody tr').forEach(function (row) {
+			if (row.__afcnSourceCard) {
+				row.hidden = row.__afcnSourceCard.hidden;
+			}
+		});
+	}
+
+	function wireRouterBrowser(root) {
+		const browser = root.querySelector('[data-afcn-router-browser]');
+		if (!browser || browser.dataset.afcnRouterViewWired || !window.AirfiberViewMode) {
+			return;
+		}
+		browser.dataset.afcnRouterViewWired = '1';
+
+		const cards = browser.querySelector('[data-afcn-router-card-view]');
+		const list = ensureRouterList(browser);
+		if (!cards) {
+			return;
+		}
+
+		const controller = window.AirfiberViewMode.attach(root, {
+			key: 'routers',
+			cards: cards,
+			list: list,
+			title: '.afcn-page-title',
+			beforeList: function () {
+				buildRouterList(browser, list);
+			}
+		});
+		if (!controller) {
+			return;
+		}
+
+		browser.addEventListener('click', function (event) {
+			if (event.target.closest('[data-afcn-connection-filter]')) {
+				window.setTimeout(function () {
+					syncRouterList(list);
+				}, 0);
+			}
+		});
+
+		const search = browser.querySelector('[data-afcn-connection-search]');
+		if (search) {
+			search.addEventListener('input', function () {
+				window.setTimeout(function () {
+					syncRouterList(list);
+				}, 70);
+			});
+		}
+	}
+
+
+	function init(root) {
+		root = root && root.querySelectorAll ? root : stage();
+		const current = root.querySelector('[data-afcn-routers-root]') || routerRoot();
+		if (!current) {
+			return;
+		}
+
+		current.querySelectorAll('[data-afcn-router-form]').forEach(wireRouterForm);
+		wireRouterSelectButtons(current);
+		wireRouterBrowser(current);
 		current.querySelectorAll('[data-afcn-router-scope-load]').forEach(function (button) {
 			if (button.dataset.afcnRouterWired) {
 				return;

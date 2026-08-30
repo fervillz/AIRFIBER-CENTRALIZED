@@ -1,8 +1,5 @@
-.afcn-router-card{min-width:0;overflow:hidden}
-.afcn-router-card .afcn-card-header{min-width:0}
-.afcn-router-card .afcn-card-header h2{min-width:0;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.afcn-router-card .afcn-card-header .afcn-badge{flex:0 0 auto}
-.afcn-router-card .afcn-page-description{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.afcn-router-card{min-width:0}
+[data-afcn-router-browser][hidden]{display:none!important}
 .afcn-router-detail-title{max-width:min(720px,70vw);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .afcn-router-scope-grid{display:grid;grid-template-columns:repeat(auto-fill,150px);gap:16px;align-items:start}
 .afcn-router-scope-card{display:flex;width:150px;height:150px;min-width:0;flex-direction:column;padding:12px;overflow:hidden}
