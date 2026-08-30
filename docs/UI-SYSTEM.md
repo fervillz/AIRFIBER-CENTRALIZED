@@ -38,6 +38,7 @@ Core CSS currently includes:
 - shared dialog dirty-state / conditional Cancel behavior
 - shared card arrangement / drag ordering
 - shared cards/list view controller and title toggle
+- shared compact drill-down header for in-page child-card views
 - shared hover/lift behavior
 - shared tooltip styling and motion
 - shared SVG icon sizing
@@ -76,6 +77,21 @@ When the action happens inside an `.afcn-dialog`, the same state is mirrored int
 - disabled: grey shadow
 
 The dialog shadow is state feedback, not a module-owned decoration. It transitions with the action and returns to the normal dialog shadow when the status is cleared, the form is edited after a completed action, or the dialog closes. `prefers-reduced-motion` removes the shadow transition.
+
+## In-page drill-down views
+
+Core 0.4.23 owns the compact header used when a primary card opens an in-page child view, such as a router opening its read-only scope cards. This is deliberately separate from dialogs: gear/settings actions still use normal Core dialogs and are not converted into drill-down pages.
+
+Use `Airfiber\\Next\\UI::drilldown_head( $context, $title, $meta, $actions )` instead of repeating a second full module heading. The shared header renders:
+
+- the selected item title as the dominant heading;
+- a small muted uppercase context label beside the top of that title (for example `ROUTER`);
+- one optional muted metadata line such as an endpoint;
+- optional compact actions/health indicators aligned to the right.
+
+When a module switches from its primary card browser into a drill-down, hide the primary browser heading and browser content. Do not repeat the module description, add another explanatory section title, or create a highlighted summary card merely to restate context already visible from the selected item. Child cards should begin immediately after the compact drill-down header unless the feature genuinely needs another semantic section.
+
+The module still owns selection/history and its business-specific child cards. Core owns the visual header language so future card-to-child-card views stay consistent without adding a generic routing framework.
 
 ## Uniform BETA dialogs
 

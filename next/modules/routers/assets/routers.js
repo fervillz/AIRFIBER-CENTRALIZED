@@ -26,6 +26,7 @@
 		}
 
 		const browser = root.querySelector('[data-afcn-router-browser]');
+		const browserHead = root.querySelector('[data-afcn-router-browser-head]');
 		let selected = false;
 		root.querySelectorAll('[data-afcn-router-detail]').forEach(function (detail) {
 			const active = Boolean(connectionId) && detail.dataset.afcnRouterDetail === connectionId;
@@ -34,6 +35,9 @@
 		});
 		if (browser) {
 			browser.hidden = selected;
+		}
+		if (browserHead) {
+			browserHead.hidden = selected;
 		}
 
 		const context = selected ? connectionId : '';

@@ -34,10 +34,9 @@ class Routers_Module implements Module_Contract {
 		ob_start();
 		?>
 		<div data-afcn-routers-root>
-			<div class="afcn-page-head">
+			<div class="afcn-page-head" data-afcn-router-browser-head>
 				<div>
 					<h1 class="afcn-page-title"><?php esc_html_e( 'Routers', 'airfiber-centralized' ); ?></h1>
-					<p class="afcn-page-description"><?php esc_html_e( 'Native read-only MikroTik inventory. Saved and cached state renders immediately; RouterOS data loads only when you request one selected scope.', 'airfiber-centralized' ); ?></p>
 				</div>
 				<?php if ( $can_manage ) : ?>
 					<button type="button" class="afcn-button afcn-button-primary" data-afcn-dialog-open="afcn-add-router-dialog"><?php echo Icon::svg( 'plus' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?><?php esc_html_e( 'Add Router', 'airfiber-centralized' ); ?></button>
@@ -269,46 +268,41 @@ class Routers_Module implements Module_Contract {
 	}
 
 	private static function render_router_detail( $id, $record, $health = array() ) {
-		$health  = is_array( $health ) ? $health : Connection_Health::get( $id );
-		$details = isset( $health['details'] ) && is_array( $health['details'] ) ? $health['details'] : array();
-		$scopes  = self::enabled_scopes( $record );
-		$defs    = self::scope_definitions();
-		?>
-		<section data-afcn-router-detail="<?php echo esc_attr( $id ); ?>" hidden style="margin-top:24px">
-			<div class="afcn-page-head">
-				<div>
-					<h2 class="afcn-page-title afcn-router-detail-title" title="<?php echo esc_attr( $record['name'] ); ?>" style="font-size:26px"><?php echo esc_html( $record['name'] ); ?></h2>
-					<p class="afcn-page-description"><?php echo esc_html( isset( $record['endpoint'] ) ? $record['endpoint'] : '' ); ?> · <?php esc_html_e( 'Explicit read-only loads only', 'airfiber-centralized' ); ?></p>
-				</div>
-				<div class="afcn-router-detail-actions">
-					<div class="afcn-router-health-strip" aria-label="<?php esc_attr_e( 'Cached router health', 'airfiber-centralized' ); ?>">
-						<?php
-						$state       = self::browser_state( $health );
-						$status_text = self::health_label( $health );
-						$status_tip  = sprintf( __( 'Cached health: %s', 'airfiber-centralized' ), $status_text );
-						if ( ! empty( $health['checked_at'] ) ) {
-							$status_tip .= ' · ' . sprintf( __( 'checked %s ago', 'airfiber-centralized' ), human_time_diff( absint( $health['checked_at'] ), time() ) );
-						}
-						$status_trigger = '<span class="afcn-router-health-item is-status"><span class="afcn-connection-status-dot is-' . esc_attr( $state ) . '" aria-hidden="true"></span></span>';
-						echo Tooltip::render( $status_trigger, $status_tip ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
-						if ( $details ) {
-							self::render_health_metric( 'update', isset( $details['version'] ) ? $details['version'] : '', __( 'RouterOS version', 'airfiber-centralized' ) );
-							self::render_health_metric( 'server', '', __( 'Board', 'airfiber-centralized' ), isset( $details['board_name'] ) ? $details['board_name'] : '' );
-							self::render_health_metric( 'activity', isset( $details['cpu_load'] ) ? $details['cpu_load'] . '%' : '', __( 'CPU load', 'airfiber-centralized' ) );
-							self::render_health_metric( 'refresh', isset( $details['uptime'] ) ? $details['uptime'] : '', __( 'Uptime', 'airfiber-centralized' ) );
-						}
-						?>
-					</div>
-					<form data-afcn-module="routers" data-afcn-action="test-router">
-						<input type="hidden" name="connection_id" value="<?php echo esc_attr( $id ); ?>">
-						<button type="submit" class="afcn-button afcn-button-secondary"><?php echo Icon::svg( 'activity' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?><?php esc_html_e( 'Test connection', 'airfiber-centralized' ); ?></button>
-					</form>
-				</div>
-			</div>
+		$health   = is_array( $health ) ? $health : Connection_Health::get( $id );
+		$details  = isset( $health['details'] ) && is_array( $health['details'] ) ? $health['details'] : array();
+		$scopes   = self::enabled_scopes( $record );
+		$defs     = self::scope_definitions();
+		$endpoint = isset( $record['endpoint'] ) ? $record['endpoint'] : '';
 
-			<div class="afcn-page-head" style="margin-top:10px">
-				<div><h3 class="afcn-page-title" style="font-size:22px"><?php esc_html_e( 'Selected data scopes', 'airfiber-centralized' ); ?></h3><p class="afcn-page-description"><?php esc_html_e( 'Each Load action is separate and bounded. Opening this page never fans out to the router.', 'airfiber-centralized' ); ?></p></div>
-			</div>
+		ob_start();
+		?>
+		<div class="afcn-router-health-strip" aria-label="<?php esc_attr_e( 'Cached router health', 'airfiber-centralized' ); ?>">
+			<?php
+			$state       = self::browser_state( $health );
+			$status_text = self::health_label( $health );
+			$status_tip  = sprintf( __( 'Cached health: %s', 'airfiber-centralized' ), $status_text );
+			if ( ! empty( $health['checked_at'] ) ) {
+				$status_tip .= ' · ' . sprintf( __( 'checked %s ago', 'airfiber-centralized' ), human_time_diff( absint( $health['checked_at'] ), time() ) );
+			}
+			$status_trigger = '<span class="afcn-router-health-item is-status"><span class="afcn-connection-status-dot is-' . esc_attr( $state ) . '" aria-hidden="true"></span></span>';
+			echo Tooltip::render( $status_trigger, $status_tip ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+			if ( $details ) {
+				self::render_health_metric( 'update', isset( $details['version'] ) ? $details['version'] : '', __( 'RouterOS version', 'airfiber-centralized' ) );
+				self::render_health_metric( 'server', '', __( 'Board', 'airfiber-centralized' ), isset( $details['board_name'] ) ? $details['board_name'] : '' );
+				self::render_health_metric( 'activity', isset( $details['cpu_load'] ) ? $details['cpu_load'] . '%' : '', __( 'CPU load', 'airfiber-centralized' ) );
+				self::render_health_metric( 'refresh', isset( $details['uptime'] ) ? $details['uptime'] : '', __( 'Uptime', 'airfiber-centralized' ) );
+			}
+			?>
+		</div>
+		<form data-afcn-module="routers" data-afcn-action="test-router">
+			<input type="hidden" name="connection_id" value="<?php echo esc_attr( $id ); ?>">
+			<button type="submit" class="afcn-button afcn-button-secondary"><?php echo Icon::svg( 'activity' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?><?php esc_html_e( 'Test connection', 'airfiber-centralized' ); ?></button>
+		</form>
+		<?php
+		$actions = ob_get_clean();
+		?>
+		<section class="afcn-drilldown-view" data-afcn-router-detail="<?php echo esc_attr( $id ); ?>" hidden>
+			<?php echo UI::drilldown_head( __( 'Router', 'airfiber-centralized' ), $record['name'], $endpoint, $actions ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
 			<?php if ( ! $scopes ) : ?>
 				<div class="afcn-notice"><strong><?php esc_html_e( 'No data scopes selected.', 'airfiber-centralized' ); ?></strong> <?php esc_html_e( 'Open Settings and choose what this router may expose.', 'airfiber-centralized' ); ?></div>
 			<?php else : ?>

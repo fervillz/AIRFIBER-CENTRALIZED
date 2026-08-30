@@ -1,6 +1,6 @@
 # AIRFIBER-CENTRALIZED — Continue Here
 
-Updated: 2026-08-26
+Updated: 2026-08-31
 
 ## Current goal
 
@@ -8,7 +8,7 @@ Build Airfiber Next/BETA as an isolated, very fast application platform inside t
 
 BETA URL: `/airfiber-beta/`.
 
-Airfiber Next Core version: **0.4.15**.
+Airfiber Next Core version: **0.4.23**.
 
 ## Boundary
 
@@ -20,6 +20,7 @@ Classic stays in `includes/`, `templates/`, and `assets/`. Next/BETA lives under
 - readable WordPress-style `class-*.php` files
 - managed/protected BETA page
 - shared UI system: Source Serif 4 headings, 9px controls, 14px dialogs, shared cards/tooltips/icons/motion
+- shared compact Core drill-down header for primary-card → child-card views; dialogs remain separate
 - one shared responsive 680 × 680 BETA dialog frame; long dialog bodies scroll while header/footer stay fixed
 - one shared BETA dialog header close control using `.afcn-icon-button`, styled from the proven Classic Connections modal
 - sitewide BETA button states with top-right loading/success/warning/error/disabled badges and shared tooltip messages

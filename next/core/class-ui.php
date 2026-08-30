@@ -37,6 +37,29 @@ class UI {
 		return '<span class="afcn-badge afcn-badge-' . esc_attr( sanitize_key( $variant ) ) . '">' . esc_html( $label ) . '</span>';
 	}
 
+	/**
+	 * Compact in-page drill-down header for a selected primary card.
+	 *
+	 * Actions are internal trusted markup prepared by the calling module.
+	 */
+	public static function drilldown_head( $context, $title, $meta = '', $actions = '' ) {
+		$html  = '<div class="afcn-drilldown-head">';
+		$html .= '<div class="afcn-drilldown-copy"><div class="afcn-drilldown-title-row">';
+		$html .= '<h1 class="afcn-drilldown-title" title="' . esc_attr( (string) $title ) . '">' . esc_html( (string) $title ) . '</h1>';
+		if ( '' !== trim( (string) $context ) ) {
+			$html .= '<span class="afcn-drilldown-context">' . esc_html( (string) $context ) . '</span>';
+		}
+		$html .= '</div>';
+		if ( '' !== trim( (string) $meta ) ) {
+			$html .= '<p class="afcn-drilldown-meta">' . esc_html( (string) $meta ) . '</p>';
+		}
+		$html .= '</div>';
+		if ( '' !== trim( (string) $actions ) ) {
+			$html .= '<div class="afcn-drilldown-actions">' . $actions . '</div>';
+		}
+		return $html . '</div>';
+	}
+
 	public static function notice( $message, $variant = 'info' ) {
 		return '<div class="afcn-notice afcn-notice-' . esc_attr( sanitize_key( $variant ) ) . '">' . esc_html( $message ) . '</div>';
 	}
