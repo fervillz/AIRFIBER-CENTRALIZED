@@ -280,30 +280,33 @@ class Routers_Module implements Module_Contract {
 					<h2 class="afcn-page-title afcn-router-detail-title" title="<?php echo esc_attr( $record['name'] ); ?>" style="font-size:26px"><?php echo esc_html( $record['name'] ); ?></h2>
 					<p class="afcn-page-description"><?php echo esc_html( isset( $record['endpoint'] ) ? $record['endpoint'] : '' ); ?> · <?php esc_html_e( 'Explicit read-only loads only', 'airfiber-centralized' ); ?></p>
 				</div>
-				<form data-afcn-module="routers" data-afcn-action="test-router">
-					<input type="hidden" name="connection_id" value="<?php echo esc_attr( $id ); ?>">
-					<button type="submit" class="afcn-button afcn-button-secondary"><?php echo Icon::svg( 'activity' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?><?php esc_html_e( 'Test connection', 'airfiber-centralized' ); ?></button>
-				</form>
-			</div>
-
-			<div class="afcn-card">
-				<div class="afcn-card-header"><h3><?php esc_html_e( 'Cached router health', 'airfiber-centralized' ); ?></h3><?php echo UI::badge( self::health_label( $health ), self::health_tone( $health ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></div>
-				<div class="afcn-card-body">
-					<?php if ( ! $details ) : ?>
-						<p class="afcn-page-description"><?php esc_html_e( 'Not tested yet. Testing reads only identity and system resource data.', 'airfiber-centralized' ); ?></p>
-					<?php else : ?>
-						<div class="afcn-table-wrap"><table class="afcn-table"><tbody>
-							<?php self::health_row( __( 'Identity', 'airfiber-centralized' ), isset( $details['identity'] ) ? $details['identity'] : '' ); ?>
-							<?php self::health_row( __( 'RouterOS', 'airfiber-centralized' ), isset( $details['version'] ) ? $details['version'] : '' ); ?>
-							<?php self::health_row( __( 'Board', 'airfiber-centralized' ), isset( $details['board_name'] ) ? $details['board_name'] : '' ); ?>
-							<?php self::health_row( __( 'CPU load', 'airfiber-centralized' ), isset( $details['cpu_load'] ) ? $details['cpu_load'] . '%' : '' ); ?>
-							<?php self::health_row( __( 'Uptime', 'airfiber-centralized' ), isset( $details['uptime'] ) ? $details['uptime'] : '' ); ?>
-						</tbody></table></div>
-					<?php endif; ?>
+				<div class="afcn-router-detail-actions">
+					<div class="afcn-router-health-strip" aria-label="<?php esc_attr_e( 'Cached router health', 'airfiber-centralized' ); ?>">
+						<?php
+						$state       = self::browser_state( $health );
+						$status_text = self::health_label( $health );
+						$status_tip  = sprintf( __( 'Cached health: %s', 'airfiber-centralized' ), $status_text );
+						if ( ! empty( $health['checked_at'] ) ) {
+							$status_tip .= ' · ' . sprintf( __( 'checked %s ago', 'airfiber-centralized' ), human_time_diff( absint( $health['checked_at'] ), time() ) );
+						}
+						$status_trigger = '<span class="afcn-router-health-item is-status"><span class="afcn-connection-status-dot is-' . esc_attr( $state ) . '" aria-hidden="true"></span></span>';
+						echo Tooltip::render( $status_trigger, $status_tip ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+						if ( $details ) {
+							self::render_health_metric( 'update', isset( $details['version'] ) ? $details['version'] : '', __( 'RouterOS version', 'airfiber-centralized' ) );
+							self::render_health_metric( 'server', '', __( 'Board', 'airfiber-centralized' ), isset( $details['board_name'] ) ? $details['board_name'] : '' );
+							self::render_health_metric( 'activity', isset( $details['cpu_load'] ) ? $details['cpu_load'] . '%' : '', __( 'CPU load', 'airfiber-centralized' ) );
+							self::render_health_metric( 'refresh', isset( $details['uptime'] ) ? $details['uptime'] : '', __( 'Uptime', 'airfiber-centralized' ) );
+						}
+						?>
+					</div>
+					<form data-afcn-module="routers" data-afcn-action="test-router">
+						<input type="hidden" name="connection_id" value="<?php echo esc_attr( $id ); ?>">
+						<button type="submit" class="afcn-button afcn-button-secondary"><?php echo Icon::svg( 'activity' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?><?php esc_html_e( 'Test connection', 'airfiber-centralized' ); ?></button>
+					</form>
 				</div>
 			</div>
 
-			<div class="afcn-page-head" style="margin-top:22px">
+			<div class="afcn-page-head" style="margin-top:10px">
 				<div><h3 class="afcn-page-title" style="font-size:22px"><?php esc_html_e( 'Selected data scopes', 'airfiber-centralized' ); ?></h3><p class="afcn-page-description"><?php esc_html_e( 'Each Load action is separate and bounded. Opening this page never fans out to the router.', 'airfiber-centralized' ); ?></p></div>
 			</div>
 			<?php if ( ! $scopes ) : ?>
@@ -597,9 +600,21 @@ class Routers_Module implements Module_Contract {
 		return Capabilities::is_super_admin_user() || current_user_can( 'manage_options' ) || current_user_can( Capabilities::MANAGE_CONNECTIONS );
 	}
 
-	private static function health_row( $label, $value ) {
-		if ( '' === (string) $value ) { return; }
-		?><tr><th><?php echo esc_html( $label ); ?></th><td><?php echo esc_html( $value ); ?></td></tr><?php
+	private static function render_health_metric( $icon, $value, $label, $tooltip_value = '' ) {
+		$value         = sanitize_text_field( (string) $value );
+		$tooltip_value = sanitize_text_field( (string) $tooltip_value );
+		if ( '' === $value && '' === $tooltip_value ) {
+			return;
+		}
+
+		$trigger = '<span class="afcn-router-health-item">' . Icon::svg( $icon );
+		if ( '' !== $value ) {
+			$trigger .= '<span>' . esc_html( $value ) . '</span>';
+		}
+		$trigger .= '</span>';
+
+		$tooltip = $tooltip_value ? $label . ': ' . $tooltip_value : $label . ': ' . $value;
+		echo Tooltip::render( $trigger, $tooltip ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
 	}
 
 	private static function health_label( $health ) {
@@ -609,8 +624,4 @@ class Routers_Module implements Module_Contract {
 		return __( 'Not checked', 'airfiber-centralized' );
 	}
 
-	private static function health_tone( $health ) {
-		$state = isset( $health['state'] ) ? sanitize_key( $health['state'] ) : 'unknown';
-		return 'online' === $state ? 'success' : ( in_array( $state, array( 'warning', 'error', 'offline' ), true ) ? 'warning' : 'info' );
-	}
 }

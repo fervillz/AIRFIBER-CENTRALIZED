@@ -12,3 +12,12 @@
 .afcn-router-scope-results{margin-top:16px}
 .afcn-router-scope-results[hidden]{display:none!important}
 .afcn-router-scope-results .afcn-card-header h3{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.afcn-router-detail-actions{display:flex;align-items:center;justify-content:flex-end;gap:10px;flex-wrap:wrap}
+.afcn-router-detail-actions form{margin:0}
+.afcn-router-health-strip{display:flex;align-items:center;justify-content:flex-end;gap:2px;min-height:30px}
+.afcn-router-health-item{display:inline-flex;min-height:28px;align-items:center;gap:4px;padding:0 5px;color:var(--afcn-muted);font-size:10px;line-height:1;white-space:nowrap;transition:color var(--afcn-transition)}
+.afcn-router-health-item:hover{color:var(--afcn-primary)}
+.afcn-router-health-item .afcn-icon{width:13px;height:13px}
+.afcn-router-health-item.is-status{padding:0 5px}
+.afcn-router-health-item.is-status .afcn-connection-status-dot{width:8px;height:8px}
+@media(max-width:720px){.afcn-router-detail-actions{width:100%;justify-content:flex-start}.afcn-router-health-strip{justify-content:flex-start}}
