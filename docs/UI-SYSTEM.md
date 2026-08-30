@@ -85,7 +85,7 @@ Core 0.4.23 owns the compact header used when a primary card opens an in-page ch
 Use `Airfiber\\Next\\UI::drilldown_head( $context, $title, $meta, $actions )` instead of repeating a second full module heading. The shared header renders:
 
 - the selected item title as the dominant heading;
-- a small muted uppercase context label beside the top of that title (for example `ROUTER`);
+- a small muted uppercase context label above the title, left-aligned with it (for example `ROUTER`);
 - one optional muted metadata line such as an endpoint;
 - optional compact actions/health indicators aligned to the right.
 

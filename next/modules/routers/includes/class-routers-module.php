@@ -298,6 +298,9 @@ class Routers_Module implements Module_Contract {
 			<input type="hidden" name="connection_id" value="<?php echo esc_attr( $id ); ?>">
 			<button type="submit" class="afcn-button afcn-button-secondary"><?php echo Icon::svg( 'activity' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?><?php esc_html_e( 'Test connection', 'airfiber-centralized' ); ?></button>
 		</form>
+		<?php if ( self::can_manage_connections() ) : ?>
+			<?php echo Tooltip::render( '<button type="button" class="afcn-icon-button" data-afcn-dialog-open="afcn-add-router-dialog" aria-label="' . esc_attr__( 'Add Router', 'airfiber-centralized' ) . '">' . Icon::svg( 'plus' ) . '</button>', __( 'Add Router', 'airfiber-centralized' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+		<?php endif; ?>
 		<?php
 		$actions = ob_get_clean();
 		?>

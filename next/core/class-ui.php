@@ -44,12 +44,11 @@ class UI {
 	 */
 	public static function drilldown_head( $context, $title, $meta = '', $actions = '' ) {
 		$html  = '<div class="afcn-drilldown-head">';
-		$html .= '<div class="afcn-drilldown-copy"><div class="afcn-drilldown-title-row">';
-		$html .= '<h1 class="afcn-drilldown-title" title="' . esc_attr( (string) $title ) . '">' . esc_html( (string) $title ) . '</h1>';
+		$html .= '<div class="afcn-drilldown-copy">';
 		if ( '' !== trim( (string) $context ) ) {
 			$html .= '<span class="afcn-drilldown-context">' . esc_html( (string) $context ) . '</span>';
 		}
-		$html .= '</div>';
+		$html .= '<h1 class="afcn-drilldown-title" title="' . esc_attr( (string) $title ) . '">' . esc_html( (string) $title ) . '</h1>';
 		if ( '' !== trim( (string) $meta ) ) {
 			$html .= '<p class="afcn-drilldown-meta">' . esc_html( (string) $meta ) . '</p>';
 		}
