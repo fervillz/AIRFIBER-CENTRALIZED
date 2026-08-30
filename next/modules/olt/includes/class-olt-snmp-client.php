@@ -51,6 +51,7 @@ class Olt_SNMP_Client {
 				if ( $power >= -60 && $power < -1 ) {
 					$valid++;
 				}
+			}
 		}
 
 		$name        = is_wp_error( $name_result ) ? '' : self::clean_string( $name_result );
