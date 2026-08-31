@@ -245,6 +245,8 @@ Sizes: `small`, `default`, `large`.
 
 The helper uses the existing Core dialog open/close runtime. Modules still own the actual form/action behavior.
 
+Dialogs are content-height by default. Short content must not create empty vertical space. When content exceeds the Core/viewport cap, only the dialog body scrolls while the header/footer remain visible. Feature modules should not assign fixed dialog heights.
+
 ## Rules
 
 1. Prefer a Core component before adding module CSS.

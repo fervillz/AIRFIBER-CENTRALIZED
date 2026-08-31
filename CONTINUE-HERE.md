@@ -8,7 +8,7 @@ Build Airfiber Next/BETA as an isolated, very fast application platform inside t
 
 BETA URL: `/airfiber-beta/`.
 
-Airfiber Next Core version: **0.4.35**.
+Airfiber Next Core version: **0.4.36**.
 
 ## Boundary
 
@@ -29,7 +29,7 @@ Classic stays in `includes/`, `templates/`, and `assets/`. Next/BETA lives under
 - Settings is now a lazy card launcher: budgets/platform/warnings/audit load into a Core dialog only on click; Developer Console keeps the existing lazy Tools drawer
 - Core `UI::indicator_button()` supports compact severity dots; Settings Performance Warnings uses yellow/orange/red only (no visible counts), while FIX ALL still refreshes the state live
 - shared view-mode controller supports configurable defaults/labels; Router drill-down defaults to left tabs with cards as the alternate view
-- one shared responsive 680 × 680 BETA dialog frame; long dialog bodies scroll while header/footer stay fixed
+- one shared adaptive BETA dialog frame: short dialogs fit content; tall dialogs cap at 680px/viewport height and scroll only the body while header/footer stay fixed
 - one shared BETA dialog header close control using `.afcn-icon-button`, styled from the proven Classic Connections modal
 - sitewide BETA button states with top-right loading/success/warning/error/disabled badges and shared tooltip messages
 - modal alert + modal box-shadow state feedback synchronized with the active button action

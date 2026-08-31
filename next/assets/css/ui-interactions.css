@@ -204,13 +204,15 @@ body.afcn-page button:disabled:not(.is-afcn-loading){border-color:var(--afcn-sta
 }
 
 /*
- * One BETA dialog frame everywhere. Header/footer stay fixed; only the content
- * body scrolls when a form is taller than the shared frame.
+ * One adaptive BETA dialog frame everywhere.
+ *
+ * Short dialogs fit their content. Tall dialogs stop at the shared height/
+ * viewport cap; only the body scrolls while header/footer remain visible.
  */
 dialog.afcn-dialog{
 	width:min(var(--afcn-dialog-width),calc(100vw - 28px));
-	height:min(var(--afcn-dialog-height),calc(100dvh - 28px));
-	max-height:calc(100dvh - 28px);
+	height:auto;
+	max-height:min(var(--afcn-dialog-height),calc(100dvh - 28px));
 	overflow:hidden;
 	transition:box-shadow .22s ease;
 }
@@ -229,16 +231,18 @@ dialog.afcn-dialog.is-afcn-dialog-error{
 dialog.afcn-dialog.is-afcn-dialog-disabled{
 	box-shadow:0 30px 88px rgba(102,115,130,.22),0 0 0 3px rgba(152,164,177,.12);
 }
-dialog.afcn-dialog>form{
+dialog.afcn-dialog>form,
+dialog.afcn-dialog>.afcn-dialog-shell{
 	display:flex;
-	height:100%;
+	width:100%;
+	max-height:inherit;
 	min-height:0;
 	flex-direction:column;
 }
 dialog.afcn-dialog .afcn-dialog-header,
 dialog.afcn-dialog .afcn-dialog-footer{flex:0 0 auto}
 dialog.afcn-dialog .afcn-dialog-body{
-	flex:1 1 auto;
+	flex:0 1 auto;
 	min-height:0;
 	overflow:auto;
 	overscroll-behavior:contain;
@@ -369,7 +373,7 @@ dialog.afcn-dialog form[data-afcn-action$="-add"] .afcn-dialog-footer [data-afcn
 @media(max-width:620px){
 	dialog.afcn-dialog{
 		width:calc(100vw - 18px);
-		height:calc(100dvh - 18px);
+		height:auto;
 		max-height:calc(100dvh - 18px);
 	}
 }

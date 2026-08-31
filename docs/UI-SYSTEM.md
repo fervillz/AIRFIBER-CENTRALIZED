@@ -43,6 +43,7 @@ This rule applies site-wide to future Subscribers, Billing, Payments, Routers an
 - Fields/selects: 9px radius.
 - Cards: 10px radius.
 - Dialogs/popups: 14px radius.
+- Dialog height is content-fit by default. Core caps tall dialogs at the shared maximum/viewport height and scrolls only `.afcn-dialog-body`; do not set feature-specific fixed dialog heights.
 - Dialog header close controls: 10px radius, outlined white square.
 - Icon-only circular controls may remain circular only when the control is intentionally circular and is not the standard dialog close control.
 
