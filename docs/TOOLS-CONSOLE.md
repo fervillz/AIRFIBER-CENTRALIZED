@@ -80,3 +80,12 @@ The drawer shell and its interaction CSS are part of the small Core UI system, b
 The additional Core `utility.js` runtime is enqueued only for an explicit Super Admin session. Normal customer/admin sessions do not download it.
 
 Opening Settings does not load Tools. Tools loads only when the Super Admin opens **Settings → Tools** or clicks a **FIX** action.
+
+
+## Settings FIX ALL and console severity
+
+Settings 0.3.0 opens the existing lazy Tools drawer with a `fix-all` context. Tools processes current fixable events sequentially with the existing safe workflow: diagnose, runtime warm-up, browser REST retest, and resolve only when the retest passes. Failed retests remain open.
+
+At the end of the batch, Tools sends the remaining warning/error status back to Settings so the yellow/red superscript counts update without reloading the page.
+
+Developer Console log lines emit `afcn:console:status`. Settings maps the latest line to a Core severity dot: normal/success/info is green, warning is yellow, and error is red.

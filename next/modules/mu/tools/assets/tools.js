@@ -31,6 +31,9 @@
 		line.appendChild(code);
 		consoleElement.appendChild(line);
 		consoleElement.scrollTop = consoleElement.scrollHeight;
+		document.dispatchEvent(new CustomEvent('afcn:console:status', {
+			detail: { level: level || 'info', message: String(message || '') }
+		}));
 	}
 
 	function divider(root) {
@@ -129,15 +132,19 @@
 		}
 	}
 
-	async function runFix(root, context) {
-		if (running || !context || !context.module) {
-			return;
+	async function runFix(root, context, options) {
+		options = options || {};
+		const manageRunning = options.manageRunning !== false;
+		if ((manageRunning && running) || !context || !context.module) {
+			return false;
 		}
 
 		const status = statusManager();
-		const sourceButton = context.sourceButton || null;
-		running = true;
-		if (status && sourceButton) {
+		const sourceButton = options.sourceButton || context.sourceButton || null;
+		if (manageRunning) {
+			running = true;
+		}
+		if (status && sourceButton && manageRunning) {
 			status.loading(sourceButton, 'Running performance FIX…', { alert: false });
 		}
 		divider(root);
@@ -146,6 +153,7 @@
 			log(root, 'Warning: ' + context.cause, 'warning');
 		}
 
+		let passed = false;
 		try {
 			const diagnosis = await diagnose(root, context);
 			const optimized = await optimize(root, context);
@@ -162,9 +170,10 @@
 
 			if (retestResult.ok && retestResult.withinBudget) {
 				const resolved = await resolveWarning(root, context, retestResult);
+				passed = resolved || !context.warning;
 				log(root, 'FIX session complete. A new warning will appear automatically if the issue happens again.', 'success');
-				if (status && sourceButton) {
-					if (resolved || !context.warning) {
+				if (status && sourceButton && manageRunning) {
+					if (passed) {
 						status.success(sourceButton, 'Performance retest passed.', { alert: false });
 					} else {
 						status.warning(sourceButton, 'Retest passed, but the original warning could not be marked resolved.', { alert: false });
@@ -173,19 +182,86 @@
 			} else if (retestResult.ok) {
 				const message = 'FIX finished, but the warning remains above budget.';
 				log(root, message, 'warning');
-				if (status && sourceButton) {
+				if (status && sourceButton && manageRunning) {
 					status.warning(sourceButton, message, { alert: false });
 				}
 			} else {
 				const message = retestResult.message || 'FIX finished with a REST error.';
 				log(root, message + ' The warning remains open.', 'warning');
-				if (status && sourceButton) {
+				if (status && sourceButton && manageRunning) {
 					status.error(sourceButton, message, { alert: false });
 				}
 			}
 		} catch (error) {
 			const message = error.message || 'Unknown error.';
 			log(root, 'FIX stopped unexpectedly: ' + message, 'error');
+			if (status && sourceButton && manageRunning) {
+				status.error(sourceButton, message, { alert: false });
+			}
+		} finally {
+			if (manageRunning) {
+				running = false;
+			}
+		}
+		return passed;
+	}
+
+	async function runFixAll(root, context) {
+		if (running) {
+			return;
+		}
+		running = true;
+		const status = statusManager();
+		const sourceButton = context && context.sourceButton ? context.sourceButton : null;
+		if (status && sourceButton) {
+			status.loading(sourceButton, 'Fixing performance warnings…', { alert: false });
+		}
+		divider(root);
+		log(root, 'FIX ALL started. Loading current fixable warnings…', 'info');
+
+		let fixed = 0;
+		let total = 0;
+		try {
+			const data = await window.AirfiberNext.query('settings', 'status', {});
+			const events = Array.isArray(data.events) ? data.events.filter(function (item) {
+				return item && item.fixable && item.module;
+			}) : [];
+			total = events.length;
+
+			if (!total) {
+				log(root, 'No fixable warnings are currently open.', 'success');
+			} else {
+				for (let i = 0; i < events.length; i++) {
+					const item = events[i];
+					log(root, 'FIX ALL ' + (i + 1) + '/' + total + ': ' + (item.module_name || item.module), 'info');
+					const passed = await runFix(root, {
+						warning: item.id || '',
+						module: item.module || '',
+						phase: item.phase || '',
+						cause: item.cause || ''
+					}, { manageRunning: false });
+					if (passed) {
+						fixed++;
+					}
+				}
+			}
+
+			const remaining = await window.AirfiberNext.query('settings', 'status', {});
+			document.dispatchEvent(new CustomEvent('afcn:settings:status:refresh', {
+				detail: remaining
+			}));
+			const message = 'FIX ALL complete: ' + fixed + '/' + total + ' resolved. ' + Number(remaining.total || 0) + ' warning/error item(s) remain.';
+			log(root, message, Number(remaining.total || 0) > 0 ? 'warning' : 'success');
+			if (status && sourceButton) {
+				if (Number(remaining.total || 0) > 0) {
+					status.warning(sourceButton, message, { alert: false });
+				} else {
+					status.success(sourceButton, message, { alert: false });
+				}
+			}
+		} catch (error) {
+			const message = error.message || 'FIX ALL failed.';
+			log(root, 'FIX ALL stopped: ' + message, 'error');
 			if (status && sourceButton) {
 				status.error(sourceButton, message, { alert: false });
 			}
@@ -193,6 +269,7 @@
 			running = false;
 		}
 	}
+
 
 	document.addEventListener('afcn:utility:opened', function (event) {
 		if (!event.detail || event.detail.id !== 'tools') {
@@ -203,6 +280,8 @@
 		const context = event.detail.context || {};
 		if (context.action === 'fix') {
 			runFix(root, context);
+		} else if (context.action === 'fix-all') {
+			runFixAll(root, context);
 		}
 	});
 

@@ -108,6 +108,12 @@ Tabs may now include an optional `count` and `count_variant`, and buttons accept
 
 See `docs/UI-COMPONENTS.md` for the call reference and examples.
 
+## Lazy settings cards — Core 0.4.34
+
+Settings summary pages should render card launchers only. Expensive forms, audit history and diagnostic detail belong behind an on-demand query/dialog or an existing lazy utility drawer. Settings cards follow the same compact 230px-minimum / 168px-height rhythm used by the connection-card system.
+
+Core provides `UI::indicator_button()` for icon actions with superscript indicators. Multiple indicators can show warning/error counts such as yellow `7` | red `8`; an empty indicator value renders as a severity dot for controls such as Developer Console status.
+
 ## Shared tabs — Core 0.4.28
 
 Core owns one tab component for pages, cards and dialogs. It follows the normal BETA surface, radius, border, muted-text, blue-active-state and motion language rather than introducing module-specific tab bars.

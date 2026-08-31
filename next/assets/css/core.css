@@ -206,3 +206,20 @@ dialog.afcn-dialog-large{width:min(860px,calc(100vw - 28px))}
 @media(prefers-reduced-motion:reduce){
 	.afcn-progress>span,.afcn-skeleton>span{transition:none;animation:none}
 }
+
+/* Shared superscript indicator action: tool counts, console severity, etc. */
+.afcn-indicator-action{position:relative;display:grid;width:34px;height:34px;place-items:center;padding:0;border:1px solid var(--afcn-border);border-radius:9px;background:#fff;color:#536274;cursor:pointer;transition:border-color var(--afcn-transition),background var(--afcn-transition),color var(--afcn-transition),box-shadow var(--afcn-transition),transform var(--afcn-transition)}
+.afcn-indicator-action:hover,.afcn-indicator-action:focus-visible{border-color:#b8d2ea;background:#f8fbff;color:var(--afcn-primary);box-shadow:0 7px 18px rgba(24,36,51,.09);outline:0;transform:translateY(-1px)}
+.afcn-indicator-action:disabled{opacity:.5;cursor:not-allowed;transform:none}
+.afcn-indicator-action-icon,.afcn-indicator-action-icon .afcn-icon{display:block;width:17px;height:17px}
+.afcn-indicator-stack{position:absolute;top:-7px;right:-9px;display:flex;align-items:center;gap:2px;pointer-events:none}
+.afcn-indicator-badge{--afcn-indicator-tone:var(--afcn-neutral);display:inline-flex;min-width:17px;height:17px;align-items:center;justify-content:center;padding:0 4px;border:2px solid #fff;border-radius:999px;background:var(--afcn-indicator-tone);box-shadow:0 2px 7px rgba(24,36,51,.17);color:#fff;font-size:10px;font-weight:400;line-height:1}
+.afcn-indicator-badge+.afcn-indicator-badge::before{position:absolute}
+.afcn-indicator-warning{--afcn-indicator-tone:var(--afcn-warning);color:#382900}
+.afcn-indicator-danger,.afcn-indicator-error{--afcn-indicator-tone:var(--afcn-danger)}
+.afcn-indicator-success{--afcn-indicator-tone:var(--afcn-success)}
+.afcn-indicator-info{--afcn-indicator-tone:var(--afcn-info)}
+.afcn-indicator-neutral{--afcn-indicator-tone:var(--afcn-neutral)}
+.afcn-indicator-badge.is-dot{width:12px;min-width:12px;height:12px;padding:0;border-width:2px}
+
+.afcn-indicator-separator{color:#7f8b98;font-size:10px;line-height:1}

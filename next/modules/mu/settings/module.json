@@ -2,7 +2,7 @@
   "id": "settings",
   "name": "Settings",
   "description": "Airfiber Next performance budgets and platform diagnostics.",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "class": "Airfiber\\Next\\Modules\\Settings\\Settings_Module",
   "position": 90,
   "icon": "settings",
@@ -10,7 +10,7 @@
   "system": true,
   "default_enabled": true,
   "settings": "settings",
-  "assets": {"css": [], "js": []},
-  "requires": {"core": ">=0.4.0"},
+  "assets": {"css": ["assets/settings.css"], "js": ["assets/settings.js"]},
+  "requires": {"core": ">=0.4.34"},
   "events": []
 }

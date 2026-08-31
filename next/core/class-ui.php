@@ -173,6 +173,44 @@ class UI {
 		return '<span class="' . esc_attr( implode( ' ', $classes ) ) . '">' . esc_html( $display ) . '</span>';
 	}
 
+	/**
+	 * Compact icon action with one or more superscript indicators.
+	 *
+	 * Indicators accept array( 'value' => '7', 'variant' => 'warning' ). An
+	 * empty value renders a status dot, useful for console health.
+	 */
+	public static function indicator_button( $icon, $label, $indicators = array(), $args = array() ) {
+		$attrs   = isset( $args['attrs'] ) && is_array( $args['attrs'] ) ? $args['attrs'] : array();
+		$classes = array( 'afcn-indicator-action' );
+		if ( ! empty( $args['class'] ) ) {
+			$classes[] = sanitize_html_class( (string) $args['class'] );
+		}
+		$attrs['aria-label'] = $label;
+		if ( ! empty( $args['title'] ) ) {
+			$attrs['title'] = sanitize_text_field( (string) $args['title'] );
+		}
+
+		$html = '<button type="button" class="' . esc_attr( implode( ' ', $classes ) ) . '"' . self::attrs( $attrs ) . '>';
+		$html .= '<span class="afcn-indicator-action-icon">' . Icon::svg( sanitize_key( $icon ) ) . '</span>';
+		$html .= '<span class="afcn-indicator-stack" aria-hidden="true">';
+
+		$indicator_index = 0;
+		foreach ( (array) $indicators as $indicator ) {
+			if ( ! is_array( $indicator ) ) {
+				continue;
+			}
+			$variant = isset( $indicator['variant'] ) ? sanitize_key( $indicator['variant'] ) : 'neutral';
+			$value   = isset( $indicator['value'] ) ? (string) $indicator['value'] : '';
+			if ( $indicator_index > 0 ) {
+				$html .= '<span class="afcn-indicator-separator">|</span>';
+			}
+			$html .= '<span class="afcn-indicator-badge afcn-indicator-' . esc_attr( $variant ) . ( '' === $value ? ' is-dot' : '' ) . '">' . esc_html( $value ) . '</span>';
+			$indicator_index++;
+		}
+
+		return $html . '</span></button>';
+	}
+
 	public static function status( $label, $variant = 'neutral', $args = array() ) {
 		$variant = sanitize_key( $variant );
 		$html    = '<span class="afcn-status afcn-status-' . esc_attr( $variant ) . '"><span class="afcn-status-dot" aria-hidden="true"></span><span>' . esc_html( $label ) . '</span>';

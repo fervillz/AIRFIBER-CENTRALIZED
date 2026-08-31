@@ -258,3 +258,4 @@ The helper uses the existing Core dialog open/close runtime. Modules still own t
 9. Do not add a UI dependency just to gain a component Core can render with HTML/CSS.
 10. Protect readable typography before density: if a row/card becomes crowded, convert secondary state to pills/icons, omit nonessential fields, or move details into a dialog/drill-down instead of shrinking the type.
 11. Do not use bold font weights in BETA UI. Keep text at 400 and create hierarchy with size, color, spacing and placement.
+12. Use `UI::indicator_button()` for icon actions needing compact live counts or a severity dot; keep full diagnostic text inside the detail surface.
