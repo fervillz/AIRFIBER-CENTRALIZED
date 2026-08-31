@@ -2,7 +2,7 @@
   "id": "settings",
   "name": "Settings",
   "description": "Airfiber Next performance budgets and platform diagnostics.",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "class": "Airfiber\\Next\\Modules\\Settings\\Settings_Module",
   "position": 90,
   "icon": "settings",

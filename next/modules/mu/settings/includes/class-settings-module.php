@@ -310,7 +310,8 @@ class Settings_Module implements Module_Contract {
 			}
 
 			$module_id = self::event_module_id( $event );
-			$fixable   = $can_fix && $module_id && 'core' !== $module_id;
+			$phase     = self::event_phase( $event );
+			$fixable   = $can_fix && $module_id && 'core' !== $module_id && self::is_fixable_phase( $phase );
 			if ( 'error' === $level ) {
 				$errors++;
 			} else {
@@ -322,7 +323,7 @@ class Settings_Module implements Module_Contract {
 				'level'       => $level,
 				'module'      => $module_id,
 				'module_name' => self::event_module( $event ),
-				'phase'       => self::event_phase( $event ),
+				'phase'       => $phase,
 				'cause'       => self::event_cause( $event ),
 				'time'        => self::event_time( $event ),
 				'fixable'     => $fixable,
@@ -345,6 +346,14 @@ class Settings_Module implements Module_Contract {
 			'fixable_count' => $fixable_count,
 			'console_level' => $console_level,
 			'events'        => array_slice( $events, 0, 40 ),
+		);
+	}
+
+	private static function is_fixable_phase( $phase ) {
+		return in_array(
+			sanitize_key( (string) $phase ),
+			array( 'bootstrap', 'render', 'query', 'action', 'background', 'client', 'transport', 'asset_load', 'navigation', 'external' ),
+			true
 		);
 	}
 

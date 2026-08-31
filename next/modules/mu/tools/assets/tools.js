@@ -45,6 +45,9 @@
 			return;
 		}
 		root.dataset.afcnToolsWired = '1';
+		document.dispatchEvent(new CustomEvent('afcn:console:status', {
+			detail: { level: 'info', message: 'Tools console ready.' }
+		}));
 		const clear = root.querySelector('[data-afcn-tools-clear]');
 		if (clear) {
 			clear.addEventListener('click', function () {
