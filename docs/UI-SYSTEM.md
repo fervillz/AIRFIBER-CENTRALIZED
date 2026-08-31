@@ -54,6 +54,31 @@ Core CSS currently includes:
 
 `Airfiber\Next\Data_Query` is the reusable server-side search/paging helper for bounded row sets. Modules keep ownership of retrieval and permissions, then pass safe rows into Core. By default search matches all scalar values in each row, so future modules can add fields without rewriting the search engine; an optional `search_fields` list can narrow matching when needed.
 
+## Core UI kit — Core 0.4.30
+
+Core owns the small reusable application controls that feature modules need repeatedly. The kit is intentionally dependency-free and token-driven so Subscribers, Billing and future modules can stay mostly business logic plus layout.
+
+The shared PHP API now includes:
+
+- enhanced buttons with icon, size, loading/disabled states and raised notification counters;
+- pills, numeric counters and status dots;
+- structured info/success/warning/danger/neutral alerts;
+- compact/actionable lists with leading icons, secondary copy, values, counters and pills;
+- read-only detail lists;
+- text/select/textarea plus checkbox and switch helpers with help/error states;
+- progress, empty-state and skeleton helpers;
+- native lightweight action menus;
+- reusable dialog markup;
+- existing tabs, notices and drill-down headers.
+
+Colors, soft backgrounds, radii, control heights and motion remain CSS variables in Core. Modules should change feature layout only and should not fork button/status/list/menu styling.
+
+Most components are HTML/CSS only. Dismissible alerts and menu closing add only a small event layer to the existing Core runtime. No UI framework or component dependency was introduced.
+
+Tabs may now include an optional `count` and `count_variant`, and buttons accept the same notification-counter idea through `count` / `count_variant`. This keeps quantities visible without increasing the control height.
+
+See `docs/UI-COMPONENTS.md` for the call reference and examples.
+
 ## Shared tabs — Core 0.4.28
 
 Core owns one tab component for pages, cards and dialogs. It follows the normal BETA surface, radius, border, muted-text, blue-active-state and motion language rather than introducing module-specific tab bars.

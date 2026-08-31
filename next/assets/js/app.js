@@ -591,7 +591,49 @@
 		});
 	}
 
+	function wireCoreUI(root) {
+		root.querySelectorAll('[data-afcn-alert-dismiss]').forEach(function (button) {
+			if (button.dataset.afcnUiWired) {
+				return;
+			}
+			button.dataset.afcnUiWired = '1';
+			button.addEventListener('click', function () {
+				const alert = button.closest('[data-afcn-alert]');
+				if (!alert) {
+					return;
+				}
+				alert.hidden = true;
+				alert.dispatchEvent(new CustomEvent('afcn:alert:dismissed', { bubbles: true }));
+			});
+		});
+
+		root.querySelectorAll('.afcn-menu').forEach(function (menu) {
+			if (menu.dataset.afcnUiWired) {
+				return;
+			}
+			menu.dataset.afcnUiWired = '1';
+			menu.addEventListener('toggle', function () {
+				if (!menu.open) {
+					return;
+				}
+				document.querySelectorAll('.afcn-menu[open]').forEach(function (other) {
+					if (other !== menu) {
+						other.removeAttribute('open');
+					}
+				});
+			});
+			menu.querySelectorAll('.afcn-menu-item').forEach(function (item) {
+				item.addEventListener('click', function () {
+					window.setTimeout(function () {
+						menu.removeAttribute('open');
+					}, 0);
+				});
+			});
+		});
+	}
+
 	function wireModule(root) {
+		wireCoreUI(root);
 		if (uiStatus) {
 			uiStatus.wire(root);
 		}
@@ -651,6 +693,23 @@
 					uiStatus.error(button, 'This module could not be loaded.', { alert: false });
 				}
 			}
+		});
+	});
+
+	document.addEventListener('click', function (event) {
+		document.querySelectorAll('.afcn-menu[open]').forEach(function (menu) {
+			if (!menu.contains(event.target)) {
+				menu.removeAttribute('open');
+			}
+		});
+	});
+
+	document.addEventListener('keydown', function (event) {
+		if (event.key !== 'Escape') {
+			return;
+		}
+		document.querySelectorAll('.afcn-menu[open]').forEach(function (menu) {
+			menu.removeAttribute('open');
 		});
 	});
 
