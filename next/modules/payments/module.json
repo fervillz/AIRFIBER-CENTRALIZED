@@ -2,7 +2,7 @@
   "id": "payments",
   "name": "Payments",
   "description": "Fast customer payment search and recording across PPP-enabled MikroTik routers.",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "class": "Airfiber\\Next\\Modules\\Payments\\Payments_Module",
   "position": 35,
   "icon": "credit-card",

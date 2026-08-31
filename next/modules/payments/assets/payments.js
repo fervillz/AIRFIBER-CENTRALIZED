@@ -385,7 +385,8 @@
 
 	init();
 	document.addEventListener('afcn:module:loaded', function (event) {
-		if (event.detail && event.detail.module === 'payments') {
+		const detail = event.detail || {};
+		if ((detail.id || detail.module) === 'payments') {
 			init();
 		}
 	});
