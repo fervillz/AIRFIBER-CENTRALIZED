@@ -10,6 +10,7 @@
 	let timer = 0;
 	let requestId = 0;
 	let selected = null;
+	let holdTimer = 0;
 	const items = new Map();
 
 	function text(value) {
@@ -247,55 +248,151 @@
 		target.appendChild(alert);
 	}
 
+	function cycleLabel(value) {
+		const cycle = Number(value || 0);
+		return cycle === 15 ? '15D' : (cycle === 30 ? '30D' : 'MTH');
+	}
+
+	function paymentAmount(modal) {
+		const override = Number(modal && modal.dataset.afcnPaymentAmount || 0);
+		if (Number.isFinite(override) && override > 0) {
+			return override;
+		}
+		const saved = Number(selected && selected.payment_amount || 0);
+		return Number.isFinite(saved) && saved > 0 ? saved : 0;
+	}
+
+	function setQuickBusy(modal, activeButton, busy) {
+		if (!modal) {
+			return;
+		}
+		modal.querySelectorAll('[data-afcn-payment-quick-method]').forEach(function (button) {
+			button.disabled = busy;
+			button.classList.toggle('is-loading', busy && button === activeButton);
+		});
+		const close = modal.querySelector('[data-afcn-dialog-close]');
+		if (close) {
+			close.disabled = busy;
+		}
+	}
+
+	function showAmountOverride(method) {
+		const modal = dialog();
+		if (!modal) {
+			return;
+		}
+		const panel = modal.querySelector('[data-afcn-payment-amount-override]');
+		const amount = modal.querySelector('[data-afcn-payment-amount]');
+		if (!panel || !amount) {
+			return;
+		}
+		modal.dataset.afcnPaymentPendingMethod = method || '';
+		panel.hidden = false;
+		const current = paymentAmount(modal);
+		amount.value = current > 0 ? String(current) : '';
+		showDialogMessage('Set the amount, then tap CASH or GCash.', 'info');
+		window.setTimeout(function () {
+			amount.focus({ preventScroll: true });
+			amount.select();
+		}, 30);
+	}
+
+	function hideAmountOverride() {
+		const modal = dialog();
+		const panel = modal ? modal.querySelector('[data-afcn-payment-amount-override]') : null;
+		if (panel) {
+			panel.hidden = true;
+		}
+		if (modal) {
+			delete modal.dataset.afcnPaymentPendingMethod;
+		}
+	}
+
+	function applyAmountOverride() {
+		const modal = dialog();
+		const amountInput = modal ? modal.querySelector('[data-afcn-payment-amount]') : null;
+		const amount = amountInput ? Number(amountInput.value) : 0;
+		if (!modal || !Number.isFinite(amount) || amount <= 0) {
+			showDialogMessage('Enter a payment amount greater than zero.', 'danger');
+			return;
+		}
+		modal.dataset.afcnPaymentAmount = String(amount);
+		hideAmountOverride();
+		showDialogMessage(money(amount) + ' will be used for the next payment action.', 'info');
+	}
+
 	function openPayment(item) {
 		selected = item;
 		const modal = dialog();
 		if (!modal) {
 			return;
 		}
+
 		modal.querySelector('[data-afcn-payment-dialog-name]').textContent = item.customer_name || item.account;
-		modal.querySelector('[data-afcn-payment-dialog-account]').textContent = 'PPP: ' + item.account;
-		modal.querySelector('[data-afcn-payment-dialog-plan]').textContent = 'Plan: ' + (item.plan || 'Not set');
-		modal.querySelector('[data-afcn-payment-dialog-last]').textContent = 'Last payment: ' + (item.payment_date || 'None');
+		modal.querySelector('[data-afcn-payment-dialog-account]').textContent = item.account;
+		modal.querySelector('[data-afcn-payment-dialog-plan]').textContent = item.plan || item.actual_profile || 'Not set';
+
+		const status = modal.querySelector('[data-afcn-payment-dialog-status]');
+		if (status) {
+			status.textContent = item.status === 'expired' ? 'Expired' : 'Active';
+			status.className = item.status === 'expired' ? 'is-expired' : 'is-active';
+		}
+
+		modal.querySelectorAll('[data-afcn-payment-cycle-pill]').forEach(function (pill) {
+			pill.textContent = cycleLabel(item.billing_cycle_days);
+		});
+
+		delete modal.dataset.afcnPaymentAmount;
+		delete modal.dataset.afcnPaymentPendingMethod;
+		hideAmountOverride();
 
 		const amount = modal.querySelector('[data-afcn-payment-amount]');
-		const method = modal.querySelector('[data-afcn-payment-method]');
 		if (amount) {
 			amount.value = Number(item.payment_amount || 0) > 0 ? String(item.payment_amount) : '';
 		}
-		if (method) {
-			method.value = ['cash', 'gcash'].includes(item.payment_method) ? item.payment_method : 'cash';
-		}
-		showDialogMessage(item.status === 'expired' ? 'This account is expired. Recording payment will not reconnect it automatically.' : '', 'warning');
+
+		showDialogMessage(
+			item.status === 'expired'
+				? 'This account is expired. Recording payment will not reconnect it automatically.'
+				: '',
+			'warning'
+		);
+
 		window.AirfiberNext.openDialog(modal);
 		window.setTimeout(function () {
-			if (amount) {
-				amount.focus({ preventScroll: true });
-				amount.select();
+			const cash = modal.querySelector('[data-afcn-payment-quick-method="cash"]');
+			if (cash) {
+				cash.focus({ preventScroll: true });
 			}
 		}, 60);
 	}
 
-	async function recordPayment(button) {
-		if (!selected || button.disabled) {
+	async function recordPayment(method, button) {
+		if (!selected || !button || button.disabled) {
 			return;
 		}
 		const modal = dialog();
-		const amountInput = modal.querySelector('[data-afcn-payment-amount]');
-		const methodInput = modal.querySelector('[data-afcn-payment-method]');
-		const amount = amountInput && amountInput.value !== '' ? Number(amountInput.value) : 0;
-		const method = methodInput ? methodInput.value : 'cash';
+		const amount = paymentAmount(modal);
+		if (!amount) {
+			showAmountOverride(method);
+			return;
+		}
 
-		button.disabled = true;
-		button.classList.add('is-loading');
-		showDialogMessage('Recording payment…', 'info');
+		setQuickBusy(modal, button, true);
+		showDialogMessage('Recording ' + (method === 'gcash' ? 'GCash' : 'cash') + ' payment…', 'info');
+
+		const label = button.querySelector('[data-afcn-payment-quick-label]');
+		const originalLabel = label ? label.textContent : '';
+		if (label) {
+			label.textContent = 'Recording…';
+		}
 
 		try {
 			const response = await window.AirfiberNext.action('payments', 'record-payment', {
 				connection_id: selected.connection_id,
 				secret_id: selected.secret_id,
 				account: selected.account,
-				amount: Number.isFinite(amount) ? amount : 0,
+				amount: amount,
 				method: method
 			});
 			window.AirfiberNext.closeDialog(modal);
@@ -310,10 +407,68 @@
 		} catch (error) {
 			showDialogMessage(error.message || 'The payment could not be recorded.', 'danger');
 		} finally {
-			button.disabled = false;
-			button.classList.remove('is-loading');
+			setQuickBusy(modal, button, false);
+			if (label) {
+				label.textContent = originalLabel;
+			}
 		}
 	}
+
+	function bindQuickPaymentDialog() {
+		const modal = dialog();
+		if (!modal || modal.dataset.afcnPaymentQuickWired) {
+			return;
+		}
+		modal.dataset.afcnPaymentQuickWired = '1';
+
+		modal.querySelectorAll('[data-afcn-payment-quick-method]').forEach(function (button) {
+			button.addEventListener('pointerdown', function (event) {
+				if (button.disabled || (event.pointerType === 'mouse' && event.button !== 0)) {
+					return;
+				}
+				window.clearTimeout(holdTimer);
+				button.dataset.afcnHoldTriggered = '';
+				button.classList.add('is-holding');
+				holdTimer = window.setTimeout(function () {
+					button.dataset.afcnHoldTriggered = '1';
+					button.classList.remove('is-holding');
+					showAmountOverride(button.dataset.afcnPaymentQuickMethod || '');
+				}, 620);
+			});
+			['pointerup', 'pointercancel', 'pointerleave'].forEach(function (name) {
+				button.addEventListener(name, function () {
+					window.clearTimeout(holdTimer);
+					button.classList.remove('is-holding');
+				});
+			});
+			button.addEventListener('click', function (event) {
+				event.preventDefault();
+				if (button.dataset.afcnHoldTriggered === '1') {
+					button.dataset.afcnHoldTriggered = '';
+					return;
+				}
+				recordPayment(button.dataset.afcnPaymentQuickMethod || 'cash', button);
+			});
+		});
+
+		const apply = modal.querySelector('[data-afcn-payment-amount-apply]');
+		if (apply) {
+			apply.addEventListener('click', applyAmountOverride);
+		}
+		const cancel = modal.querySelector('[data-afcn-payment-amount-cancel]');
+		if (cancel) {
+			cancel.addEventListener('click', function () {
+				hideAmountOverride();
+				showDialogMessage(
+					selected && selected.status === 'expired'
+						? 'This account is expired. Recording payment will not reconnect it automatically.'
+						: '',
+					'warning'
+				);
+			});
+		}
+	}
+
 
 	function init() {
 		root = document.querySelector('[data-afcn-payments-root]');
@@ -329,6 +484,8 @@
 		if (!input || !results || !clearButton) {
 			return;
 		}
+
+		bindQuickPaymentDialog();
 
 		input.addEventListener('input', queueSearch);
 		input.addEventListener('keydown', function (event) {
@@ -363,14 +520,6 @@
 			const item = items.get(button.dataset.afcnPaymentResult || '');
 			if (item) {
 				openPayment(item);
-			}
-		});
-
-		root.addEventListener('click', function (event) {
-			const button = event.target.closest('[data-afcn-payment-record]');
-			if (button) {
-				event.preventDefault();
-				recordPayment(button);
 			}
 		});
 

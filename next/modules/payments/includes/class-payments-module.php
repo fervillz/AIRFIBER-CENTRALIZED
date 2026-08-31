@@ -252,6 +252,7 @@ class Payments_Module implements Module_Contract {
 		update_post_meta( $payment_id, '_afc_payment_date', $date );
 		update_post_meta( $payment_id, '_afc_payment_amount', $amount );
 		update_post_meta( $payment_id, '_afc_payment_method', $method );
+		update_post_meta( $payment_id, '_afc_payment_reference', 'gcash' === $method ? 'XXXX' : '' );
 		update_post_meta( $payment_id, '_afc_recorded_by', get_current_user_id() );
 		update_post_meta( $payment_id, '_afcn_router_connection_id', $connection_id );
 		update_post_meta( $payment_id, '_afcn_router_secret_id', $secret_id );
@@ -278,6 +279,7 @@ class Payments_Module implements Module_Contract {
 			'date'           => $date,
 			'amount'         => $amount,
 			'method'         => $method,
+			'reference'      => 'gcash' === $method ? 'XXXX' : '',
 			'service_expired'=> $expired,
 		);
 	}
@@ -285,72 +287,53 @@ class Payments_Module implements Module_Contract {
 	private static function payment_dialog() {
 		ob_start();
 		?>
-		<div class="afcn-payment-selected-summary">
-			<div class="afcn-payment-selected-name" data-afcn-payment-dialog-name></div>
-			<div class="afcn-payment-selected-meta">
-				<span data-afcn-payment-dialog-account></span>
-				<span data-afcn-payment-dialog-plan></span>
-				<span data-afcn-payment-dialog-last></span>
+		<dialog class="afcn-dialog afcn-payment-quick-dialog" id="afcn-payment-dialog">
+			<div class="afcn-dialog-shell">
+				<div class="afcn-dialog-header">
+					<div>
+						<h2 data-afcn-payment-dialog-name><?php esc_html_e( 'Customer', 'airfiber-centralized' ); ?></h2>
+					</div>
+					<button type="button" class="afcn-icon-button" data-afcn-dialog-close aria-label="<?php esc_attr_e( 'Close', 'airfiber-centralized' ); ?>"><?php echo \Airfiber\Next\Icon::svg( 'x' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></button>
+				</div>
+				<div class="afcn-dialog-body">
+					<div class="afcn-payment-quick-summary">
+						<div><span><?php esc_html_e( 'PPP account', 'airfiber-centralized' ); ?></span><strong data-afcn-payment-dialog-account></strong></div>
+						<div><span><?php esc_html_e( 'Plan', 'airfiber-centralized' ); ?></span><strong data-afcn-payment-dialog-plan></strong></div>
+						<div><span><?php esc_html_e( 'Status', 'airfiber-centralized' ); ?></span><strong data-afcn-payment-dialog-status></strong></div>
+					</div>
+					<div data-afcn-payment-dialog-message></div>
+					<button type="button" class="afcn-payment-quick-action is-cash" data-afcn-payment-quick-method="cash">
+						<span class="afcn-payment-quick-spinner" aria-hidden="true"></span>
+						<span data-afcn-payment-quick-label><?php esc_html_e( 'CASH', 'airfiber-centralized' ); ?></span>
+						<span class="afcn-payment-cycle-pill" data-afcn-payment-cycle-pill>MTH</span>
+					</button>
+					<div class="afcn-payment-quick-secondary">
+						<button type="button" class="afcn-payment-quick-action is-gcash" data-afcn-payment-quick-method="gcash">
+							<span class="afcn-payment-quick-spinner" aria-hidden="true"></span>
+							<span data-afcn-payment-quick-label><?php esc_html_e( 'GCash', 'airfiber-centralized' ); ?></span>
+							<span class="afcn-payment-cycle-pill" data-afcn-payment-cycle-pill>MTH</span>
+						</button>
+					</div>
+					<div class="afcn-payment-quick-meta">
+						<span><?php esc_html_e( 'Payment date:', 'airfiber-centralized' ); ?> <strong><?php echo esc_html( current_time( 'Y-m-d' ) ); ?></strong></span>
+						<span><?php esc_html_e( 'GCash reference:', 'airfiber-centralized' ); ?> <strong>XXXX</strong></span>
+					</div>
+					<small class="afcn-payment-hold-hint"><?php esc_html_e( 'Hold CASH or GCash to change the payment amount.', 'airfiber-centralized' ); ?></small>
+					<div class="afcn-payment-amount-override" data-afcn-payment-amount-override hidden>
+						<label>
+							<span><?php esc_html_e( 'Payment amount', 'airfiber-centralized' ); ?></span>
+							<div><b>₱</b><input type="number" min="0" step="0.01" inputmode="decimal" data-afcn-payment-amount placeholder="<?php esc_attr_e( 'Enter amount', 'airfiber-centralized' ); ?>"></div>
+						</label>
+						<div class="afcn-payment-override-actions">
+							<button type="button" class="afcn-button afcn-button-primary" data-afcn-payment-amount-apply><?php esc_html_e( 'Use Amount', 'airfiber-centralized' ); ?></button>
+							<button type="button" class="afcn-button afcn-button-secondary" data-afcn-payment-amount-cancel><?php esc_html_e( 'Cancel', 'airfiber-centralized' ); ?></button>
+						</div>
+					</div>
+				</div>
 			</div>
-		</div>
-		<div class="afcn-payment-form-grid">
-			<?php
-			echo UI::field(
-				'payment_amount',
-				__( 'Amount', 'airfiber-centralized' ),
-				array(
-					'type'  => 'number',
-					'attrs' => array(
-						'step' => '0.01',
-						'min'  => '0',
-						'data-afcn-payment-amount' => '1',
-					),
-				)
-			); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
-			echo UI::select(
-				'payment_method',
-				__( 'Method', 'airfiber-centralized' ),
-				array(
-					'cash'  => __( 'Cash', 'airfiber-centralized' ),
-					'gcash' => __( 'GCash', 'airfiber-centralized' ),
-				),
-				'cash',
-				array(
-					'attrs' => array( 'data-afcn-payment-method' => '1' ),
-				)
-			); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
-			?>
-		</div>
-		<div data-afcn-payment-dialog-message></div>
+		</dialog>
 		<?php
-		$body = ob_get_clean();
-
-		$footer = UI::button(
-			__( 'Cancel', 'airfiber-centralized' ),
-			array(
-				'variant' => 'secondary',
-				'attrs'   => array( 'data-afcn-dialog-close' => '1' ),
-			)
-		);
-		$footer .= UI::button(
-			__( 'Record payment', 'airfiber-centralized' ),
-			array(
-				'variant' => 'primary',
-				'icon'    => 'credit-card',
-				'attrs'   => array( 'data-afcn-payment-record' => '1' ),
-			)
-		);
-
-		return UI::dialog(
-			'afcn-payment-dialog',
-			__( 'Record payment', 'airfiber-centralized' ),
-			$body,
-			array(
-				'subtitle' => __( 'Verify the customer and payment details before saving.', 'airfiber-centralized' ),
-				'size'     => 'default',
-				'footer'   => $footer,
-			)
-		);
+		return ob_get_clean();
 	}
 
 	private static function payment_routers() {
@@ -431,9 +414,26 @@ class Payments_Module implements Module_Contract {
 			'payment_date'  => isset( $details['payment_date'] ) ? sanitize_text_field( $details['payment_date'] ) : '',
 			'payment_amount'=> isset( $details['payment_amount'] ) && is_numeric( $details['payment_amount'] ) ? (float) $details['payment_amount'] : 0,
 			'payment_method'=> isset( $details['payment_method'] ) ? sanitize_key( $details['payment_method'] ) : '',
+			'billing_cycle_days' => self::billing_cycle_days( $details ),
 			'status'        => 0 === strcasecmp( $actual, 'Expired' ) ? 'expired' : 'active',
 			'_search'       => self::search_text( implode( ' ', array( $customer_name, $account, $phone, $address ) ) ),
 		);
+	}
+
+	private static function billing_cycle_days( $details ) {
+		if ( isset( $details['custom_fields'] ) && is_array( $details['custom_fields'] ) ) {
+			foreach ( $details['custom_fields'] as $key => $value ) {
+				if ( 0 === strcasecmp( (string) $key, 'billingCycleDays' ) ) {
+					$cycle = (int) $value;
+					return in_array( $cycle, array( 15, 30 ), true ) ? $cycle : 0;
+				}
+			}
+		}
+		if ( isset( $details['billing_cycle_days'] ) ) {
+			$cycle = (int) $details['billing_cycle_days'];
+			return in_array( $cycle, array( 15, 30 ), true ) ? $cycle : 0;
+		}
+		return 0;
 	}
 
 	private static function rank( $customer_name, $account, $needle ) {
@@ -466,13 +466,15 @@ class Payments_Module implements Module_Contract {
 			'plan'           => '',
 			'cp'             => '',
 			'address'        => '',
+			'billing_cycle_days' => '',
 		);
-		preg_match_all( '/(?:^|\\s)(paymentMethod|paymentAmount|paymentDate|name|plan|cp|Address)\\s*:\\s*(.*?)(?=\\s+(?:paymentMethod|paymentAmount|paymentDate|name|plan|cp|Address)\\s*:|$)/is', trim( (string) $comment ), $matches, PREG_SET_ORDER );
+		preg_match_all( '/(?:^|\\s)(paymentMethod|paymentAmount|paymentDate|name|plan|cp|Address|billingCycleDays)\\s*:\\s*(.*?)(?=\\s+(?:paymentMethod|paymentAmount|paymentDate|name|plan|cp|Address|billingCycleDays)\\s*:|$)/is', trim( (string) $comment ), $matches, PREG_SET_ORDER );
 		$map = array(
 			'paymentmethod' => 'payment_method',
 			'paymentamount' => 'payment_amount',
 			'paymentdate'   => 'payment_date',
 			'address'       => 'address',
+			'billingcycledays' => 'billing_cycle_days',
 		);
 		foreach ( $matches as $match ) {
 			$key   = strtolower( $match[1] );

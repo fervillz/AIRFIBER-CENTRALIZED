@@ -71,3 +71,17 @@ Expired service is deliberately separate: recording a payment does not reconnect
 ## Future direction
 
 When the Subscribers module becomes the customer source of truth, Payments should search the local subscriber index first and use RouterOS only for service verification/write operations. The current interface and query contract are designed so that backend source can change without changing the operator workflow.
+
+
+## Quick payment dialog — 0.1.5
+
+Selecting a search result now uses the proven Classic quick-payment hierarchy while staying on the BETA Core dialog runtime:
+
+- customer name in the dialog header;
+- PPP Account / Plan / Status summary tiles;
+- one-tap CASH and GCash actions;
+- billing-cycle pill (15D, 30D, or MTH when available from structured PPP metadata);
+- current payment date and Classic-compatible GCash reference placeholder;
+- long-press on a payment action exposes a payment amount override.
+
+Cycle and promise-date editing are deliberately not duplicated inside Payments yet. Those affect due/cutoff billing calculations and will belong to the Billing module. BETA therefore displays the existing cycle but only allows the safe amount override in the first payment module.
