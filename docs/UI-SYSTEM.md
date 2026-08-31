@@ -7,6 +7,32 @@ Core owns the visual language. Modules should not invent a separate design syste
 - Headings: `Source Serif 4`, weight 400.
 - UI/body: Inter when available, then native system fonts.
 - Avoid bold display headings unless the design specifically requires emphasis.
+- Prefer the semantic Core scale: `--afcn-type-xs` 11px, `--afcn-type-sm` 12px, `--afcn-type-md` 14px, `--afcn-type-lg` 16px and `--afcn-type-xl` 20px. Feature modules should use the scale rather than inventing smaller text to make crowded layouts fit.
+- **Readable type wins over density.** Do not solve an overloaded card, list row, tab or toolbar by shrinking important text. Preserve primary text at a comfortable size, then reduce information density instead.
+
+## Progressive disclosure and density
+
+Airfiber BETA uses a **typography-first density rule**.
+
+When a component contains too much information, use this order:
+
+1. keep the primary identity/action readable;
+2. turn short state/category data into a Core pill, status dot, counter or recognizable icon;
+3. remove low-priority data from the summary when it is not needed for the current decision;
+4. move secondary technical/detail fields into the existing dialog, drill-down or detail view;
+5. use a tooltip for brief explanation of an icon or compact state;
+6. only after those choices should spacing be tightened.
+
+Do **not** respond to crowded content by creating 9px/10px paragraphs or adding more table-style columns. Summary surfaces should help the operator decide what to click; the detail surface can hold the full record.
+
+As a default hierarchy for new list/card UI:
+
+- primary name/value: `--afcn-type-lg` or larger;
+- important secondary value/date: `--afcn-type-md`;
+- normal metadata: `--afcn-type-sm`;
+- pills/compact labels only: `--afcn-type-xs`.
+
+This rule applies site-wide to future Subscribers, Billing, Payments, Routers and other modules.
 
 ## Shape tokens
 

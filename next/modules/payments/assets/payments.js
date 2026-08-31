@@ -91,34 +91,40 @@
 		account.className = 'afcn-payment-result-account';
 		account.textContent = item.account + (item.phone ? ' · ' + item.phone : '');
 
+		const badges = document.createElement('span');
+		badges.className = 'afcn-payment-result-badges';
+		const state = document.createElement('span');
+		state.className = 'afcn-pill ' + (item.status === 'expired' ? 'afcn-pill-warning' : 'afcn-pill-success');
+		const dot = document.createElement('span');
+		dot.className = 'afcn-pill-dot';
+		const stateLabel = document.createElement('span');
+		stateLabel.textContent = item.status === 'expired' ? 'EXPIRED' : 'ACTIVE';
+		state.appendChild(dot);
+		state.appendChild(stateLabel);
+		badges.appendChild(state);
+
 		const address = document.createElement('small');
 		address.className = 'afcn-payment-result-address';
 		address.textContent = item.address || 'Location not set';
 
 		main.appendChild(name);
 		main.appendChild(account);
+		main.appendChild(badges);
 		main.appendChild(address);
-
-		const planWrap = document.createElement('span');
-		planWrap.className = 'afcn-payment-result-plan';
-		const plan = document.createElement('span');
-		plan.className = 'afcn-pill afcn-pill-primary';
-		plan.textContent = item.plan || item.actual_profile || 'No plan';
-		planWrap.appendChild(plan);
 
 		const payment = document.createElement('span');
 		payment.className = 'afcn-payment-result-payment';
 
 		const last = document.createElement('strong');
 		last.className = 'afcn-payment-result-date';
-		last.textContent = item.payment_date || 'No payment date';
+		last.textContent = item.payment_date || 'No payment';
 
-		const status = document.createElement('small');
-		status.className = 'afcn-payment-result-status' + (item.status === 'expired' ? ' is-expired' : '');
-		status.textContent = item.status === 'expired' ? 'Expired' : 'Active';
+		const plan = document.createElement('span');
+		plan.className = 'afcn-payment-result-side-plan';
+		plan.textContent = item.plan || item.actual_profile || 'No plan';
 
 		payment.appendChild(last);
-		payment.appendChild(status);
+		payment.appendChild(plan);
 
 		const arrow = document.createElement('span');
 		arrow.className = 'afcn-payment-result-arrow';
@@ -126,7 +132,6 @@
 		arrow.textContent = '›';
 
 		button.appendChild(main);
-		button.appendChild(planWrap);
 		button.appendChild(payment);
 		button.appendChild(arrow);
 		return button;

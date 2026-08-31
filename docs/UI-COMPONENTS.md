@@ -28,6 +28,8 @@ Important tokens include:
 
 Prefer changing these tokens over overriding components inside a feature module.
 
+Typography tokens are `--afcn-type-xs`, `--afcn-type-sm`, `--afcn-type-md`, `--afcn-type-lg` and `--afcn-type-xl`. Do not create smaller feature text just to fit more fields into one surface.
+
 ## Buttons
 
 ```php
@@ -252,3 +254,4 @@ The helper uses the existing Core dialog open/close runtime. Modules still own t
 7. Dangerous actions must use the danger language consistently.
 8. Keep remote/AJAX behavior separate from presentation components.
 9. Do not add a UI dependency just to gain a component Core can render with HTML/CSS.
+10. Protect readable typography before density: if a row/card becomes crowded, convert secondary state to pills/icons, omit nonessential fields, or move details into a dialog/drill-down instead of shrinking the type.
