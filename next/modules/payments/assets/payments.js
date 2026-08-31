@@ -73,19 +73,6 @@
 		setMeta('');
 	}
 
-	function statusPill(item) {
-		const pill = document.createElement('span');
-		const expired = item.status === 'expired';
-		pill.className = 'afcn-pill ' + (expired ? 'afcn-pill-warning' : 'afcn-pill-success');
-		const dot = document.createElement('span');
-		dot.className = 'afcn-pill-dot';
-		const label = document.createElement('span');
-		label.textContent = expired ? 'Expired' : 'Active';
-		pill.appendChild(dot);
-		pill.appendChild(label);
-		return pill;
-	}
-
 	function resultButton(item, key) {
 		const button = document.createElement('button');
 		button.type = 'button';
@@ -95,34 +82,43 @@
 
 		const main = document.createElement('span');
 		main.className = 'afcn-payment-result-main';
-		const name = document.createElement('strong');
-		name.textContent = item.customer_name || item.account;
-		const secondary = document.createElement('span');
-		secondary.textContent = item.account + (item.phone ? ' · ' + item.phone : '');
-		main.appendChild(name);
-		main.appendChild(secondary);
 
-		const detail = document.createElement('span');
-		detail.className = 'afcn-payment-result-detail';
-		const plan = document.createElement('span');
-		plan.textContent = item.plan || 'Plan not set';
+		const name = document.createElement('strong');
+		name.className = 'afcn-payment-result-name';
+		name.textContent = item.customer_name || item.account;
+
+		const account = document.createElement('span');
+		account.className = 'afcn-payment-result-account';
+		account.textContent = item.account + (item.phone ? ' · ' + item.phone : '');
+
 		const address = document.createElement('small');
-		address.textContent = item.address || item.router_name || '';
-		detail.appendChild(plan);
-		detail.appendChild(address);
+		address.className = 'afcn-payment-result-address';
+		address.textContent = item.address || 'Location not set';
+
+		main.appendChild(name);
+		main.appendChild(account);
+		main.appendChild(address);
+
+		const planWrap = document.createElement('span');
+		planWrap.className = 'afcn-payment-result-plan';
+		const plan = document.createElement('span');
+		plan.className = 'afcn-pill afcn-pill-primary';
+		plan.textContent = item.plan || item.actual_profile || 'No plan';
+		planWrap.appendChild(plan);
 
 		const payment = document.createElement('span');
 		payment.className = 'afcn-payment-result-payment';
-		const last = document.createElement('strong');
-		last.textContent = item.payment_date || 'No payment date';
-		const amount = document.createElement('small');
-		amount.textContent = money(item.payment_amount) || item.router_name || '';
-		payment.appendChild(last);
-		payment.appendChild(amount);
 
-		const state = document.createElement('span');
-		state.className = 'afcn-payment-result-state';
-		state.appendChild(statusPill(item));
+		const last = document.createElement('strong');
+		last.className = 'afcn-payment-result-date';
+		last.textContent = item.payment_date || 'No payment date';
+
+		const status = document.createElement('small');
+		status.className = 'afcn-payment-result-status' + (item.status === 'expired' ? ' is-expired' : '');
+		status.textContent = item.status === 'expired' ? 'Expired' : 'Active';
+
+		payment.appendChild(last);
+		payment.appendChild(status);
 
 		const arrow = document.createElement('span');
 		arrow.className = 'afcn-payment-result-arrow';
@@ -130,9 +126,8 @@
 		arrow.textContent = '›';
 
 		button.appendChild(main);
-		button.appendChild(detail);
+		button.appendChild(planWrap);
 		button.appendChild(payment);
-		button.appendChild(state);
 		button.appendChild(arrow);
 		return button;
 	}
