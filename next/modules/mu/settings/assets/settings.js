@@ -87,6 +87,56 @@
 		}
 	}
 
+	function performanceVariant(warning, errors) {
+		if (errors > 0) {
+			return 'danger';
+		}
+		if (warning >= 3) {
+			return 'orange';
+		}
+		return warning > 0 ? 'warning' : '';
+	}
+
+	function updatePerformanceIndicator(warning, errors) {
+		if (!root) {
+			return;
+		}
+		const stack = root.querySelector('.afcn-settings-fix-all .afcn-indicator-stack');
+		if (!stack) {
+			return;
+		}
+		const variant = performanceVariant(warning, errors);
+		let badge = stack.querySelector('.afcn-indicator-badge');
+
+		if (!variant) {
+			if (badge) {
+				badge.remove();
+			}
+			const separator = stack.querySelector('.afcn-indicator-separator');
+			if (separator) {
+				separator.remove();
+			}
+			return;
+		}
+
+		if (!badge) {
+			badge = document.createElement('span');
+			badge.className = 'afcn-indicator-badge is-dot';
+			stack.appendChild(badge);
+		}
+		badge.textContent = '';
+		badge.classList.remove(
+			'afcn-indicator-success',
+			'afcn-indicator-warning',
+			'afcn-indicator-orange',
+			'afcn-indicator-danger',
+			'afcn-indicator-error',
+			'afcn-indicator-info',
+			'afcn-indicator-neutral'
+		);
+		badge.classList.add('afcn-indicator-' + variant, 'is-dot');
+	}
+
 	function updateWarningStatus(data) {
 		if (!root || !data) {
 			return;
@@ -95,20 +145,19 @@
 		const errors = Number(data.error_count || 0);
 		const fixable = Number(data.fixable_count || 0);
 
-		const warningBadge = root.querySelector('.afcn-settings-fix-all .afcn-indicator-warning');
-		const errorBadge = root.querySelector('.afcn-settings-fix-all .afcn-indicator-danger');
 		const summary = root.querySelector('[data-afcn-settings-warning-summary]');
 		const fixAll = root.querySelector('[data-afcn-settings-fix-all]');
 
-		if (warningBadge) {
-			warningBadge.textContent = String(warning);
-		}
-		if (errorBadge) {
-			errorBadge.textContent = String(errors);
-		}
+		updatePerformanceIndicator(warning, errors);
+
 		if (summary) {
-			summary.textContent = warning + ' warning' + (warning === 1 ? '' : 's') + ' · ' + errors + ' error' + (errors === 1 ? '' : 's');
-			if (!warning && !errors) {
+			if (errors > 0) {
+				summary.textContent = 'Errors need attention.';
+			} else if (warning >= 3) {
+				summary.textContent = 'Several performance warnings need attention.';
+			} else if (warning > 0) {
+				summary.textContent = 'Performance warning needs attention.';
+			} else {
 				summary.textContent = 'No unresolved warnings or errors.';
 			}
 		}

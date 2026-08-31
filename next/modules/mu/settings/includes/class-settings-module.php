@@ -47,10 +47,9 @@ class Settings_Module implements Module_Contract {
 						echo UI::indicator_button(
 							'wrench',
 							__( 'Fix all fixable performance warnings', 'airfiber-centralized' ),
-							array(
-								array( 'value' => (string) $status['warning_count'], 'variant' => 'warning' ),
-								array( 'value' => (string) $status['error_count'], 'variant' => 'danger' ),
-							),
+							empty( $status['total'] )
+								? array()
+								: array( array( 'value' => '', 'variant' => self::performance_indicator_variant( $status ) ) ),
 							array(
 								'class' => 'afcn-settings-fix-all',
 								'attrs' => array(
@@ -361,11 +360,23 @@ class Settings_Module implements Module_Contract {
 		if ( empty( $status['total'] ) ) {
 			return __( 'No unresolved warnings or errors.', 'airfiber-centralized' );
 		}
-		return sprintf(
-			__( '%1$d warnings · %2$d errors', 'airfiber-centralized' ),
-			(int) $status['warning_count'],
-			(int) $status['error_count']
-		);
+		if ( ! empty( $status['error_count'] ) ) {
+			return __( 'Errors need attention.', 'airfiber-centralized' );
+		}
+		if ( (int) $status['warning_count'] >= 3 ) {
+			return __( 'Several performance warnings need attention.', 'airfiber-centralized' );
+		}
+		return __( 'Performance warning needs attention.', 'airfiber-centralized' );
+	}
+
+	private static function performance_indicator_variant( $status ) {
+		if ( ! empty( $status['error_count'] ) ) {
+			return 'danger';
+		}
+		if ( (int) $status['warning_count'] >= 3 ) {
+			return 'orange';
+		}
+		return 'warning';
 	}
 
 	private static function can_fix() {

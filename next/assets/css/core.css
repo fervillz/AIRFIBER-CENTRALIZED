@@ -216,6 +216,7 @@ dialog.afcn-dialog-large{width:min(860px,calc(100vw - 28px))}
 .afcn-indicator-badge{--afcn-indicator-tone:var(--afcn-neutral);display:inline-flex;min-width:17px;height:17px;align-items:center;justify-content:center;padding:0 4px;border:2px solid #fff;border-radius:999px;background:var(--afcn-indicator-tone);box-shadow:0 2px 7px rgba(24,36,51,.17);color:#fff;font-size:10px;font-weight:400;line-height:1}
 .afcn-indicator-badge+.afcn-indicator-badge::before{position:absolute}
 .afcn-indicator-warning{--afcn-indicator-tone:var(--afcn-warning);color:#382900}
+.afcn-indicator-orange{--afcn-indicator-tone:#f08c00}
 .afcn-indicator-danger,.afcn-indicator-error{--afcn-indicator-tone:var(--afcn-danger)}
 .afcn-indicator-success{--afcn-indicator-tone:var(--afcn-success)}
 .afcn-indicator-info{--afcn-indicator-tone:var(--afcn-info)}
