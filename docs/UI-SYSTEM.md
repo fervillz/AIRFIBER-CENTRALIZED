@@ -40,18 +40,56 @@ Core CSS currently includes:
 - shared cards/list view controller and title toggle
 - shared compact drill-down header for in-page child-card views
 - shared bounded data-table browser styling with search and pagination
+- shared accessible tabs with top, bottom, left and right placement
 - shared hover/lift behavior
 - shared tooltip styling and motion
 - shared SVG icon sizing
 - Module Manager tabs/search/card layout
 
-`Airfiber\Next\UI` provides basic PHP helpers for buttons, fields, selects, badges and notices.
+`Airfiber\Next\UI` provides basic PHP helpers for buttons, fields, selects, badges, notices and shared tabs.
 
 `Airfiber\Next\Tooltip` is the single tooltip API. It supports plain text, up/down motion, alternate backgrounds and an optional tooltip action. Default background is black. Tooltip enter/exit uses opacity and vertical movement instead of abruptly appearing/disappearing.
 
 `Airfiber\Next\Icon` supplies small dependency-free SVG icons for shared controls.
 
 `Airfiber\Next\Data_Query` is the reusable server-side search/paging helper for bounded row sets. Modules keep ownership of retrieval and permissions, then pass safe rows into Core. By default search matches all scalar values in each row, so future modules can add fields without rewriting the search engine; an optional `search_fields` list can narrow matching when needed.
+
+## Shared tabs — Core 0.4.28
+
+Core owns one tab component for pages, cards and dialogs. It follows the normal BETA surface, radius, border, muted-text, blue-active-state and motion language rather than introducing module-specific tab bars.
+
+Use the PHP helper:
+
+```php
+echo \Airfiber\Next\UI::tabs(
+    'device-tabs',
+    array(
+        'basic' => array(
+            'label'   => 'Basic',
+            'content' => '<div>...</div>',
+        ),
+        'status' => array(
+            'label'   => 'Status',
+            'content' => '<div>...</div>',
+        ),
+    ),
+    array(
+        'position' => 'top', // top, bottom, left, right
+        'active'   => 'basic',
+        'label'    => 'Device sections',
+    )
+);
+```
+
+The browser runtime is available as `window.AirfiberTabs` and as `window.AirfiberNext.tabs`:
+
+```js
+AirfiberTabs.activate(document.querySelector('[data-afcn-tabs]'), 'status');
+```
+
+Core handles click switching, `aria-selected`, panel visibility, roving `tabindex`, Home/End navigation, horizontal Left/Right keys, vertical Up/Down keys, disabled tabs, and the bubbling `afcn:tab:change` event. Left/right tabs collapse to the horizontal top layout on narrow screens so dialog/page content stays usable.
+
+Modules may hand-write the same `data-afcn-tabs`, `data-afcn-tab`, and `data-afcn-tab-panel` contract when content must be assembled incrementally, but they should not recreate tab styling or a separate tab runtime.
 
 ## Shared bounded data tables
 

@@ -8,7 +8,7 @@ Build Airfiber Next/BETA as an isolated, very fast application platform inside t
 
 BETA URL: `/airfiber-beta/`.
 
-Airfiber Next Core version: **0.4.27**.
+Airfiber Next Core version: **0.4.28**.
 
 ## Boundary
 
@@ -22,6 +22,7 @@ Classic stays in `includes/`, `templates/`, and `assets/`. Next/BETA lives under
 - shared UI system: Source Serif 4 headings, 9px controls, 14px dialogs, shared cards/tooltips/icons/motion
 - shared compact Core drill-down header for primary-card → child-card views; dialogs remain separate
 - shared Core `Data_Query` search/paging helper and modern bounded data-table browser; remote modules can page from short-lived safe caches
+- shared Core Tabs component with accessible top/bottom/left/right layouts and keyboard navigation
 - one shared responsive 680 × 680 BETA dialog frame; long dialog bodies scroll while header/footer stay fixed
 - one shared BETA dialog header close control using `.afcn-icon-button`, styled from the proven Classic Connections modal
 - sitewide BETA button states with top-right loading/success/warning/error/disabled badges and shared tooltip messages

@@ -345,10 +345,21 @@ class Routers_Module implements Module_Contract {
 					<button type="button" class="afcn-icon-button" data-afcn-dialog-close aria-label="<?php esc_attr_e( 'Close', 'airfiber-centralized' ); ?>">×</button>
 				</div>
 				<div class="afcn-dialog-body">
-					<div class="afcn-router-detail-tabbar" role="tablist" aria-label="<?php esc_attr_e( 'Interface detail sections', 'airfiber-centralized' ); ?>">
-						<button type="button" class="afcn-router-detail-tab is-active" role="tab" aria-selected="true"><?php esc_html_e( 'Basic', 'airfiber-centralized' ); ?></button>
-					</div>
-					<div class="afcn-router-interface-basic" data-afcn-interface-detail-body></div>
+					<?php
+					echo UI::tabs(
+						'afcn-router-interface-tabs',
+						array(
+							'basic' => array(
+								'label'   => __( 'Basic', 'airfiber-centralized' ),
+								'content' => '<div class="afcn-router-interface-basic" data-afcn-interface-detail-body></div>',
+							),
+						),
+						array(
+							'position' => 'top',
+							'label'    => __( 'Interface detail sections', 'airfiber-centralized' ),
+						)
+					); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+					?>
 				</div>
 				<div class="afcn-dialog-footer">
 					<button type="button" class="afcn-button afcn-button-secondary" data-afcn-dialog-close><?php esc_html_e( 'Close', 'airfiber-centralized' ); ?></button>

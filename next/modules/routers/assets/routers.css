@@ -21,10 +21,6 @@
 [data-afcn-router-browser-head][hidden]{display:none!important}
 .afcn-router-scope-results.is-loading .afcn-card-body{opacity:.58;transition:opacity var(--afcn-transition)}
 .afcn-router-scope-results .afcn-card-body{transition:opacity var(--afcn-transition)}
-.afcn-router-detail-tabbar{display:flex;gap:4px;margin:-4px 0 16px;border-bottom:1px solid #e7edf3}
-.afcn-router-detail-tab{position:relative;padding:8px 3px 10px;border:0;background:transparent;color:var(--afcn-muted);font:inherit;font-size:11px;font-weight:650;cursor:default}
-.afcn-router-detail-tab.is-active{color:var(--afcn-primary)}
-.afcn-router-detail-tab.is-active::after{position:absolute;right:0;bottom:-1px;left:0;height:2px;border-radius:2px;background:var(--afcn-primary);content:""}
 .afcn-router-interface-detail-grid{display:grid;grid-template-columns:minmax(120px,.55fr) minmax(0,1fr);margin:0;border:1px solid var(--afcn-border);border-radius:10px;overflow:hidden;background:#fff}
 .afcn-router-interface-detail-grid dt,.afcn-router-interface-detail-grid dd{margin:0;padding:10px 12px;border-bottom:1px solid #edf1f5}
 .afcn-router-interface-detail-grid dt{background:#f7f9fc;color:var(--afcn-muted);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.04em}

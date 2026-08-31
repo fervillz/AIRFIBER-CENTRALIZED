@@ -483,6 +483,114 @@
 		}
 	}
 
+	function tabButtons(container) {
+		return Array.from(container.querySelectorAll('[data-afcn-tab]')).filter(function (button) {
+			return button.closest('[data-afcn-tabs]') === container;
+		});
+	}
+
+	function tabPanels(container) {
+		return Array.from(container.querySelectorAll('[data-afcn-tab-panel]')).filter(function (panel) {
+			return panel.closest('[data-afcn-tabs]') === container;
+		});
+	}
+
+	function activateTab(container, key, options) {
+		options = options || {};
+		if (!container) {
+			return false;
+		}
+		key = String(key || '');
+		const buttons = tabButtons(container);
+		const target = buttons.find(function (button) {
+			return button.dataset.afcnTab === key && !button.disabled;
+		});
+		if (!target) {
+			return false;
+		}
+
+		buttons.forEach(function (button) {
+			const active = button === target;
+			button.classList.toggle('is-active', active);
+			button.setAttribute('aria-selected', active ? 'true' : 'false');
+			button.tabIndex = active ? 0 : -1;
+		});
+		tabPanels(container).forEach(function (panel) {
+			const active = panel.dataset.afcnTabPanel === key;
+			panel.hidden = !active;
+			panel.classList.toggle('is-active', active);
+		});
+
+		if (options.focus) {
+			target.focus();
+		}
+		if (!options.silent) {
+			container.dispatchEvent(new CustomEvent('afcn:tab:change', {
+				bubbles: true,
+				detail: { key: key, tab: target, container: container }
+			}));
+		}
+		return true;
+	}
+
+	function wireTabs(root) {
+		const containers = [];
+		if (root && root.matches && root.matches('[data-afcn-tabs]')) {
+			containers.push(root);
+		}
+		if (root && root.querySelectorAll) {
+			root.querySelectorAll('[data-afcn-tabs]').forEach(function (container) {
+				containers.push(container);
+			});
+		}
+
+		containers.forEach(function (container) {
+			if (container.dataset.afcnTabsWired) {
+				return;
+			}
+			container.dataset.afcnTabsWired = '1';
+			const buttons = tabButtons(container);
+			if (!buttons.length) {
+				return;
+			}
+
+			buttons.forEach(function (button) {
+				button.addEventListener('click', function () {
+					activateTab(container, button.dataset.afcnTab, { focus: false });
+				});
+				button.addEventListener('keydown', function (event) {
+					const enabled = buttons.filter(function (item) { return !item.disabled; });
+					const current = enabled.indexOf(button);
+					if (current < 0) {
+						return;
+					}
+					const vertical = ['left', 'right'].includes(container.dataset.afcnTabsPosition || 'top');
+					let next = -1;
+					if (event.key === 'Home') {
+						next = 0;
+					} else if (event.key === 'End') {
+						next = enabled.length - 1;
+					} else if ((!vertical && event.key === 'ArrowRight') || (vertical && event.key === 'ArrowDown')) {
+						next = (current + 1) % enabled.length;
+					} else if ((!vertical && event.key === 'ArrowLeft') || (vertical && event.key === 'ArrowUp')) {
+						next = (current - 1 + enabled.length) % enabled.length;
+					}
+					if (next >= 0) {
+						event.preventDefault();
+						activateTab(container, enabled[next].dataset.afcnTab, { focus: true });
+					}
+				});
+			});
+
+			const selected = buttons.find(function (button) {
+				return button.getAttribute('aria-selected') === 'true' && !button.disabled;
+			}) || buttons.find(function (button) { return !button.disabled; });
+			if (selected) {
+				activateTab(container, selected.dataset.afcnTab, { silent: true });
+			}
+		});
+	}
+
 	function wireModule(root) {
 		if (uiStatus) {
 			uiStatus.wire(root);
@@ -508,6 +616,8 @@
 				openDialog(button.dataset.afcnDialogOpen);
 			});
 		});
+
+		wireTabs(root);
 
 		root.querySelectorAll('[data-afcn-dialog-close]').forEach(function (button) {
 			if (button.dataset.afcnWired) {
@@ -563,6 +673,11 @@
 		}
 	});
 
+	window.AirfiberTabs = Object.freeze({
+		wire: wireTabs,
+		activate: function (container, key) { return activateTab(container, key, {}); }
+	});
+
 	window.AirfiberNext = Object.freeze({
 		request: api,
 		loadModule: loadModule,
@@ -573,6 +688,7 @@
 		openDialog: openDialog,
 		closeDialog: closeDialog,
 		wire: wireModule,
+		tabs: window.AirfiberTabs,
 		status: uiStatus,
 		config: cfg
 	});
