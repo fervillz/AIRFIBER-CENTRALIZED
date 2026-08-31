@@ -8,7 +8,7 @@ Build Airfiber Next/BETA as an isolated, very fast application platform inside t
 
 BETA URL: `/airfiber-beta/`.
 
-Airfiber Next Core version: **0.4.30**.
+Airfiber Next Core version: **0.4.31**.
 
 ## Boundary
 
@@ -42,6 +42,7 @@ Classic stays in `includes/`, `templates/`, and `assets/`. Next/BETA lives under
 - normal Connections add-on with Classic read-only connector bridge
 - generic connector-field `show_when` metadata and unsaved form **Connect** probes
 - first native read-only OLT provider using Connection_Store / Secret_Store / Connection_Health
+- first BETA Payments module: zero-load focused customer search, 3-character debounced AJAX lookup, max 10 ranked PPP matches, 20-second search cache and narrow payment-only RouterOS write path
 - generic nested navigation (`parent`) and utility presentation (`presentation: drawer`)
 - Super-Admin-only Tools developer console and resilient performance FIX workflow
 - resolved-warning lifecycle that keeps history but removes successfully remediated warnings from the active table

@@ -12,6 +12,7 @@ Airfiber Next/BETA is an internal application platform inside Airfiber Centraliz
 - [Architecture](ARCHITECTURE.md) — Core/module boundaries and runtime design.
 - [UI System](UI-SYSTEM.md) — shared visual language, interaction rules and Core/module boundaries.
 - [UI Components](UI-COMPONENTS.md) — quick reference for buttons, counters, status, alerts, lists, forms, tabs, menus, progress and dialogs.
+- [Payments Module](PAYMENTS-MODULE.md) — focused customer search, bounded RouterOS lookup and the first BETA payment-recording flow.
 - [Performance Contract](PERFORMANCE-CONTRACT.md) — budgets, profiling and fast-by-design rules.
 - [Connectors](CONNECTORS.md) — connection types, credential storage and provider integration.
 - [Architecture Decisions](DECISIONS.md) — important decisions and why they were made.
