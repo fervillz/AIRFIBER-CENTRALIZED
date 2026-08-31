@@ -23,7 +23,11 @@
 		if (!detail || detail.dataset.afcnDefaultScopeScheduled) {
 			return;
 		}
-		const button = detail.querySelector('[data-afcn-router-scope-load][data-afcn-scope="interfaces"]');
+		const view = detail.dataset.afcnView === 'cards' ? 'cards' : 'list';
+		const host = view === 'cards'
+			? detail.querySelector('[data-afcn-router-scope-card-view]')
+			: detail.querySelector('[data-afcn-router-scope-tabs-view]');
+		const button = host ? host.querySelector('[data-afcn-router-scope-load][data-afcn-scope="interfaces"]') : null;
 		if (!button || button.dataset.afcnScopeLoaded) {
 			return;
 		}
@@ -339,13 +343,22 @@
 		}
 	}
 
+	function scopeResultsForButton(button, detail) {
+		const panel = button.closest('[data-afcn-router-scope-panel]');
+		if (panel) {
+			return panel.querySelector('[data-afcn-router-scope-results]');
+		}
+		const cardView = button.closest('[data-afcn-router-scope-card-view]');
+		return cardView ? cardView.querySelector('[data-afcn-router-card-results]') : null;
+	}
+
 	async function loadScope(button, options) {
 		options = options || {};
 		if (!window.AirfiberNext || typeof window.AirfiberNext.query !== 'function') {
 			return;
 		}
 		const detail = button.closest('[data-afcn-router-detail]');
-		const results = detail ? detail.querySelector('[data-afcn-router-scope-results]') : null;
+		const results = detail ? scopeResultsForButton(button, detail) : null;
 		const output = results ? results.querySelector('[data-afcn-router-scope-output]') : null;
 		const title = results ? results.querySelector('[data-afcn-router-scope-result-title]') : null;
 		if (!output || !results) {
@@ -387,8 +400,17 @@
 				return;
 			}
 			renderScope(output, result || {}, button, options);
-			button.dataset.afcnScopeLoaded = '1';
-			button.textContent = 'Refresh';
+			if (detail) {
+				detail.querySelectorAll('[data-afcn-router-scope-load]').forEach(function (scopeButton) {
+					if (scopeButton.dataset.afcnScope === button.dataset.afcnScope) {
+						scopeButton.dataset.afcnScopeLoaded = '1';
+						scopeButton.textContent = 'Refresh';
+					}
+				});
+			} else {
+				button.dataset.afcnScopeLoaded = '1';
+				button.textContent = 'Refresh';
+			}
 			if (showButtonStatus && status) {
 				status.success(button, result && result.cache_hit ? 'Cached router data loaded.' : 'Router data loaded.', { alert: false, transient: true, delay: 1400 });
 			}
@@ -525,6 +547,64 @@
 		});
 	}
 
+	function wireRouterScopeViews(root) {
+		if (!window.AirfiberViewMode) {
+			return;
+		}
+
+		root.querySelectorAll('[data-afcn-router-detail]').forEach(function (detail) {
+			if (detail.dataset.afcnRouterScopeViewWired) {
+				return;
+			}
+			const tabs = detail.querySelector('[data-afcn-router-scope-tabs-view]');
+			const cards = detail.querySelector('[data-afcn-router-scope-card-view]');
+			if (!tabs || !cards) {
+				return;
+			}
+
+			const connectionId = detail.dataset.afcnRouterDetail || 'router';
+			const controller = window.AirfiberViewMode.attach(detail, {
+				key: 'router-scopes-' + connectionId,
+				cards: cards,
+				list: tabs,
+				title: '.afcn-drilldown-title',
+				defaultView: 'list',
+				listLabel: 'Show tabs',
+				cardsLabel: 'Show cards',
+				tooltip: 'Toggle tabs / cards',
+				onChange: function (view) {
+					delete detail.dataset.afcnDefaultScopeScheduled;
+					if (view === 'cards' && window.AirfiberCardOrder && typeof window.AirfiberCardOrder.wire === 'function') {
+						window.AirfiberCardOrder.wire();
+					}
+					if (!detail.hidden) {
+						scheduleDefaultScope(detail);
+					}
+				}
+			});
+			if (!controller) {
+				return;
+			}
+
+			detail.dataset.afcnRouterScopeViewWired = '1';
+			detail.addEventListener('afcn:tab:change', function (event) {
+				const changedTabs = event.detail && event.detail.container;
+				if (!changedTabs || !tabs.contains(changedTabs)) {
+					return;
+				}
+				const key = String(event.detail.key || '');
+				const panel = Array.from(changedTabs.querySelectorAll('[data-afcn-tab-panel]')).find(function (item) {
+					return item.closest('[data-afcn-tabs]') === changedTabs && item.dataset.afcnTabPanel === key;
+				});
+				const button = panel ? panel.querySelector('[data-afcn-router-scope-load]') : null;
+				if (button && !button.dataset.afcnScopeLoaded) {
+					loadScope(button, { page: 1, search: '', refresh: false, source: 'tab' });
+				}
+			});
+		});
+	}
+
+
 	function wireRouterBrowser(root) {
 		const browser = root.querySelector('[data-afcn-router-browser]');
 		if (!browser || browser.dataset.afcnRouterViewWired || !window.AirfiberViewMode) {
@@ -579,6 +659,7 @@
 
 		current.querySelectorAll('[data-afcn-router-form]').forEach(wireRouterForm);
 		wireRouterSelectButtons(current);
+		wireRouterScopeViews(current);
 		wireRouterBrowser(current);
 		current.querySelectorAll('[data-afcn-router-scope-load]').forEach(function (button) {
 			if (button.dataset.afcnRouterWired) {

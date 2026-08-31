@@ -15,11 +15,13 @@
 		return 'afcn-view-mode.' + String(key || 'default');
 	}
 
-	function readView(key) {
+	function readView(key, fallback) {
+		fallback = fallback === 'list' ? 'list' : 'cards';
 		try {
-			return window.localStorage.getItem(storageKey(key)) === 'list' ? 'list' : 'cards';
+			const stored = window.localStorage.getItem(storageKey(key));
+			return stored === 'list' || stored === 'cards' ? stored : fallback;
 		} catch (error) {
-			return 'cards';
+			return fallback;
 		}
 	}
 
@@ -31,10 +33,13 @@
 		}
 	}
 
-	function createToggle(title) {
+	function createToggle(title, options) {
 		if (!title || !title.parentElement) {
 			return null;
 		}
+		options = options || {};
+		const listLabel = options.listLabel || 'Show list';
+		const tooltip = options.tooltip || 'Toggle cards / list';
 
 		let row = title.closest('.afcn-view-title-row,.afcn-users-title-row');
 		if (!row) {
@@ -46,7 +51,7 @@
 
 		const wrapper = document.createElement('span');
 		wrapper.className = 'afcn-tooltip afcn-tooltip-down';
-		wrapper.innerHTML = '<span class="afcn-tooltip-trigger"><button type="button" class="afcn-view-toggle" data-afcn-view-toggle aria-label="Show list"><span class="afcn-view-list-icon">' + icon('list') + '</span><span class="afcn-view-grid-icon">' + icon('grid') + '</span></button></span><span class="afcn-tooltip-panel" role="tooltip">Toggle cards / list</span>';
+		wrapper.innerHTML = '<span class="afcn-tooltip-trigger"><button type="button" class="afcn-view-toggle" data-afcn-view-toggle aria-label="' + listLabel + '"><span class="afcn-view-list-icon">' + icon('list') + '</span><span class="afcn-view-grid-icon">' + icon('grid') + '</span></button></span><span class="afcn-tooltip-panel" role="tooltip">' + tooltip + '</span>';
 		row.appendChild(wrapper);
 		return wrapper.querySelector('[data-afcn-view-toggle]');
 	}
@@ -70,7 +75,7 @@
 		controller.cards.hidden = useList;
 		controller.list.hidden = !useList;
 		controller.toggle.classList.toggle('is-list', useList);
-		controller.toggle.setAttribute('aria-label', useList ? 'Show cards' : 'Show list');
+		controller.toggle.setAttribute('aria-label', useList ? controller.cardsLabel : controller.listLabel);
 		controller.root.dataset.afcnView = useList ? 'list' : 'cards';
 
 		if (persist !== false) {
@@ -110,7 +115,7 @@
 		const list = resolve(root, options.list);
 		let toggle = resolve(root, options.toggle || '[data-afcn-view-toggle]');
 		if (!toggle && options.title) {
-			toggle = createToggle(resolve(root, options.title));
+			toggle = createToggle(resolve(root, options.title), options);
 		}
 		if (!cards || !list || !toggle) {
 			return null;
@@ -124,6 +129,9 @@
 			toggle: toggle,
 			beforeList: options.beforeList || null,
 			onChange: options.onChange || null,
+			defaultView: options.defaultView === 'list' ? 'list' : 'cards',
+			listLabel: options.listLabel || 'Show list',
+			cardsLabel: options.cardsLabel || 'Show cards',
 			set: function (view) {
 				setView(controller, view, true);
 			},
@@ -136,7 +144,7 @@
 			setView(controller, controller.get() === 'list' ? 'cards' : 'list', true);
 		});
 		registry.set(root, controller);
-		setView(controller, readView(controller.key), false);
+		setView(controller, readView(controller.key, controller.defaultView), false);
 		return controller;
 	}
 

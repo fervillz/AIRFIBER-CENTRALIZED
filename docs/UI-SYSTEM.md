@@ -215,7 +215,7 @@ The runtime is dependency-free vanilla Pointer Events + `requestAnimationFrame` 
 
 ## Shared cards / list view
 
-Core 0.4.14 owns the cards/list switch through `window.AirfiberViewMode`. The control uses the same list and grid/thumbnail icons, tooltip behavior and 32 px title control that Users originally introduced. Feature modules should not create another view-toggle component.
+Core 0.4.14 owns the cards/list switch through `window.AirfiberViewMode`. Core 0.4.29 extends the same controller with a configurable default view and labels, so a feature can reuse the list/grid toggle for equivalent presentations such as **tabs/cards** without creating another switch. The Router drill-down uses this with left tabs as the default and cards as the alternate view. The control keeps the same list and grid/thumbnail icons, tooltip behavior and 32 px title control. Feature modules should not create another view-toggle component.
 
 The shared controller:
 
