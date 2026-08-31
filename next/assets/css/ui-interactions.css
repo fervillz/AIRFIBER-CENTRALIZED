@@ -211,7 +211,8 @@ body.afcn-page button:disabled:not(.is-afcn-loading){border-color:var(--afcn-sta
  */
 dialog.afcn-dialog{
 	width:min(var(--afcn-dialog-width),calc(100vw - 28px));
-	height:auto;
+	height:fit-content;
+	min-height:0;
 	max-height:min(var(--afcn-dialog-height),calc(100dvh - 28px));
 	overflow:hidden;
 	transition:box-shadow .22s ease;
@@ -235,6 +236,7 @@ dialog.afcn-dialog>form,
 dialog.afcn-dialog>.afcn-dialog-shell{
 	display:flex;
 	width:100%;
+	height:fit-content;
 	max-height:inherit;
 	min-height:0;
 	flex-direction:column;
@@ -373,7 +375,8 @@ dialog.afcn-dialog form[data-afcn-action$="-add"] .afcn-dialog-footer [data-afcn
 @media(max-width:620px){
 	dialog.afcn-dialog{
 		width:calc(100vw - 18px);
-		height:auto;
+		height:fit-content;
+		min-height:0;
 		max-height:calc(100dvh - 18px);
 	}
 }
