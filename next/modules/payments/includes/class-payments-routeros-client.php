@@ -3,8 +3,6 @@
 namespace Airfiber\Next\Modules\Payments;
 
 use Airfiber\Next\Secret_Store;
-use Airfiber\Next\Modules\Routers\RouterOS_API_Client;
-
 defined( 'ABSPATH' ) || exit;
 
 /**
@@ -15,44 +13,43 @@ defined( 'ABSPATH' ) || exit;
  */
 class Payments_RouterOS_Client {
 
-	const SEARCH_LIMIT = 16;
-
-	public static function search( $record, $query ) {
-		$pattern = self::search_pattern( $query );
-		if ( '' === $pattern ) {
-			return array();
+	/**
+	 * Read a bounded PPP-secret inventory for the Payments search index.
+	 *
+	 * Raw comments exist only for this request and are never persisted by this
+	 * transport. The Payments module converts them to a safe index before cache.
+	 */
+	public static function inventory( $record ) {
+		$context = self::connection_context( $record );
+		if ( is_wp_error( $context ) ) {
+			return $context;
+		}
+		$socket = self::open_socket( $context );
+		if ( is_wp_error( $socket ) ) {
+			return $socket;
 		}
 
-		$property_list = '=.proplist=.id,name,profile,comment,disabled,remote-address';
-		$result        = RouterOS_API_Client::request(
-			$record,
-			array(),
+		$login = self::login( $socket, $context );
+		if ( is_wp_error( $login ) ) {
+			fclose( $socket );
+			return $login;
+		}
+
+		$ok = self::write_sentence(
+			$socket,
 			array(
-				'account' => array(
-					'words' => array( '/ppp/secret/print', $property_list, '?name~' . $pattern ),
-					'limit' => self::SEARCH_LIMIT,
-				),
-				'comment' => array(
-					'words' => array( '/ppp/secret/print', $property_list, '?comment~' . $pattern ),
-					'limit' => self::SEARCH_LIMIT,
-				),
+				'/ppp/secret/print',
+				'=.proplist=.id,name,profile,comment,disabled,remote-address',
 			)
 		);
-		if ( is_wp_error( $result ) ) {
-			return $result;
+		if ( ! $ok ) {
+			fclose( $socket );
+			return new \WP_Error( 'afcn_payment_router_write', __( 'The router connection closed while reading PPP accounts.', 'airfiber-centralized' ) );
 		}
 
-		$rows = array();
-		foreach ( array( 'account', 'comment' ) as $group ) {
-			foreach ( (array) ( isset( $result[ $group ]['rows'] ) ? $result[ $group ]['rows'] : array() ) as $row ) {
-				if ( ! is_array( $row ) || empty( $row['name'] ) ) {
-					continue;
-				}
-				$key          = isset( $row['.id'] ) && '' !== (string) $row['.id'] ? (string) $row['.id'] : (string) $row['name'];
-				$rows[ $key ] = $row;
-			}
-		}
-		return array_values( $rows );
+		$result = self::read_rows( $socket, 5000 );
+		fclose( $socket );
+		return $result;
 	}
 
 	public static function secret( $record, $account ) {
@@ -61,26 +58,41 @@ class Payments_RouterOS_Client {
 			return new \WP_Error( 'afcn_payment_account', __( 'The PPP account is missing.', 'airfiber-centralized' ), array( 'status' => 400 ) );
 		}
 
-		$result = RouterOS_API_Client::request(
-			$record,
-			array(),
+		$context = self::connection_context( $record );
+		if ( is_wp_error( $context ) ) {
+			return $context;
+		}
+		$socket = self::open_socket( $context );
+		if ( is_wp_error( $socket ) ) {
+			return $socket;
+		}
+
+		$login = self::login( $socket, $context );
+		if ( is_wp_error( $login ) ) {
+			fclose( $socket );
+			return $login;
+		}
+
+		$ok = self::write_sentence(
+			$socket,
 			array(
-				'secret' => array(
-					'words' => array(
-						'/ppp/secret/print',
-						'=.proplist=.id,name,profile,comment,disabled,remote-address',
-						'?name=' . $account,
-					),
-					'limit' => 2,
-				),
+				'/ppp/secret/print',
+				'=.proplist=.id,name,profile,comment,disabled,remote-address',
+				'?name=' . $account,
 			)
 		);
+		if ( ! $ok ) {
+			fclose( $socket );
+			return new \WP_Error( 'afcn_payment_router_write', __( 'The router connection closed while verifying the PPP account.', 'airfiber-centralized' ) );
+		}
+
+		$result = self::read_rows( $socket, 2 );
+		fclose( $socket );
 		if ( is_wp_error( $result ) ) {
 			return $result;
 		}
 
-		$rows = isset( $result['secret']['rows'] ) ? (array) $result['secret']['rows'] : array();
-		foreach ( $rows as $row ) {
+		foreach ( (array) $result['rows'] as $row ) {
 			if ( isset( $row['name'] ) && (string) $row['name'] === $account ) {
 				return $row;
 			}
@@ -104,11 +116,7 @@ class Payments_RouterOS_Client {
 			return $socket;
 		}
 
-		if ( ! self::write_sentence( $socket, array( '/login', '=name=' . $context['username'], '=password=' . $context['password'] ) ) ) {
-			fclose( $socket );
-			return new \WP_Error( 'afcn_payment_router_write', __( 'The router connection closed while signing in.', 'airfiber-centralized' ) );
-		}
-		$login = self::read_done( $socket );
+		$login = self::login( $socket, $context );
 		if ( is_wp_error( $login ) ) {
 			fclose( $socket );
 			return $login;
@@ -130,31 +138,6 @@ class Payments_RouterOS_Client {
 		$result = self::read_done( $socket );
 		fclose( $socket );
 		return is_wp_error( $result ) ? $result : true;
-	}
-
-	private static function search_pattern( $query ) {
-		$query = trim( substr( sanitize_text_field( (string) $query ), 0, 48 ) );
-		if ( '' === $query ) {
-			return '';
-		}
-
-		$pattern = '';
-		$length  = strlen( $query );
-		for ( $i = 0; $i < $length; $i++ ) {
-			$char = $query[ $i ];
-			if ( preg_match( '/[A-Za-z]/', $char ) ) {
-				$lower    = strtolower( $char );
-				$upper    = strtoupper( $char );
-				$pattern .= '[' . $lower . $upper . ']';
-			} elseif ( ctype_space( $char ) ) {
-				$pattern .= '.*';
-			} elseif ( preg_match( '/[0-9_-]/', $char ) ) {
-				$pattern .= $char;
-			} else {
-				$pattern .= '\\' . $char;
-			}
-		}
-		return $pattern;
 	}
 
 	private static function connection_context( $record ) {
@@ -232,6 +215,77 @@ class Payments_RouterOS_Client {
 			$written += $chunk;
 		}
 		return true;
+	}
+
+	private static function login( $socket, $context ) {
+		if ( ! self::write_sentence( $socket, array( '/login', '=name=' . $context['username'], '=password=' . $context['password'] ) ) ) {
+			return new \WP_Error( 'afcn_payment_router_write', __( 'The router connection closed while signing in.', 'airfiber-centralized' ) );
+		}
+		return self::read_done( $socket );
+	}
+
+	private static function read_rows( $socket, $max_rows ) {
+		$rows      = array();
+		$current   = array();
+		$truncated = false;
+		$max_rows  = max( 1, min( 5000, (int) $max_rows ) );
+
+		while ( ! feof( $socket ) ) {
+			$word = self::read_word( $socket );
+			if ( false === $word ) {
+				$meta = stream_get_meta_data( $socket );
+				return new \WP_Error(
+					! empty( $meta['timed_out'] ) ? 'afcn_payment_router_timeout' : 'afcn_payment_router_closed',
+					! empty( $meta['timed_out'] ) ? __( 'The router request timed out.', 'airfiber-centralized' ) : __( 'The router closed the connection unexpectedly.', 'airfiber-centralized' )
+				);
+			}
+
+			if ( '' === $word ) {
+				$type = isset( $current[0] ) ? $current[0] : '';
+				if ( '!trap' === $type || '!fatal' === $type ) {
+					$message = isset( $current['message'] ) ? sanitize_text_field( $current['message'] ) : __( 'RouterOS rejected the payment request.', 'airfiber-centralized' );
+					return new \WP_Error( 'afcn_payment_router_trap', $message );
+				}
+				if ( '!re' === $type ) {
+					unset( $current[0] );
+					if ( count( $rows ) >= $max_rows ) {
+						$truncated = true;
+						return array( 'rows' => $rows, 'truncated' => $truncated );
+					}
+					$rows[] = self::sanitize_payment_row( $current );
+				}
+				if ( '!done' === $type ) {
+					return array( 'rows' => $rows, 'truncated' => $truncated );
+				}
+				$current = array();
+				continue;
+			}
+
+			if ( 0 === strpos( $word, '=' ) ) {
+				$parts = explode( '=', substr( $word, 1 ), 2 );
+				$current[ $parts[0] ] = isset( $parts[1] ) ? $parts[1] : '';
+			} else {
+				$current[] = $word;
+			}
+		}
+
+		return new \WP_Error( 'afcn_payment_router_closed', __( 'The router closed the connection unexpectedly.', 'airfiber-centralized' ) );
+	}
+
+	private static function sanitize_payment_row( $row ) {
+		$allowed = array( '.id', 'name', 'profile', 'comment', 'disabled', 'remote-address' );
+		$output  = array();
+		foreach ( $allowed as $key ) {
+			if ( ! isset( $row[ $key ] ) || is_array( $row[ $key ] ) || is_object( $row[ $key ] ) ) {
+				continue;
+			}
+			if ( 'comment' === $key ) {
+				$output[ $key ] = substr( sanitize_textarea_field( (string) $row[ $key ] ), 0, 8000 );
+			} else {
+				$output[ $key ] = substr( sanitize_text_field( (string) $row[ $key ] ), 0, 500 );
+			}
+		}
+		return $output;
 	}
 
 	private static function read_done( $socket ) {

@@ -15,9 +15,9 @@ Classic Basic waits for the main PPP screen to load the full PPP secret inventor
 
 BETA does no customer or RouterOS work during module render.
 
-Search begins only after 3 characters and is debounced in the browser. The server sends fixed, read-only RouterOS PPP queries against account names and structured comments, ranks the matches, and returns at most 10 safe result rows. It does not fetch active sessions or OLT information.
+Search begins only after 3 characters and is debounced in the browser. The first search builds a bounded, safe PPP search index from the router's PPP secrets, then all matching is performed server-side against customer name, PPP account, phone and address. The raw structured comment is used only while building the index and is not cached or sent to the browser. The safe index is reused for 90 seconds and the browser receives at most 10 ranked matches. It does not fetch active sessions or OLT information.
 
-Search responses are cached for 20 seconds. The browser ignores stale responses when the user keeps typing.
+The browser ignores stale responses when the user keeps typing. Payment verification re-reads the exact PPP secret with the Payments transport so a long structured comment is preserved rather than passing through the generic 500-character Router display sanitizer.
 
 ## Router boundary
 

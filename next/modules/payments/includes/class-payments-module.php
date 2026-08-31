@@ -12,9 +12,9 @@ defined( 'ABSPATH' ) || exit;
 
 class Payments_Module implements Module_Contract {
 
-	const MIN_QUERY        = 3;
-	const MAX_RESULTS      = 10;
-	const SEARCH_CACHE_TTL = 20;
+	const MIN_QUERY       = 3;
+	const MAX_RESULTS     = 10;
+	const INDEX_CACHE_TTL = 90;
 
 	public static function render( $context = array() ) {
 		$routers = self::payment_routers();
@@ -44,7 +44,8 @@ class Payments_Module implements Module_Contract {
 					<span class="afcn-payment-search-icon" aria-hidden="true"></span>
 					<input
 						id="afcn-payment-search"
-						type="search"
+						type="text"
+						enterkeyhint="search"
 						autocomplete="off"
 						autocapitalize="none"
 						spellcheck="false"
@@ -87,33 +88,39 @@ class Payments_Module implements Module_Contract {
 			return new \WP_Error( 'afcn_payments_no_router', __( 'No PPP-enabled MikroTik router is available.', 'airfiber-centralized' ), array( 'status' => 409 ) );
 		}
 
-		$cache_key = self::search_cache_key( $term, $routers );
-		$cached    = get_transient( $cache_key );
-		if ( is_array( $cached ) ) {
-			$cached['cache_hit'] = true;
-			return $cached;
-		}
-
-		$started = microtime( true );
-		$results = array();
-		$failed  = 0;
+		$started       = microtime( true );
+		$needle        = self::search_text( $term );
+		$results       = array();
+		$failed        = 0;
+		$cache_hits    = 0;
+		$index_reads   = 0;
+		$index_limited = false;
 
 		foreach ( array_slice( $routers, 0, 12, true ) as $connection_id => $record ) {
-			$router_started = microtime( true );
-			$rows           = Payments_RouterOS_Client::search( $record, $term );
-			$latency        = round( ( microtime( true ) - $router_started ) * 1000, 2 );
-			Performance_Monitor::record_external( 'payments', $latency, 'RouterOS payment search' );
+			$index_started = microtime( true );
+			$index         = self::router_search_index( $connection_id, $record );
+			$latency       = round( ( microtime( true ) - $index_started ) * 1000, 2 );
 
-			if ( is_wp_error( $rows ) ) {
+			if ( is_wp_error( $index ) ) {
 				$failed++;
 				continue;
 			}
+			if ( ! empty( $index['cache_hit'] ) ) {
+				$cache_hits++;
+			} else {
+				$index_reads++;
+				Performance_Monitor::record_external( 'payments', $latency, 'RouterOS payment index' );
+			}
+			if ( ! empty( $index['truncated'] ) ) {
+				$index_limited = true;
+			}
 
-			foreach ( $rows as $row ) {
-				$item = self::search_result( $connection_id, $record, $row, $term );
-				if ( $item ) {
-					$results[] = $item;
+			foreach ( (array) $index['items'] as $item ) {
+				if ( empty( $item['_search'] ) || false === strpos( $item['_search'], $needle ) ) {
+					continue;
 				}
+				$item['_rank'] = self::rank( $item['customer_name'], $item['account'], $needle );
+				$results[]     = $item;
 			}
 		}
 
@@ -139,24 +146,23 @@ class Payments_Module implements Module_Contract {
 				continue;
 			}
 			$seen[ $key ] = true;
-			unset( $result['_rank'] );
+			unset( $result['_rank'], $result['_search'] );
 			$clean[] = $result;
 			if ( count( $clean ) >= self::MAX_RESULTS ) {
 				break;
 			}
 		}
 
-		$response = array(
+		return array(
 			'query'          => $term,
 			'min_characters' => self::MIN_QUERY,
 			'results'        => $clean,
 			'count'          => count( $clean ),
 			'failed_sources' => $failed,
 			'latency_ms'     => round( ( microtime( true ) - $started ) * 1000, 2 ),
-			'cache_hit'      => false,
+			'cache_hit'      => 0 === $index_reads && $cache_hits > 0,
+			'index_limited'  => $index_limited,
 		);
-		set_transient( $cache_key, $response, self::SEARCH_CACHE_TTL );
-		return $response;
 	}
 
 	public static function handle_action( $action, $payload = array() ) {
@@ -208,6 +214,7 @@ class Payments_Module implements Module_Contract {
 		if ( is_wp_error( $updated ) ) {
 			return $updated;
 		}
+		delete_transient( self::index_cache_key( $connection_id, $record ) );
 
 		$user = array(
 			'id'             => $secret_id,
@@ -365,7 +372,37 @@ class Payments_Module implements Module_Contract {
 			|| ( ! empty( $config['read_ppp'] ) && '0' !== (string) $config['read_ppp'] );
 	}
 
-	private static function search_result( $connection_id, $record, $row, $term ) {
+	private static function router_search_index( $connection_id, $record ) {
+		$cache_key = self::index_cache_key( $connection_id, $record );
+		$cached    = get_transient( $cache_key );
+		if ( is_array( $cached ) && isset( $cached['items'] ) && is_array( $cached['items'] ) ) {
+			$cached['cache_hit'] = true;
+			return $cached;
+		}
+
+		$inventory = Payments_RouterOS_Client::inventory( $record );
+		if ( is_wp_error( $inventory ) ) {
+			return $inventory;
+		}
+
+		$items = array();
+		foreach ( (array) ( isset( $inventory['rows'] ) ? $inventory['rows'] : array() ) as $row ) {
+			$item = self::index_item( $connection_id, $record, $row );
+			if ( $item ) {
+				$items[] = $item;
+			}
+		}
+
+		$index = array(
+			'items'     => $items,
+			'truncated' => ! empty( $inventory['truncated'] ),
+			'cache_hit' => false,
+		);
+		set_transient( $cache_key, $index, self::INDEX_CACHE_TTL );
+		return $index;
+	}
+
+	private static function index_item( $connection_id, $record, $row ) {
 		if ( ! is_array( $row ) || empty( $row['name'] ) || empty( $row['.id'] ) ) {
 			return null;
 		}
@@ -376,13 +413,10 @@ class Payments_Module implements Module_Contract {
 		$details       = self::parse_comment( isset( $row['comment'] ) ? $row['comment'] : '' );
 		$account       = sanitize_text_field( $row['name'] );
 		$customer_name = ! empty( $details['name'] ) ? sanitize_text_field( $details['name'] ) : $account;
+		$phone         = isset( $details['cp'] ) ? sanitize_text_field( $details['cp'] ) : '';
+		$address       = isset( $details['address'] ) ? sanitize_text_field( $details['address'] ) : '';
 		$profile       = ! empty( $details['plan'] ) ? sanitize_text_field( $details['plan'] ) : ( isset( $row['profile'] ) ? sanitize_text_field( $row['profile'] ) : '' );
 		$actual        = isset( $row['profile'] ) ? sanitize_text_field( $row['profile'] ) : '';
-		$haystack      = self::search_text( implode( ' ', array( $customer_name, $account, isset( $details['cp'] ) ? $details['cp'] : '', isset( $details['address'] ) ? $details['address'] : '' ) ) );
-		$needle        = self::search_text( $term );
-		if ( false === strpos( $haystack, $needle ) ) {
-			return null;
-		}
 
 		return array(
 			'connection_id' => sanitize_text_field( $connection_id ),
@@ -390,15 +424,15 @@ class Payments_Module implements Module_Contract {
 			'secret_id'     => sanitize_text_field( $row['.id'] ),
 			'account'       => $account,
 			'customer_name' => $customer_name,
-			'phone'         => isset( $details['cp'] ) ? sanitize_text_field( $details['cp'] ) : '',
-			'address'       => isset( $details['address'] ) ? sanitize_text_field( $details['address'] ) : '',
+			'phone'         => $phone,
+			'address'       => $address,
 			'plan'          => $profile,
 			'actual_profile'=> $actual,
 			'payment_date'  => isset( $details['payment_date'] ) ? sanitize_text_field( $details['payment_date'] ) : '',
 			'payment_amount'=> isset( $details['payment_amount'] ) && is_numeric( $details['payment_amount'] ) ? (float) $details['payment_amount'] : 0,
 			'payment_method'=> isset( $details['payment_method'] ) ? sanitize_key( $details['payment_method'] ) : '',
 			'status'        => 0 === strcasecmp( $actual, 'Expired' ) ? 'expired' : 'active',
-			'_rank'         => self::rank( $customer_name, $account, $needle ),
+			'_search'       => self::search_text( implode( ' ', array( $customer_name, $account, $phone, $address ) ) ),
 		);
 	}
 
@@ -517,12 +551,9 @@ class Payments_Module implements Module_Contract {
 		return $customer_id;
 	}
 
-	private static function search_cache_key( $term, $routers ) {
-		$parts = array( strtolower( $term ) );
-		foreach ( $routers as $id => $record ) {
-			$parts[] = $id . ':' . ( isset( $record['updated_at'] ) ? absint( $record['updated_at'] ) : 0 );
-		}
-		return 'afcn_pay_search_' . md5( implode( '|', $parts ) );
+	private static function index_cache_key( $connection_id, $record ) {
+		$updated = isset( $record['updated_at'] ) ? absint( $record['updated_at'] ) : 0;
+		return 'afcn_pay_idx_' . md5( sanitize_text_field( $connection_id ) . '|' . $updated );
 	}
 
 	private static function amount_string( $amount ) {
