@@ -66,7 +66,7 @@
 
 .afcn-plugin-filter.is-active{
 	color:var(--afcn-text);
-	font-weight:700;
+	font-weight:400;
 }
 
 .afcn-plugin-filter-count{
@@ -206,7 +206,7 @@
 	background:#edf2f7;
 	color:#566476;
 	font-size:8px;
-	font-weight:700;
+	font-weight:400;
 	letter-spacing:.04em;
 	line-height:1.4;
 	text-transform:uppercase;
@@ -267,7 +267,7 @@
 	white-space:normal;
 	font-family:var(--afcn-font-ui);
 	font-size:11px;
-	font-weight:500;
+	font-weight:400;
 	line-height:1.4;
 }
 

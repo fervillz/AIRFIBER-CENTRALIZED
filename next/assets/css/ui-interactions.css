@@ -77,7 +77,7 @@
 	box-shadow:0 10px 30px rgba(0,0,0,.18);
 	color:#fff;
 	font-size:11px;
-	font-weight:500;
+	font-weight:400;
 	line-height:1.35;
 	pointer-events:none;
 	visibility:hidden;
@@ -124,7 +124,7 @@
 	background:transparent;
 	color:inherit;
 	font:inherit;
-	font-weight:700;
+	font-weight:400;
 	text-decoration:underline;
 	text-underline-offset:2px;
 	cursor:pointer;
@@ -186,7 +186,7 @@ body.afcn-page button:disabled:not(.is-afcn-loading){border-color:var(--afcn-sta
 	box-shadow:0 3px 9px rgba(24,36,51,.18);
 	font-family:var(--afcn-font-ui);
 	font-size:11px;
-	font-weight:800;
+	font-weight:400;
 	line-height:1;
 }
 .afcn-button-status-tooltip.is-loading .afcn-button-status-icon,
@@ -326,7 +326,7 @@ dialog.afcn-dialog form[data-afcn-action$="-add"] .afcn-dialog-footer [data-afcn
 .afcn-nav-submenu .afcn-icon{width:15px;height:15px}
 .afcn-nav-submenu-copy{display:grid;min-width:0;gap:2px;text-align:left}
 .afcn-nav-submenu-copy>span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.afcn-nav-submenu-copy small{overflow:hidden;color:var(--afcn-muted);font-size:9px;font-weight:500;text-overflow:ellipsis;white-space:nowrap}
+.afcn-nav-submenu-copy small{overflow:hidden;color:var(--afcn-muted);font-size:9px;font-weight:400;text-overflow:ellipsis;white-space:nowrap}
 
 /* Chrome-devtools-style utility drawer. It overlays the app instead of resizing it. */
 .afcn-utility-drawer{
@@ -359,7 +359,7 @@ dialog.afcn-dialog form[data-afcn-action$="-add"] .afcn-dialog-footer [data-afcn
 	background:#fff;
 }
 .afcn-utility-drawer-header small,.afcn-utility-drawer-header strong{display:block}
-.afcn-utility-drawer-header small{margin-bottom:2px;color:var(--afcn-muted);font-size:9px;font-weight:700;letter-spacing:.08em;text-transform:uppercase}
+.afcn-utility-drawer-header small{margin-bottom:2px;color:var(--afcn-muted);font-size:9px;font-weight:400;letter-spacing:.08em;text-transform:uppercase}
 .afcn-utility-drawer-header strong{font-family:var(--afcn-font-heading);font-size:20px;font-weight:400}
 .afcn-utility-drawer-body{height:calc(100% - 62px);overflow:auto;background:#f7f9fc}
 .afcn-utility-loading{display:grid;min-height:220px;place-items:center;align-content:center;gap:10px;color:var(--afcn-muted)}

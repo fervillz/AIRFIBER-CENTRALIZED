@@ -30,6 +30,8 @@ Prefer changing these tokens over overriding components inside a feature module.
 
 Typography tokens are `--afcn-type-xs`, `--afcn-type-sm`, `--afcn-type-md`, `--afcn-type-lg` and `--afcn-type-xl`. Do not create smaller feature text just to fit more fields into one surface.
 
+BETA typography is **normal-weight only**. `--afcn-weight-normal` is `400`. Do not create heavier font-weight variants. For emphasis, use `.afcn-emphasis`, a 1px size increase, darker color, spacing, a Core pill/status treatment, or progressive disclosure.
+
 ## Buttons
 
 ```php
@@ -255,3 +257,4 @@ The helper uses the existing Core dialog open/close runtime. Modules still own t
 8. Keep remote/AJAX behavior separate from presentation components.
 9. Do not add a UI dependency just to gain a component Core can render with HTML/CSS.
 10. Protect readable typography before density: if a row/card becomes crowded, convert secondary state to pills/icons, omit nonessential fields, or move details into a dialog/drill-down instead of shrinking the type.
+11. Do not use bold font weights in BETA UI. Keep text at 400 and create hierarchy with size, color, spacing and placement.

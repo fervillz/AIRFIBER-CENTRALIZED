@@ -3,7 +3,7 @@
 defined( 'ABSPATH' ) || exit;
 
 if ( ! defined( 'AFCN_VERSION' ) ) {
-	define( 'AFCN_VERSION', '0.4.32' );
+	define( 'AFCN_VERSION', '0.4.33' );
 	define( 'AFCN_PATH', trailingslashit( AFC_PATH . 'next' ) );
 	define( 'AFCN_URL', trailingslashit( AFC_URL . 'next' ) );
 }

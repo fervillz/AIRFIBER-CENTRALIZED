@@ -23,7 +23,7 @@
 .afcn-router-scope-results .afcn-card-body{transition:opacity var(--afcn-transition)}
 .afcn-router-interface-detail-grid{display:grid;grid-template-columns:minmax(120px,.55fr) minmax(0,1fr);margin:0;border:1px solid var(--afcn-border);border-radius:10px;overflow:hidden;background:#fff}
 .afcn-router-interface-detail-grid dt,.afcn-router-interface-detail-grid dd{margin:0;padding:10px 12px;border-bottom:1px solid #edf1f5}
-.afcn-router-interface-detail-grid dt{background:#f7f9fc;color:var(--afcn-muted);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.04em}
+.afcn-router-interface-detail-grid dt{background:#f7f9fc;color:var(--afcn-muted);font-size:10px;font-weight:400;text-transform:uppercase;letter-spacing:.04em}
 .afcn-router-interface-detail-grid dd{color:#243548;font-size:12px;word-break:break-word}
 .afcn-router-interface-detail-grid dt:nth-last-of-type(1),.afcn-router-interface-detail-grid dd:last-child{border-bottom:0}
 @media(max-width:560px){.afcn-router-interface-detail-grid{grid-template-columns:1fr}.afcn-router-interface-detail-grid dt{border-bottom:0;padding-bottom:3px}.afcn-router-interface-detail-grid dd{padding-top:3px}}

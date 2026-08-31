@@ -9,6 +9,9 @@ Core owns the visual language. Modules should not invent a separate design syste
 - Avoid bold display headings unless the design specifically requires emphasis.
 - Prefer the semantic Core scale: `--afcn-type-xs` 11px, `--afcn-type-sm` 12px, `--afcn-type-md` 14px, `--afcn-type-lg` 16px and `--afcn-type-xl` 20px. Feature modules should use the scale rather than inventing smaller text to make crowded layouts fit.
 - **Readable type wins over density.** Do not solve an overloaded card, list row, tab or toolbar by shrinking important text. Preserve primary text at a comfortable size, then reduce information density instead.
+- **No-bold rule:** BETA UI text uses normal `400` weight site-wide. Do not use `600`, `700`, `800`, `bold`, or `bolder` for emphasis.
+- Emphasize text with hierarchy instead of weight: make it about **1px larger**, use a darker text tone, give it more whitespace, or move secondary information into a pill/icon/dialog.
+- Use `.afcn-emphasis` when a reusable inline emphasis treatment is appropriate; it keeps weight at 400, adds 1px, and uses the darker emphasis color.
 
 ## Progressive disclosure and density
 
