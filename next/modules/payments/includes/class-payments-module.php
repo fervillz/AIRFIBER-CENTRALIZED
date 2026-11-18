@@ -18,12 +18,17 @@ class Payments_Module implements Module_Contract {
 
 	public static function render( $context = array() ) {
 		$routers = self::payment_routers();
+		$dashboard = ! empty( $context['dashboard'] );
 
 		ob_start();
 		?>
-		<div class="afcn-payments" data-afcn-payments-root>
+		<div class="afcn-payments<?php echo $dashboard ? ' is-dashboard' : ''; ?>" data-afcn-payments-root>
 			<div class="afcn-payments-head">
-				<h1 class="afcn-page-title"><?php esc_html_e( 'Payments', 'airfiber-centralized' ); ?></h1>
+				<h1 class="afcn-page-title"><?php esc_html_e( 'Record payment', 'airfiber-centralized' ); ?></h1>
+				<div class="afcn-payment-heading-actions">
+					<a class="afcn-button afcn-payment-add-ppp" href="<?php echo esc_url( \Airfiber\Next\Bootstrap::classic_url() ); ?>" title="<?php esc_attr_e( 'Open the existing Add PPP wizard in Classic Basic', 'airfiber-centralized' ); ?>">+ <?php esc_html_e( 'Add PPP', 'airfiber-centralized' ); ?></a>
+					<button type="button" class="afcn-button afcn-button-secondary" data-afcn-payment-mode-toggle aria-pressed="false"><?php esc_html_e( 'Edit PPP', 'airfiber-centralized' ); ?></button>
+				</div>
 			</div>
 
 			<?php if ( ! $routers ) : ?>
@@ -55,19 +60,30 @@ class Payments_Module implements Module_Contract {
 					>
 					<button type="button" class="afcn-payment-search-clear" data-afcn-payment-clear aria-label="<?php esc_attr_e( 'Clear search', 'airfiber-centralized' ); ?>" hidden>×</button>
 				</div>
-				<div class="afcn-payment-search-meta" data-afcn-payment-search-meta aria-live="polite"></div>
+				<div class="afcn-payment-search-meta" data-afcn-payment-search-meta aria-live="polite"><?php esc_html_e( 'Type at least 3 letters to search.', 'airfiber-centralized' ); ?></div>
 			</div>
 
 			<div class="afcn-payment-flash" data-afcn-payment-flash aria-live="polite"></div>
 			<div class="afcn-payment-results" data-afcn-payment-results role="listbox" aria-label="<?php esc_attr_e( 'Customer search results', 'airfiber-centralized' ); ?>" hidden></div>
 
 			<?php echo self::payment_dialog(); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+			<?php echo self::ppp_edit_dialog(); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
 		</div>
 		<?php
 		return ob_get_clean();
 	}
 
+	public static function render_chunk( $chunk, $payload = array() ) {
+		if ( 'dashboard-operations' !== $chunk ) {
+			return new \WP_Error( 'afcn_payments_chunk', __( 'Unknown payment chunk.', 'airfiber-centralized' ), array( 'status' => 404 ) );
+		}
+		return self::render( array( 'dashboard' => true ) );
+	}
+
 	public static function handle_query( $query, $payload = array() ) {
+		if ( 'read-ppp-comment' === $query ) {
+			return self::read_ppp_comment( $payload );
+		}
 		if ( 'search' !== $query ) {
 			return new \WP_Error( 'afcn_payments_query', __( 'Unknown payment query.', 'airfiber-centralized' ), array( 'status' => 404 ) );
 		}
@@ -166,6 +182,9 @@ class Payments_Module implements Module_Contract {
 	}
 
 	public static function handle_action( $action, $payload = array() ) {
+		if ( 'save-ppp-comment' === $action ) {
+			return self::save_ppp_comment( $payload );
+		}
 		if ( 'record-payment' !== $action ) {
 			return new \WP_Error( 'afcn_payments_action', __( 'Unknown payment action.', 'airfiber-centralized' ), array( 'status' => 404 ) );
 		}
@@ -282,6 +301,112 @@ class Payments_Module implements Module_Contract {
 			'reference'      => 'gcash' === $method ? 'XXXX' : '',
 			'service_expired'=> $expired,
 		);
+	}
+
+
+	/**
+	 * Read/edit are deliberately admin-only. Payment search never exposes raw
+	 * PPP comments: they can contain private contact and Wi-Fi information.
+	 */
+	private static function selected_ppp_secret( $payload ) {
+		if ( ! current_user_can( 'manage_options' ) ) {
+			return new \WP_Error( 'afcn_ppp_edit_denied', __( 'You cannot edit PPP comments.', 'airfiber-centralized' ), array( 'status' => 403 ) );
+		}
+		$connection_id = isset( $payload['connection_id'] ) ? sanitize_text_field( (string) $payload['connection_id'] ) : '';
+		$secret_id     = isset( $payload['secret_id'] ) ? sanitize_text_field( (string) $payload['secret_id'] ) : '';
+		$account       = isset( $payload['account'] ) ? sanitize_text_field( (string) $payload['account'] ) : '';
+		if ( ! $connection_id || ! $secret_id || ! $account ) {
+			return new \WP_Error( 'afcn_ppp_edit_selection', __( 'Search for the PPP account again.', 'airfiber-centralized' ), array( 'status' => 400 ) );
+		}
+		$record = Connection_Store::get( $connection_id );
+		if ( ! self::is_payment_router( $record ) ) {
+			return new \WP_Error( 'afcn_ppp_edit_router', __( 'That PPP router is no longer available.', 'airfiber-centralized' ), array( 'status' => 404 ) );
+		}
+		$secret = Payments_RouterOS_Client::secret( $record, $account );
+		if ( is_wp_error( $secret ) ) {
+			return $secret;
+		}
+		if ( empty( $secret['.id'] ) || (string) $secret['.id'] !== (string) $secret_id ) {
+			return new \WP_Error( 'afcn_ppp_edit_changed', __( 'PPP account changed. Search again before editing.', 'airfiber-centralized' ), array( 'status' => 409 ) );
+		}
+		return array( 'record' => $record, 'secret' => $secret, 'connection_id' => $connection_id, 'secret_id' => $secret_id, 'account' => $account );
+	}
+
+	private static function read_ppp_comment( $payload ) {
+		$selected = self::selected_ppp_secret( $payload );
+		if ( is_wp_error( $selected ) ) {
+			return $selected;
+		}
+		$comment = isset( $selected['secret']['comment'] ) ? (string) $selected['secret']['comment'] : '';
+		return array(
+			'account'      => $selected['account'],
+			'comment'      => $comment,
+			'comment_hash' => hash( 'sha256', $comment ),
+		);
+	}
+
+	private static function save_ppp_comment( $payload ) {
+		$selected = self::selected_ppp_secret( $payload );
+		if ( is_wp_error( $selected ) ) {
+			return $selected;
+		}
+
+		$expected = isset( $payload['comment_hash'] ) ? (string) $payload['comment_hash'] : '';
+		$current  = isset( $selected['secret']['comment'] ) ? (string) $selected['secret']['comment'] : '';
+		if ( ! preg_match( '/^[a-f0-9]{64}$/', $expected ) || ! hash_equals( hash( 'sha256', $current ), $expected ) ) {
+			return new \WP_Error( 'afcn_ppp_edit_conflict', __( 'This PPP comment changed since you opened it. Close and search again to avoid overwriting newer changes.', 'airfiber-centralized' ), array( 'status' => 409 ) );
+		}
+
+		$comment = isset( $payload['comment'] ) && is_string( $payload['comment'] ) ? wp_check_invalid_utf8( $payload['comment'] ) : '';
+		if ( '' === trim( $comment ) || false !== strpos( $comment, "\0" ) || strlen( $comment ) > 8000 ) {
+			return new \WP_Error( 'afcn_ppp_edit_comment', __( 'The PPP comment must be non-empty and no longer than 8000 bytes.', 'airfiber-centralized' ), array( 'status' => 400 ) );
+		}
+
+		// Browser textareas use LF, while Classic stores structured comments as
+		// CRLF. Preserve that format and never truncate a customer comment.
+		$comment = str_replace( array( "\r\n", "\r" ), "\n", $comment );
+		$comment = str_replace( "\n", "\r\n", $comment );
+		if ( $comment === $current ) {
+			return array( 'message' => __( 'No PPP comment changes to save.', 'airfiber-centralized' ) );
+		}
+
+		$updated = Payments_RouterOS_Client::set_payment_comment( $selected['record'], $selected['secret_id'], $comment );
+		if ( is_wp_error( $updated ) ) {
+			return $updated;
+		}
+		delete_transient( self::index_cache_key( $selected['connection_id'], $selected['record'] ) );
+		Audit_Log::record( 'ppp_comment_updated', $selected['account'], array(
+			'connection_id' => $selected['connection_id'],
+			'secret_id'     => $selected['secret_id'],
+		) );
+		return array( 'message' => __( 'PPP comment saved to MikroTik.', 'airfiber-centralized' ) );
+	}
+
+	private static function ppp_edit_dialog() {
+		ob_start();
+		?>
+		<dialog class="afcn-dialog afcn-ppp-comment-dialog" id="afcn-ppp-comment-dialog">
+			<div class="afcn-dialog-shell">
+				<div class="afcn-dialog-header">
+					<div>
+						<h2><?php esc_html_e( 'Edit PPP comment', 'airfiber-centralized' ); ?></h2>
+						<p class="afcn-page-description" data-afcn-ppp-edit-account></p>
+					</div>
+					<button type="button" class="afcn-icon-button" data-afcn-ppp-edit-close aria-label="<?php esc_attr_e( 'Close editor', 'airfiber-centralized' ); ?>"><?php echo \Airfiber\Next\Icon::svg( 'x' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></button>
+				</div>
+				<div class="afcn-dialog-body">
+					<p class="afcn-page-description"><?php esc_html_e( 'Edit the original MikroTik comment. Keep existing name, billing, and scheduler keys intact.', 'airfiber-centralized' ); ?></p>
+					<div data-afcn-ppp-edit-message role="status"></div>
+					<textarea class="afcn-input afcn-ppp-comment-input" rows="12" maxlength="8000" spellcheck="false" data-afcn-ppp-edit-text aria-label="<?php esc_attr_e( 'Raw PPP comment', 'airfiber-centralized' ); ?>"></textarea>
+					<div class="afcn-ppp-comment-actions">
+						<button type="button" class="afcn-button afcn-button-secondary" data-afcn-ppp-edit-close><?php esc_html_e( 'Cancel', 'airfiber-centralized' ); ?></button>
+						<button type="button" class="afcn-button afcn-button-primary" data-afcn-ppp-edit-save><?php esc_html_e( 'Save comment', 'airfiber-centralized' ); ?></button>
+					</div>
+				</div>
+			</div>
+		</dialog>
+		<?php
+		return ob_get_clean();
 	}
 
 	private static function payment_dialog() {
