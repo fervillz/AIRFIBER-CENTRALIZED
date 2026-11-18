@@ -9,13 +9,26 @@
   "capability": "afcn_access",
   "default_enabled": true,
   "assets": {
-    "css": ["assets/payments.css"],
-    "js": ["assets/payments.js"]
+    "css": [
+      "assets/payments.css"
+    ],
+    "js": [
+      "assets/payments.js"
+    ]
   },
   "connectors": [],
   "requires": {
     "core": ">=0.4.32",
-    "modules": ["routers"]
+    "modules": [
+      "routers"
+    ]
   },
-  "events": []
+  "events": [],
+  "slots": {
+    "dashboard.operations": {
+      "chunk": "dashboard-operations",
+      "priority": 10,
+      "span": 12
+    }
+  }
 }
