@@ -220,7 +220,18 @@ class Payments_Module implements Module_Contract {
 			return new \WP_Error( 'afcn_payment_secret_changed', __( 'The selected PPP account changed. Search for the customer again before recording payment.', 'airfiber-centralized' ), array( 'status' => 409 ) );
 		}
 
-		$details = self::parse_comment( isset( $secret['comment'] ) ? $secret['comment'] : '' );
+		// Classic advance billing moves paidThrough/nextDue/cutoffDate and
+		// schedules. Standard BETA payments must not silently overwrite a
+		// prepaid subscriber's payment fields without advancing those dates.
+		$existing_comment = isset( $secret['comment'] ) ? (string) $secret['comment'] : '';
+		if ( preg_match( '/(?:^|[\\r\\n])\\s*(?:paidThrough|advanceMonths)\\s*:/i', $existing_comment ) ) {
+			return new \WP_Error(
+				'afcn_payment_advance_required',
+				__( 'This customer has advance billing. Use Classic Basic to record the next payment until advance billing is migrated to BETA.', 'airfiber-centralized' ),
+				array( 'status' => 409 )
+			);
+		}
+		$details = self::parse_comment( $existing_comment );
 		$date    = current_time( 'Y-m-d' );
 		$comment = isset( $secret['comment'] ) ? (string) $secret['comment'] : '';
 		$comment = self::replace_comment_value( $comment, 'paymentDate', $date );
@@ -439,6 +450,8 @@ class Payments_Module implements Module_Contract {
 							<span class="afcn-payment-cycle-pill" data-afcn-payment-cycle-pill>MTH</span>
 						</button>
 					</div>
+					<button type="button" class="afcn-payment-edit-from-dialog" data-afcn-payment-edit-from-dialog><?php esc_html_e( 'Edit PPP comment instead', 'airfiber-centralized' ); ?></button>
+					<p class="afcn-page-description"><?php esc_html_e( 'For monthly advance payments, use Classic Basic until BETA supports the complete billing-date update.', 'airfiber-centralized' ); ?></p>
 					<div class="afcn-payment-quick-meta">
 						<span><?php esc_html_e( 'Payment date:', 'airfiber-centralized' ); ?> <strong><?php echo esc_html( current_time( 'Y-m-d' ) ); ?></strong></span>
 						<span><?php esc_html_e( 'GCash reference:', 'airfiber-centralized' ); ?> <strong>XXXX</strong></span>
