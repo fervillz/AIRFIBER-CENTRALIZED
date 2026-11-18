@@ -86,3 +86,27 @@
   .afcn-payment-override-actions .afcn-button{width:100%}
 }
 @media(prefers-reduced-motion:reduce){.afcn-payment-quick-action{transition:none}.afcn-payment-quick-action.is-holding::after,.afcn-payment-quick-spinner{animation:none}}
+
+/* Shared BETA operations workspace; the same Payments module renders on its page and Dashboard. */
+.afcn-payments.is-dashboard{width:min(690px,100%);padding-top:1px}
+.afcn-payments-head{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;padding-bottom:9px;border-bottom:1px solid var(--afcn-border)}
+.afcn-payments-head .afcn-page-title{font-size:19px;font-weight:400}
+.afcn-payment-heading-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.afcn-payment-heading-actions .afcn-button{display:inline-flex;align-items:center;justify-content:center;min-height:36px;padding:7px 12px;font-size:12px;font-weight:400;white-space:nowrap;text-decoration:none}
+.afcn-payment-add-ppp{background:var(--afcn-success);color:#fff;border:1px solid var(--afcn-success)}
+.afcn-payment-add-ppp:hover,.afcn-payment-add-ppp:focus-visible{color:#fff;filter:brightness(.95)}
+.afcn-payment-search-wrap{margin-top:9px}
+.afcn-payments.is-editing-ppp .afcn-payment-search-box:focus-within{border-color:var(--afcn-primary)}
+.afcn-payments.is-editing-ppp .afcn-payment-heading-actions [aria-pressed="true"]{background:var(--afcn-primary);color:#fff}
+.afcn-payment-edit-from-dialog{display:block;width:100%;margin-top:14px;padding:8px;border:0;background:transparent;color:var(--afcn-primary);font:inherit;font-size:12px;cursor:pointer}
+.afcn-payment-edit-from-dialog:hover,.afcn-payment-edit-from-dialog:focus-visible{text-decoration:underline}
+#afcn-ppp-comment-dialog{width:min(650px,calc(100vw - 24px));border-radius:16px}
+#afcn-ppp-comment-dialog .afcn-dialog-shell{overflow:hidden}
+#afcn-ppp-comment-dialog .afcn-dialog-header{padding:16px 18px;border-bottom:1px solid var(--afcn-border)}
+#afcn-ppp-comment-dialog .afcn-dialog-body{padding:17px 19px}
+.afcn-ppp-comment-input{display:block;width:100%;min-height:260px;margin:12px 0;font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:13px;line-height:1.55;resize:vertical;white-space:pre-wrap}
+.afcn-ppp-comment-actions{display:flex;align-items:center;justify-content:flex-end;gap:8px}
+.afcn-ppp-comment-message{margin:10px 0;font-size:12px;color:var(--afcn-muted)}
+.afcn-ppp-comment-message.is-danger{color:var(--afcn-danger)}
+.afcn-ppp-comment-message.is-success{color:var(--afcn-success)}
+@media(max-width:640px){.afcn-payments-head{align-items:flex-start}.afcn-payment-heading-actions{width:100%}.afcn-payment-heading-actions .afcn-button{flex:1}}
