@@ -11,6 +11,9 @@
 	let requestId = 0;
 	let selected = null;
 	let holdTimer = 0;
+	let editMode = false;
+	let editSelected = null;
+	let editOriginalHash = '';
 	const items = new Map();
 
 	function text(value) {
@@ -24,7 +27,7 @@
 
 	function setMeta(message) {
 		if (meta) {
-			meta.textContent = message || '';
+			meta.textContent = message || 'Type at least 3 letters to search.';
 		}
 	}
 
@@ -470,6 +473,137 @@
 	}
 
 
+
+	function editorDialog() {
+		return document.getElementById('afcn-ppp-comment-dialog');
+	}
+
+	function editorMessage(message, variant) {
+		const modal = editorDialog();
+		const node = modal && modal.querySelector('[data-afcn-ppp-edit-message]');
+		if (!node) return;
+		node.textContent = message || '';
+		node.className = message ? 'afcn-ppp-comment-message is-' + (variant || 'info') : 'afcn-ppp-comment-message';
+	}
+
+	function editorBusy(busy) {
+		const modal = editorDialog();
+		if (!modal) return;
+		const save = modal.querySelector('[data-afcn-ppp-edit-save]');
+		if (save) {
+			save.disabled = busy;
+			save.textContent = busy ? 'Working…' : 'Save comment';
+		}
+	}
+
+	async function openEditor(item) {
+		const modal = editorDialog();
+		if (!modal || !item) return;
+		editSelected = item;
+		editOriginalHash = '';
+		const textarea = modal.querySelector('[data-afcn-ppp-edit-text]');
+		textarea.value = '';
+		modal.querySelector('[data-afcn-ppp-edit-account]').textContent = item.customer_name + ' · ' + item.account;
+		editorMessage('Loading the latest PPP comment from MikroTik…', 'info');
+		editorBusy(true);
+		window.AirfiberNext.openDialog(modal);
+		try {
+			const response = await window.AirfiberNext.query('payments', 'read-ppp-comment', {
+				connection_id: item.connection_id,
+				secret_id: item.secret_id,
+				account: item.account
+			});
+			if (editSelected !== item || !modal.open) return;
+			editOriginalHash = response.comment_hash || '';
+			textarea.value = response.comment || '';
+			editorMessage('Only the comment will be changed. Check billing and scheduler fields before saving.', 'info');
+			textarea.focus({ preventScroll: true });
+		} catch (error) {
+			editorMessage(error.message || 'Could not load this PPP comment.', 'danger');
+		} finally {
+			if (editSelected === item && modal.open) editorBusy(!editOriginalHash);
+		}
+	}
+
+	async function saveEditor() {
+		const modal = editorDialog();
+		if (!modal || !editSelected || !editOriginalHash) return;
+		const textarea = modal.querySelector('[data-afcn-ppp-edit-text]');
+		const comment = textarea.value;
+		if (!comment.trim() || new TextEncoder().encode(comment).length > 8000) {
+			editorMessage('Enter a comment of 8000 bytes or fewer.', 'danger');
+			return;
+		}
+		editorBusy(true);
+		editorMessage('Saving comment to MikroTik…', 'info');
+		try {
+			const response = await window.AirfiberNext.action('payments', 'save-ppp-comment', {
+				connection_id: editSelected.connection_id,
+				secret_id: editSelected.secret_id,
+				account: editSelected.account,
+				comment_hash: editOriginalHash,
+				comment: comment
+			});
+			window.AirfiberNext.closeDialog(modal);
+			editSelected = null;
+			editOriginalHash = '';
+			input.value = '';
+			clearButton.hidden = true;
+			clearResults();
+			setFlash(response.message || 'PPP comment saved.', 'success');
+			window.AirfiberNext.toast(response.message || 'PPP comment saved.', false);
+			input.focus({ preventScroll: true });
+		} catch (error) {
+			editorMessage(error.message || 'PPP comment could not be saved.', 'danger');
+		} finally {
+			if (modal.open) editorBusy(false);
+		}
+	}
+
+	function bindEditor() {
+		const modal = editorDialog();
+		if (!modal || modal.dataset.afcnPppEditWired) return;
+		modal.dataset.afcnPppEditWired = '1';
+		modal.querySelectorAll('[data-afcn-ppp-edit-close]').forEach(function (button) {
+			button.addEventListener('click', function () {
+				window.AirfiberNext.closeDialog(modal);
+			});
+		});
+		modal.querySelector('[data-afcn-ppp-edit-save]').addEventListener('click', saveEditor);
+		modal.addEventListener('close', function () {
+			editSelected = null;
+			editOriginalHash = '';
+		});
+	}
+
+	function bindModeToggle() {
+		const toggle = root && root.querySelector('[data-afcn-payment-mode-toggle]');
+		if (toggle) {
+			toggle.addEventListener('click', function () {
+				editMode = !editMode;
+				root.classList.toggle('is-editing-ppp', editMode);
+				toggle.setAttribute('aria-pressed', editMode ? 'true' : 'false');
+				toggle.textContent = editMode ? 'Record payment' : 'Edit PPP';
+				const title = root.querySelector('.afcn-payments-head .afcn-page-title');
+				if (title) title.textContent = editMode ? 'Edit PPP comment' : 'Record payment';
+				input.value = '';
+				clearButton.hidden = true;
+				clearResults();
+				input.placeholder = editMode ? 'Search PPP account to edit its comment…' : 'Type customer name, PPP account, phone or address…';
+				input.focus({ preventScroll: true });
+			});
+		}
+		const fromPayment = root && root.querySelector('[data-afcn-payment-edit-from-dialog]');
+		if (fromPayment) {
+			fromPayment.addEventListener('click', function () {
+				const item = selected;
+				const paymentModal = dialog();
+				if (paymentModal && paymentModal.open) window.AirfiberNext.closeDialog(paymentModal);
+				openEditor(item);
+			});
+		}
+	}
+
 	function init() {
 		root = document.querySelector('[data-afcn-payments-root]');
 		if (!root || root.dataset.afcnPaymentsWired) {
@@ -486,6 +620,8 @@
 		}
 
 		bindQuickPaymentDialog();
+		bindEditor();
+		bindModeToggle();
 
 		input.addEventListener('input', queueSearch);
 		input.addEventListener('keydown', function (event) {
@@ -519,7 +655,11 @@
 			}
 			const item = items.get(button.dataset.afcnPaymentResult || '');
 			if (item) {
-				openPayment(item);
+				if (editMode) {
+					openEditor(item);
+				} else {
+					openPayment(item);
+				}
 			}
 		});
 
@@ -536,6 +676,13 @@
 	document.addEventListener('afcn:module:loaded', function (event) {
 		const detail = event.detail || {};
 		if ((detail.id || detail.module) === 'payments') {
+			init();
+		}
+	});
+	// Dashboard loads Payments through the existing lazy slot, not a full module route.
+	document.addEventListener('afcn:chunk:loaded', function (event) {
+		const detail = event.detail || {};
+		if (detail.module === 'payments' && detail.chunk === 'dashboard-operations') {
 			init();
 		}
 	});
