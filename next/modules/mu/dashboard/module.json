@@ -2,7 +2,7 @@
   "id": "dashboard",
   "name": "Dashboard",
   "description": "Focused daily operations and optional system health overview.",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "class": "Airfiber\\Next\\Modules\\Dashboard\\Dashboard_Module",
   "position": 10,
   "icon": "dashboard",
