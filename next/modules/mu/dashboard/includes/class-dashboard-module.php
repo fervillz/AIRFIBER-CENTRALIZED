@@ -35,11 +35,18 @@ class Dashboard_Module implements Module_Contract {
 		?>
 		<div class="afcn-page-head">
 			<div>
-				<h1 class="afcn-page-title"><?php esc_html_e( 'Airfiber Next', 'airfiber-centralized' ); ?></h1>
-				<p class="afcn-page-description"><?php esc_html_e( 'Fast by design. Modules stay dormant until they are actually needed.', 'airfiber-centralized' ); ?></p>
+				<h1 class="afcn-page-title"><?php esc_html_e( 'Operations', 'airfiber-centralized' ); ?></h1>
+				<p class="afcn-page-description"><?php esc_html_e( 'Search, record payments, and manage PPP accounts.', 'airfiber-centralized' ); ?></p>
 			</div>
 			<?php echo UI::badge( AFCN_VERSION, 'info' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
 		</div>
+		<?php
+		// Only the eligible module manifest is inspected here. Payments loads its
+		// markup and assets lazily through the existing dashboard slot runtime.
+		echo Module_Slots::render( 'dashboard.operations' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+		?>
+		<details class="afcn-dashboard-system-details">
+			<summary><?php esc_html_e( 'System overview', 'airfiber-centralized' ); ?></summary>
 		<div class="afcn-grid">
 			<div class="afcn-card afcn-col-3"><div class="afcn-card-body"><div class="afcn-stat"><?php echo esc_html( $total ); ?></div><div class="afcn-stat-label"><?php esc_html_e( 'Discovered modules', 'airfiber-centralized' ); ?></div></div></div>
 			<div class="afcn-card afcn-col-3"><div class="afcn-card-body"><div class="afcn-stat"><?php echo esc_html( $enabled ); ?></div><div class="afcn-stat-label"><?php esc_html_e( 'Enabled modules', 'airfiber-centralized' ); ?></div></div></div>
@@ -67,6 +74,7 @@ class Dashboard_Module implements Module_Contract {
 			</div>
 		</div>
 		<?php echo Module_Slots::render( 'dashboard.summary', array( 'grid' => true ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+		</details>
 		<?php
 		return ob_get_clean();
 	}
