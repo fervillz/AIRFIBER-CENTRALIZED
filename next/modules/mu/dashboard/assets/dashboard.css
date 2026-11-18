@@ -1,0 +1,32 @@
+/* Daily operations stays central; technical diagnostics are optional. */
+.afcn-slot[data-afcn-slot="dashboard.operations"] {
+  width: min(820px, 100%);
+  margin: 0 auto 28px;
+}
+.afcn-slot[data-afcn-slot="dashboard.operations"] > .afcn-slot-item {
+  width: 100%;
+}
+.afcn-slot[data-afcn-slot="dashboard.operations"] .afcn-slot-placeholder {
+  min-height: 130px;
+  border-radius: 14px;
+}
+.afcn-dashboard-system-details {
+  max-width: 1200px;
+  margin: 36px auto 0;
+  color: var(--afcn-muted);
+}
+.afcn-dashboard-system-details > summary {
+  width: fit-content;
+  padding: 9px 12px;
+  border-radius: 9px;
+  font-size: 12px;
+  cursor: pointer;
+  user-select: none;
+}
+.afcn-dashboard-system-details > summary:hover,
+.afcn-dashboard-system-details > summary:focus-visible {
+  color: var(--afcn-primary);
+  background: rgba(33, 112, 210, .06);
+}
+.afcn-dashboard-system-details[open] > summary { margin-bottom: 14px; }
+.afcn-dashboard-system-details .afcn-slot { margin-top: 16px; }
