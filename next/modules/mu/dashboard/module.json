@@ -1,7 +1,7 @@
 {
   "id": "dashboard",
   "name": "Dashboard",
-  "description": "Airfiber Next core health and performance overview.",
+  "description": "Focused daily operations and optional system health overview.",
   "version": "0.1.0",
   "class": "Airfiber\\Next\\Modules\\Dashboard\\Dashboard_Module",
   "position": 10,
@@ -9,7 +9,14 @@
   "capability": "afcn_access",
   "system": true,
   "default_enabled": true,
-  "assets": {"css": [], "js": []},
-  "requires": {"core": ">=0.1.0"},
+  "assets": {
+    "css": [
+      "assets/dashboard.css"
+    ],
+    "js": []
+  },
+  "requires": {
+    "core": ">=0.1.0"
+  },
   "events": []
 }
