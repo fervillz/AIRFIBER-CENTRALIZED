@@ -182,8 +182,15 @@ class Routers_Module implements Module_Contract {
 				Connection_Health::set( $id, array( 'state' => 'warning', 'message' => $result->get_error_message() ) );
 				return $result;
 			}
-			Connection_Health::set( $id, $result );
-			return array( 'message' => $result['message'] );
+			$health = Connection_Health::set( $id, $result );
+			return array(
+				'message'       => $result['message'],
+				'connected'     => true,
+				'connection_id' => $id,
+				'latency_ms'    => $result['latency_ms'],
+				'health'        => $health,
+				'reload'        => false,
+			);
 		}
 
 		if ( 'test-connection' === $action ) {
@@ -325,7 +332,7 @@ class Routers_Module implements Module_Contract {
 		</div>
 		<form data-afcn-module="routers" data-afcn-action="test-router">
 			<input type="hidden" name="connection_id" value="<?php echo esc_attr( $id ); ?>">
-			<button type="submit" class="afcn-button afcn-button-secondary"><?php echo Icon::svg( 'activity' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?><?php esc_html_e( 'Test connection', 'airfiber-centralized' ); ?></button>
+			<button type="submit" class="afcn-button afcn-button-secondary" data-afcn-test-connection-button><?php echo Icon::svg( 'activity' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?><span data-afcn-test-label><?php esc_html_e( 'Test connection', 'airfiber-centralized' ); ?></span></button>
 		</form>
 		<?php if ( self::can_manage_connections() ) : ?>
 			<?php echo Tooltip::render( '<button type="button" class="afcn-icon-button" data-afcn-dialog-open="afcn-add-router-dialog" aria-label="' . esc_attr__( 'Add Router', 'airfiber-centralized' ) . '">' . Icon::svg( 'plus' ) . '</button>', __( 'Add Router', 'airfiber-centralized' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
