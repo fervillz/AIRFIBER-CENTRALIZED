@@ -288,7 +288,7 @@ class Routers_Module implements Module_Contract {
 				<div class="afcn-connection-actions">
 					<?php echo Tooltip::render( '<button type="button" class="afcn-connection-action" data-afcn-router-select="' . esc_attr( $id ) . '" aria-label="' . esc_attr__( 'Open router', 'airfiber-centralized' ) . '">' . Icon::svg( 'server' ) . '</button>', __( 'Open router', 'airfiber-centralized' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
 					<?php if ( $can_manage ) : ?>
-						<?php echo Tooltip::render( '<button type="button" class="afcn-connection-action" data-afcn-dialog-open="afcn-router-' . esc_attr( $id ) . '" aria-label="' . esc_attr__( 'Router settings', 'airfiber-centralized' ) . '">' . Icon::svg( 'gear' ) . '</button>', __( 'Router settings', 'airfiber-centralized' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+						<?php echo Tooltip::render( '<button type="button" class="afcn-connection-action" data-afcn-router-settings="' . esc_attr( $id ) . '" aria-label="' . esc_attr__( 'Router settings', 'airfiber-centralized' ) . '">' . Icon::svg( 'gear' ) . '</button>', __( 'Router settings', 'airfiber-centralized' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
 					<?php endif; ?>
 				</div>
 			</div>
