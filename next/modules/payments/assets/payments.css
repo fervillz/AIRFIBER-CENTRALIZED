@@ -156,3 +156,8 @@
  .afcn-payment-workspace .afcn-dialog-header h2{font-size:18px}
 }
 @media(prefers-reduced-motion:reduce){.afcn-workspace-panel{animation:none!important;transition:none!important}}
+
+/* Manual cutoff remains available inside Edit PPP without another modal. */
+.afcn-workspace-expire{margin-right:auto;border-color:var(--afcn-danger);color:var(--afcn-danger)}
+.afcn-workspace-expire:hover:not(:disabled){background:var(--afcn-danger);color:#fff}
+.afcn-workspace-expire[hidden]{display:none!important}
