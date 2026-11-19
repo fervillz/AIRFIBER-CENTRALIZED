@@ -403,3 +403,24 @@ dialog.afcn-dialog form[data-afcn-action$="-add"] .afcn-dialog-footer [data-afcn
 
 	.afcn-button-status-icon.is-spinner{animation-duration:1.2s}
 }
+
+/* Shared BETA Test Connection feedback. Icon-only card actions keep their icon
+   and show the connection test result beside it without reloading the page. */
+.afcn-connection-actions form[data-afcn-action="test-connection"] {
+	display:inline-flex;
+	align-items:center;
+	gap:6px;
+	min-width:0;
+}
+.afcn-test-feedback {
+	display:inline-block;
+	max-width:135px;
+	color:var(--afcn-muted);
+	font-size:11px;
+	font-weight:400;
+	line-height:1.25;
+	overflow-wrap:break-word;
+}
+.afcn-test-feedback.is-success{color:var(--afcn-success)}
+.afcn-test-feedback.is-warning{color:var(--afcn-warning)}
+.afcn-test-feedback.is-error{color:var(--afcn-danger)}
