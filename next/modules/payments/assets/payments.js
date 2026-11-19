@@ -634,8 +634,24 @@
 			workspaceButtonState(button, 'success', response.message || 'Saved');
 			const label = response.message || 'PPP saved.';
 			if (response.account && response.account !== selected.account) selected.account = response.account;
+			if (mode === 'ppp') {
+				selected.customer_name = payload.customer_name;
+				selected.plan = payload.fields.profile;
+				selected.actual_profile = payload.fields.profile;
+				selected.status = payload.fields.profile.toLowerCase() === 'expired' ? 'expired' : 'active';
+			} else {
+				const matchName = payload.comment.match(/^name\s*:\s*(.*)$/im);
+				const matchPlan = payload.comment.match(/^plan\s*:\s*(.*)$/im);
+				if (matchName) selected.customer_name = matchName[1].trim();
+				if (matchPlan) selected.plan = matchPlan[1].trim();
+			}
+			modal.querySelector('[data-afcn-payment-dialog-name]').textContent = selected.customer_name || selected.account;
+			modal.querySelector('[data-afcn-workspace-subtitle]').textContent = selected.account + ' · ' + (selected.plan || selected.actual_profile || 'PPP');
+			modal.querySelector('[data-afcn-payment-dialog-account]').textContent = selected.account;
+			modal.querySelector('[data-afcn-payment-dialog-plan]').textContent = selected.plan || selected.actual_profile || '';
 			workspaceStatus(label, 'success');
 			setFlash(label, 'success');
+			window.AirfiberNext.toast(label, false);
 			// Keep the current account in the modal while refreshing its search results.
 			workspaceSetBusy(false);
 			await workspaceSwitch('payment');
