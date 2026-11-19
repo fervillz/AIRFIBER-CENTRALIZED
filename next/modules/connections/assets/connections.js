@@ -267,7 +267,14 @@
 
 			const actionCell = document.createElement('td');
 			if (actions) {
-				actionCell.appendChild(actions.cloneNode(true));
+				const clonedActions = actions.cloneNode(true);
+				// Cloned BETA forms carry their source's wired flag as an HTML
+				// attribute, but cloneNode does not copy event listeners.
+				// Let Core bind Test Connection and settings buttons in list view.
+				clonedActions.querySelectorAll('[data-afcn-wired]').forEach(function (item) {
+					delete item.dataset.afcnWired;
+				});
+				actionCell.appendChild(clonedActions);
 			}
 			row.appendChild(actionCell);
 			tbody.appendChild(row);
