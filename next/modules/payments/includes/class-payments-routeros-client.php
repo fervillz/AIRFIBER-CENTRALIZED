@@ -195,6 +195,29 @@ class Payments_RouterOS_Client {
 		return true;
 	}
 
+	/**
+	 * Narrow RouterOS command for PPP trash lifecycle. Does not expose raw
+	 * credentials or scheduler scripts to the browser.
+	 */
+	public static function command( $record, $words, $read_rows = false ) {
+		$context = self::connection_context( $record );
+		if ( is_wp_error( $context ) ) return $context;
+		$socket = self::open_socket( $context );
+		if ( is_wp_error( $socket ) ) return $socket;
+		$login = self::login( $socket, $context );
+		if ( is_wp_error( $login ) ) {
+			fclose( $socket );
+			return $login;
+		}
+		if ( ! self::write_sentence( $socket, $words ) ) {
+			fclose( $socket );
+			return new \\WP_Error( 'afcn_payment_router_write', __( 'Router connection closed before the PPP action.', 'airfiber-centralized' ) );
+		}
+		$result = $read_rows ? self::read_rows( $socket, 100 ) : self::read_done( $socket );
+		fclose( $socket );
+		return $result;
+	}
+
 	private static function connection_context( $record ) {
 		$record   = is_array( $record ) ? $record : array();
 		$config   = isset( $record['config'] ) && is_array( $record['config'] ) ? $record['config'] : array();
