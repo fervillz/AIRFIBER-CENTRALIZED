@@ -85,6 +85,7 @@ class Payments_Module implements Module_Contract {
 
 	public static function handle_query( $query, $payload = array() ) {
 		if ( 'trash-list' === $query ) return self::list_trash();
+		if ( 'read-ppp-details' === $query ) return self::read_ppp_details( $payload );
 		if ( 'read-ppp-comment' === $query ) {
 			return self::read_ppp_comment( $payload );
 		}
@@ -191,6 +192,7 @@ class Payments_Module implements Module_Contract {
 		if ( 'trash-ppp' === $action ) return self::trash_ppp( $payload );
 		if ( 'restore-ppp' === $action ) return self::restore_ppp( $payload );
 		if ( 'purge-ppp' === $action ) return self::purge_ppp( $payload );
+		if ( 'save-ppp-details' === $action ) return self::save_ppp_details( $payload );
 		if ( 'expire-ppp' === $action ) {
 			return self::expire_ppp( $payload );
 		}
@@ -332,7 +334,7 @@ class Payments_Module implements Module_Contract {
 	 * Read/edit are deliberately admin-only. Payment search never exposes raw
 	 * PPP comments: they can contain private contact and Wi-Fi information.
 	 */
-	private static function selected_ppp_secret( $payload ) {
+	private static function selected_ppp_secret( $payload, $include_private = false ) {
 		if ( ! current_user_can( 'manage_options' ) ) {
 			return new \WP_Error( 'afcn_ppp_edit_denied', __( 'You cannot edit PPP comments.', 'airfiber-centralized' ), array( 'status' => 403 ) );
 		}
@@ -347,7 +349,7 @@ class Payments_Module implements Module_Contract {
 		if ( ! self::is_payment_router( $record ) ) {
 			return new \WP_Error( 'afcn_ppp_edit_router', __( 'That PPP router is no longer available.', 'airfiber-centralized' ), array( 'status' => 404 ) );
 		}
-		$secret = Payments_RouterOS_Client::secret( $record, $account );
+		$secret = Payments_RouterOS_Client::secret( $record, $account, $include_private );
 		if ( is_wp_error( $secret ) ) {
 			return $secret;
 		}
@@ -382,6 +384,90 @@ class Payments_Module implements Module_Contract {
 			'old_profile'   => $profile,
 		) );
 		return array( 'message' => sprintf( __( 'PPP account %s was manually expired and active sessions were disconnected.', 'airfiber-centralized' ), $selected['account'] ), 'status' => 'expired' );
+	}
+
+
+	// Password is returned ONLY on an explicit authorized PPP Edit request.
+	// Neither payment-search results nor search transients include credentials.
+	private static function editable_ppp_keys() {
+		return array( 'name', 'profile', 'password', 'service', 'local-address', 'remote-address', 'caller-id', 'routes', 'only-one', 'limit-bytes-in', 'limit-bytes-out', 'disabled' );
+	}
+	private static function ppp_snapshot( $secret ) {
+		$fields = array();
+		foreach ( self::editable_ppp_keys() as $key ) {
+			$fields[ $key ] = isset( $secret[ $key ] ) ? (string) $secret[ $key ] : '';
+		}
+		return $fields;
+	}
+	private static function read_ppp_details( $payload ) {
+		$selected = self::selected_ppp_secret( $payload, true );
+		if ( is_wp_error( $selected ) ) return $selected;
+		$fields = self::ppp_snapshot( $selected['secret'] );
+		$comment = isset( $selected['secret']['comment'] ) ? (string) $selected['secret']['comment'] : '';
+		$parsed = self::parse_comment( $comment );
+		return array(
+			'fields' => $fields,
+			'customer_name' => isset( $parsed['name'] ) ? (string) $parsed['name'] : $selected['account'],
+			'version' => hash( 'sha256', wp_json_encode( $fields ) . '|' . $comment ),
+		);
+	}
+	private static function save_ppp_details( $payload ) {
+		$selected = self::selected_ppp_secret( $payload, true );
+		if ( is_wp_error( $selected ) ) return $selected;
+		$secret = $selected['secret'];
+		$before = self::ppp_snapshot( $secret );
+		$old_comment = isset( $secret['comment'] ) ? (string) $secret['comment'] : '';
+		$expected = isset( $payload['version'] ) ? (string) $payload['version'] : '';
+		if ( ! preg_match( '/^[a-f0-9]{64}$/', $expected ) || ! hash_equals( hash( 'sha256', wp_json_encode( $before ) . '|' . $old_comment ), $expected ) ) {
+			return new \WP_Error( 'afcn_ppp_edit_stale', __( 'PPP details changed on the router. Reload this account before saving.', 'airfiber-centralized' ), array( 'status' => 409 ) );
+		}
+		if ( ! isset( $payload['fields'] ) || ! is_array( $payload['fields'] ) ) return new \WP_Error( 'afcn_ppp_edit_fields', 'No PPP fields supplied.', array( 'status' => 400 ) );
+		$input = $payload['fields'];
+		$changes = array();
+		foreach ( self::editable_ppp_keys() as $key ) {
+			if ( ! array_key_exists( $key, $input ) ) continue;
+			if ( ! is_scalar( $input[ $key ] ) ) return new \WP_Error( 'afcn_ppp_edit_value', 'Invalid PPP value.', array( 'status' => 400 ) );
+			$value = (string) $input[ $key ];
+			if ( strlen( $value ) > 500 || false !== strpos( $value, "\0" ) || preg_match( '/[\r\n]/', $value ) ) return new \WP_Error( 'afcn_ppp_edit_length', 'Invalid PPP field length or line break.', array( 'status' => 400 ) );
+			if ( 'password' === $key && '' === $value ) return new \WP_Error( 'afcn_ppp_password', 'PPP password must not be empty.', array( 'status' => 400 ) );
+			if ( 'name' === $key && '' === trim( $value ) ) return new \WP_Error( 'afcn_ppp_username', 'PPP username must not be empty.', array( 'status' => 400 ) );
+			if ( 'disabled' === $key && ! in_array( $value, array( 'true', 'false' ), true ) ) return new \WP_Error( 'afcn_ppp_disabled', 'Invalid PPP enabled state.', array( 'status' => 400 ) );
+			if ( 'only-one' === $key && ! in_array( $value, array( '', 'yes', 'no', 'default' ), true ) ) return new \WP_Error( 'afcn_ppp_one', 'Invalid Only One value.', array( 'status' => 400 ) );
+			if ( ( 'limit-bytes-in' === $key || 'limit-bytes-out' === $key ) && '' !== $value && ! ctype_digit( $value ) ) return new \WP_Error( 'afcn_ppp_bytes', 'Traffic limits must be non-negative numbers.', array( 'status' => 400 ) );
+			if ( $value !== $before[ $key ] ) $changes[ $key ] = $value;
+		}
+		$customer = isset( $payload['customer_name'] ) ? sanitize_text_field( (string) $payload['customer_name'] ) : '';
+		if ( '' === trim( $customer ) || strlen( $customer ) > 150 ) return new \WP_Error( 'afcn_ppp_customer', 'Enter a valid customer name.', array( 'status' => 400 ) );
+		$parsed = self::parse_comment( $old_comment );
+		$old_customer = isset( $parsed['name'] ) ? (string) $parsed['name'] : $selected['account'];
+		$new_comment = $old_comment;
+		if ( $customer !== $old_customer ) $new_comment = self::replace_comment_value( $new_comment, 'name', $customer );
+		// A changed RouterOS profile must agree with the structured billing plan.
+		if ( isset( $changes['profile'] ) ) {
+			$new_comment = self::replace_comment_value( $new_comment, 'plan', $changes['profile'] );
+		}
+		if ( isset( $changes['name'] ) ) {
+			$scheduler = self::matching_schedule( $selected['record'], $selected['account'] );
+			if ( is_wp_error( $scheduler ) ) return $scheduler;
+			// The scheduler's on-event embeds username references; renaming it
+			// alone would leave a stale billing cutoff script.
+			if ( $scheduler ) return new \WP_Error( 'afcn_ppp_rename_scheduler', 'PPP username cannot be renamed here while a cutoff scheduler exists. Keep the username or migrate its scheduler first.', array( 'status' => 409 ) );
+		}
+		if ( ! $changes && $new_comment === $old_comment ) return array( 'message' => 'No PPP changes to save.', 'account' => $selected['account'] );
+		if ( $new_comment !== $old_comment ) {
+			// Write comment first. Do not overwrite current billing dates.
+			$done = Payments_RouterOS_Client::set_payment_comment( $selected['record'], $selected['secret_id'], $new_comment );
+			if ( is_wp_error( $done ) ) return $done;
+		}
+		if ( $changes ) {
+			$done = Payments_RouterOS_Client::update_secret_fields( $selected['record'], $selected['secret_id'], $changes );
+			if ( is_wp_error( $done ) ) {
+				return new \WP_Error( 'afcn_ppp_edit_partial', 'PPP field update failed; comment may already have changed. Reopen and inspect the account before retrying.', array( 'status' => 502 ) );
+			}
+		}
+		delete_transient( self::index_cache_key( $selected['connection_id'], $selected['record'] ) );
+		Audit_Log::record( 'ppp_details_updated', $selected['account'], array( 'connection_id' => $selected['connection_id'], 'changed_fields' => array_values( array_filter( array_keys( $changes ), function( $key ) { return 'password' !== $key; } ) ) );
+		return array( 'message' => 'PPP account updated on MikroTik.', 'account' => isset( $changes['name'] ) ? $changes['name'] : $selected['account'] );
 	}
 
 	private static function read_ppp_comment( $payload ) {
