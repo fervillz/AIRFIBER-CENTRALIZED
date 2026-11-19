@@ -636,10 +636,10 @@
 			if (response.account && response.account !== selected.account) selected.account = response.account;
 			workspaceStatus(label, 'success');
 			setFlash(label, 'success');
-			// Prevent an old cached customer result from being trusted after updates.
-			clearResults();
-			if (input.value.trim().length >= 3) search(input.value.trim());
+			// Keep the current account in the modal while refreshing its search results.
+			workspaceSetBusy(false);
 			await workspaceSwitch('payment');
+			if (input.value.trim().length >= 3) search(input.value.trim());
 		} catch (error) {
 			workspaceButtonState(button, 'error', error.message || 'Could not save.');
 			workspaceStatus(error.message || 'Could not save PPP details.', 'danger');
@@ -690,6 +690,7 @@
 			detailVersion = '';
 			commentVersion = '';
 			workspaceMode = 'payment';
+			workspaceBusy = false;
 			modal.querySelectorAll('[data-afcn-workspace-panel]').forEach(function (panel) {
 				panel.hidden = panel.dataset.afcnWorkspacePanel !== 'payment';
 			});
