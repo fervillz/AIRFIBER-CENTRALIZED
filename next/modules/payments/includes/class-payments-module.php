@@ -357,7 +357,7 @@ class Payments_Module implements Module_Contract {
 		}
 		$profile = isset( $selected['secret']['profile'] ) ? (string) $selected['secret']['profile'] : '';
 		if ( 0 === strcasecmp( $profile, 'Expired' ) ) {
-			return new \\WP_Error( 'afcn_ppp_already_expired', __( 'This PPP account is already expired. Refresh the search.', 'airfiber-centralized' ), array( 'status' => 409 ) );
+			return new \WP_Error( 'afcn_ppp_already_expired', __( 'This PPP account is already expired. Refresh the search.', 'airfiber-centralized' ), array( 'status' => 409 ) );
 		}
 		$updated = Payments_RouterOS_Client::expire_secret( $selected['record'], $selected['secret_id'], $selected['account'] );
 		if ( is_wp_error( $updated ) ) {
