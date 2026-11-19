@@ -427,7 +427,7 @@ class Payments_Module implements Module_Contract {
 			if ( ! is_scalar( $input[ $key ] ) ) return new \WP_Error( 'afcn_ppp_edit_value', 'Invalid PPP value.', array( 'status' => 400 ) );
 			$value = (string) $input[ $key ];
 			if ( strlen( $value ) > 500 || false !== strpos( $value, "\0" ) || preg_match( '/[\r\n]/', $value ) ) return new \WP_Error( 'afcn_ppp_edit_length', 'Invalid PPP field length or line break.', array( 'status' => 400 ) );
-			if ( 'password' === $key && '' === $value ) return new \WP_Error( 'afcn_ppp_password', 'PPP password must not be empty.', array( 'status' => 400 ) );
+			if ( 'password' === $key && '' === $value && $value !== $before[ $key ] ) return new \WP_Error( 'afcn_ppp_password', 'PPP password must not be empty.', array( 'status' => 400 ) );
 			if ( 'name' === $key && '' === trim( $value ) ) return new \WP_Error( 'afcn_ppp_username', 'PPP username must not be empty.', array( 'status' => 400 ) );
 			if ( 'disabled' === $key && ! in_array( $value, array( 'true', 'false' ), true ) ) return new \WP_Error( 'afcn_ppp_disabled', 'Invalid PPP enabled state.', array( 'status' => 400 ) );
 			if ( 'only-one' === $key && ! in_array( $value, array( '', 'yes', 'no', 'default' ), true ) ) return new \WP_Error( 'afcn_ppp_one', 'Invalid Only One value.', array( 'status' => 400 ) );
@@ -708,7 +708,7 @@ class Payments_Module implements Module_Contract {
 					</div>
 					<div class="afcn-workspace-tools" role="toolbar" aria-label="<?php esc_attr_e( 'PPP account actions', 'airfiber-centralized' ); ?>">
 						<button type="button" class="afcn-icon-button" data-afcn-workspace-tab="ppp" title="Edit PPP" aria-label="Edit PPP"><?php echo \Airfiber\Next\Icon::svg( 'edit' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></button>
-						<button type="button" class="afcn-icon-button" data-afcn-workspace-tab="comment" title="Edit original PPP comment" aria-label="Edit PPP comment"><?php echo \Airfiber\Next\Icon::svg( 'message' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></button>
+						<button type="button" class="afcn-icon-button" data-afcn-workspace-tab="comment" title="Edit original PPP comment" aria-label="Edit PPP comment"><?php echo \Airfiber\Next\Icon::svg( 'receipt' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></button>
 						<button type="button" class="afcn-icon-button afcn-workspace-trash-button" data-afcn-workspace-trash title="Move PPP to Trash" aria-label="Move PPP to Trash"><?php echo \Airfiber\Next\Icon::svg( 'trash' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></button>
 						<button type="button" class="afcn-icon-button" data-afcn-dialog-close aria-label="<?php esc_attr_e( 'Close', 'airfiber-centralized' ); ?>"><?php echo \Airfiber\Next\Icon::svg( 'x' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></button>
 					</div>
