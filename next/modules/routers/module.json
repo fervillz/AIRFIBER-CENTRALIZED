@@ -1,7 +1,7 @@
 {
   "name": "Routers",
   "description": "Read-only MikroTik inventory with lazy router detail, settings and on-demand data scopes.",
-  "version": "0.1.12",
+  "version": "0.1.13",
   "position": 25,
   "icon": "router",
   "capability": "afcn_manage_connections",
