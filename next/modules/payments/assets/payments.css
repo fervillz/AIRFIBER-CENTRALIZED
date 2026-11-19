@@ -127,3 +127,32 @@
 .afcn-ppp-trash-actions .afcn-button:last-child{border-color:var(--afcn-danger);color:var(--afcn-danger)}
 #afcn-ppp-trash-dialog [data-afcn-trash-status]{margin-bottom:8px;font-size:12px;color:var(--afcn-muted)}
 @media(max-width:520px){.afcn-ppp-trash-row{align-items:flex-start;flex-direction:column}.afcn-ppp-comment-actions{flex-wrap:wrap}}
+
+/* Single-modal Payment / Edit PPP / Comment workspace. Uses shared Core dialog. */
+.afcn-payment-workspace .afcn-dialog-header{display:flex;align-items:flex-start;justify-content:space-between;gap:14px}
+.afcn-payment-workspace .afcn-dialog-header .afcn-page-description{margin-top:3px;font-size:11px}
+.afcn-workspace-tools{display:flex;align-items:center;gap:5px;flex-shrink:0}
+.afcn-workspace-tools .afcn-icon-button{display:inline-flex;align-items:center;justify-content:center;position:relative}
+.afcn-workspace-tools .afcn-icon-button svg{width:16px;height:16px}
+.afcn-workspace-tools .afcn-icon-button.is-active{color:var(--afcn-primary);border-color:var(--afcn-primary);background:#edf5ff}
+.afcn-workspace-tools .afcn-workspace-trash-button{color:var(--afcn-danger)}
+.afcn-workspace-tools .afcn-workspace-trash-button:hover:not(:disabled){color:#fff;background:var(--afcn-danger)}
+.afcn-workspace-panel[hidden]{display:none!important}
+.afcn-workspace-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:13px 0}
+.afcn-workspace-fields label{min-width:0;display:flex;flex-direction:column;gap:6px;font-size:12px;font-weight:400;color:var(--afcn-muted)}
+.afcn-workspace-fields .afcn-input{width:100%;min-width:0;min-height:38px;font-size:13px;color:var(--afcn-text);background:#fff}
+.afcn-workspace-fields [data-afcn-ppp-field="password"]{font-family:ui-monospace,SFMono-Regular,Consolas,monospace}
+.afcn-workspace-footer{display:flex;align-items:center;justify-content:flex-end;gap:9px;margin-top:16px}
+.afcn-workspace-message{margin-bottom:0;font-size:12px;color:var(--afcn-muted)}
+.afcn-workspace-message:not(:empty){margin-bottom:12px}
+.afcn-workspace-message.is-danger{color:var(--afcn-danger)}
+.afcn-workspace-message.is-success{color:var(--afcn-success)}
+.afcn-payment-workspace [data-afcn-workspace-panel="comment"] .afcn-ppp-comment-input{min-height:270px}
+@media(max-width:520px){
+ .afcn-payment-workspace .afcn-dialog-header{gap:8px}
+ .afcn-workspace-tools{gap:3px}
+ .afcn-workspace-tools .afcn-icon-button{width:30px;height:30px}
+ .afcn-workspace-fields{grid-template-columns:1fr}
+ .afcn-payment-workspace .afcn-dialog-header h2{font-size:18px}
+}
+@media(prefers-reduced-motion:reduce){.afcn-workspace-panel{animation:none!important;transition:none!important}}
