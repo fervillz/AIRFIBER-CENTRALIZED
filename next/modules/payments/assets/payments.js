@@ -527,6 +527,8 @@
 		if (!modal || !old || !incoming) return;
 		const previous = workspaceMode;
 		workspaceMode = next;
+		const expire = modal.querySelector('[data-afcn-workspace-expire]');
+		if (expire) { expire.dataset.afcnExpireConfirmed = ''; expire.textContent = 'Manual Expire'; }
 		modal.querySelectorAll('[data-afcn-workspace-tab]').forEach(function (button) {
 			button.classList.toggle('is-active', button.dataset.afcnWorkspaceTab === next);
 			button.setAttribute('aria-pressed', button.dataset.afcnWorkspaceTab === next ? 'true' : 'false');
@@ -684,6 +686,39 @@
 			workspaceSetBusy(false);
 		}
 	}
+	async function workspaceExpire(button) {
+		if (!selected || workspaceBusy || selected.status === 'expired') return;
+		if (button.dataset.afcnExpireConfirmed !== '1') {
+			button.dataset.afcnExpireConfirmed = '1';
+			button.textContent = 'Confirm Expire';
+			workspaceStatus('Confirm to change the profile to Expired and disconnect active PPP sessions.', 'danger');
+			return;
+		}
+		const item = selected;
+		workspaceSetBusy(true);
+		workspaceButtonState(button, 'loading', 'Expiring PPP on MikroTik…');
+		workspaceStatus('Expiring account…', 'info');
+		try {
+			const response = await window.AirfiberNext.action('payments', 'expire-ppp', selectedPayload(item));
+			item.status = 'expired';
+			item.actual_profile = 'Expired';
+			dialog().querySelector('[data-afcn-payment-dialog-status]').textContent = 'Expired';
+			dialog().querySelector('[data-afcn-payment-dialog-status]').className = 'is-expired';
+			workspaceButtonState(button, 'success', response.message || 'Expired');
+			workspaceSetBusy(false);
+			await workspaceSwitch('payment');
+			showDialogMessage('This account is expired. Recording payment will not reconnect it automatically.', 'warning');
+			setFlash(response.message || 'Account expired.', 'success');
+			if (input.value.trim().length >= 3) search(input.value.trim());
+		} catch (error) {
+			workspaceButtonState(button, 'error', error.message || 'Expiration failed');
+			workspaceStatus(error.message || 'Could not expire PPP.', 'danger');
+		} finally {
+			button.dataset.afcnExpireConfirmed = '';
+			button.textContent = 'Manual Expire';
+			workspaceSetBusy(false);
+		}
+	}
 	function bindWorkspace() {
 		const modal = dialog();
 		if (!modal || modal.dataset.afcnWorkspaceWired) return;
@@ -691,6 +726,7 @@
 		modal.querySelectorAll('[data-afcn-workspace-tab]').forEach(function (button) {
 			button.addEventListener('click', function () { workspaceOpen(button.dataset.afcnWorkspaceTab, button); });
 		});
+		modal.querySelector('[data-afcn-workspace-expire]').addEventListener('click', function () { workspaceExpire(this); });
 		modal.querySelector('[data-afcn-workspace-trash]').addEventListener('click', function () {
 			workspaceTrash(this);
 		});
