@@ -667,35 +667,6 @@ class Payments_Module implements Module_Contract {
 		<?php return ob_get_clean();
 	}
 
-	private static function ppp_edit_dialog() {
-		ob_start();
-		?>
-		<dialog class="afcn-dialog afcn-ppp-comment-dialog" id="afcn-ppp-comment-dialog">
-			<div class="afcn-dialog-shell">
-				<div class="afcn-dialog-header">
-					<div>
-						<h2><?php esc_html_e( 'Edit PPP comment', 'airfiber-centralized' ); ?></h2>
-						<p class="afcn-page-description" data-afcn-ppp-edit-account></p>
-					</div>
-					<button type="button" class="afcn-icon-button" data-afcn-ppp-edit-close aria-label="<?php esc_attr_e( 'Close editor', 'airfiber-centralized' ); ?>"><?php echo \Airfiber\Next\Icon::svg( 'x' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></button>
-				</div>
-				<div class="afcn-dialog-body">
-					<p class="afcn-page-description"><?php esc_html_e( 'Edit the original MikroTik comment. Keep existing name, billing, and scheduler keys intact.', 'airfiber-centralized' ); ?></p>
-					<div data-afcn-ppp-edit-message role="status"></div>
-					<textarea class="afcn-input afcn-ppp-comment-input" rows="12" maxlength="8000" spellcheck="false" data-afcn-ppp-edit-text aria-label="<?php esc_attr_e( 'Raw PPP comment', 'airfiber-centralized' ); ?>"></textarea>
-					<div class="afcn-ppp-comment-actions">
-						<button type="button" class="afcn-button afcn-button-secondary afcn-ppp-delete-button" data-afcn-ppp-delete>Delete</button>
-						<button type="button" class="afcn-button afcn-button-secondary afcn-ppp-expire-button" data-afcn-ppp-edit-expire><?php esc_html_e( 'Manual Expire', 'airfiber-centralized' ); ?></button>
-						<button type="button" class="afcn-button afcn-button-secondary" data-afcn-ppp-edit-close><?php esc_html_e( 'Cancel', 'airfiber-centralized' ); ?></button>
-						<button type="button" class="afcn-button afcn-button-primary" data-afcn-ppp-edit-save><?php esc_html_e( 'Save comment', 'airfiber-centralized' ); ?></button>
-					</div>
-				</div>
-			</div>
-		</dialog>
-		<?php
-		return ob_get_clean();
-	}
-
 	private static function payment_dialog() {
 		ob_start();
 		?>
@@ -707,9 +678,9 @@ class Payments_Module implements Module_Contract {
 						<p class="afcn-page-description" data-afcn-workspace-subtitle></p>
 					</div>
 					<div class="afcn-workspace-tools" role="toolbar" aria-label="<?php esc_attr_e( 'PPP account actions', 'airfiber-centralized' ); ?>">
-						<button type="button" class="afcn-icon-button" data-afcn-workspace-tab="ppp" title="Edit PPP" aria-label="Edit PPP"><?php echo \Airfiber\Next\Icon::svg( 'edit' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></button>
-						<button type="button" class="afcn-icon-button" data-afcn-workspace-tab="comment" title="Edit original PPP comment" aria-label="Edit PPP comment"><?php echo \Airfiber\Next\Icon::svg( 'receipt' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></button>
-						<button type="button" class="afcn-icon-button afcn-workspace-trash-button" data-afcn-workspace-trash title="Move PPP to Trash" aria-label="Move PPP to Trash"><?php echo \Airfiber\Next\Icon::svg( 'trash' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></button>
+						<button type="button" class="afcn-icon-button" data-afcn-module="payments" data-afcn-workspace-tab="ppp" title="Edit PPP" aria-label="Edit PPP"><?php echo \Airfiber\Next\Icon::svg( 'edit' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></button>
+						<button type="button" class="afcn-icon-button" data-afcn-module="payments" data-afcn-workspace-tab="comment" title="Edit original PPP comment" aria-label="Edit PPP comment"><?php echo \Airfiber\Next\Icon::svg( 'receipt' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></button>
+						<button type="button" class="afcn-icon-button afcn-workspace-trash-button" data-afcn-module="payments" data-afcn-workspace-trash title="Move PPP to Trash" aria-label="Move PPP to Trash"><?php echo \Airfiber\Next\Icon::svg( 'trash' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></button>
 						<button type="button" class="afcn-icon-button" data-afcn-dialog-close aria-label="<?php esc_attr_e( 'Close', 'airfiber-centralized' ); ?>"><?php echo \Airfiber\Next\Icon::svg( 'x' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></button>
 					</div>
 				</div>
@@ -722,13 +693,13 @@ class Payments_Module implements Module_Contract {
 							<div><span><?php esc_html_e( 'Status', 'airfiber-centralized' ); ?></span><strong data-afcn-payment-dialog-status></strong></div>
 						</div>
 						<div data-afcn-payment-dialog-message></div>
-						<button type="button" class="afcn-payment-quick-action is-cash" data-afcn-payment-quick-method="cash">
+						<button type="button" class="afcn-payment-quick-action is-cash" data-afcn-module="payments" data-afcn-payment-quick-method="cash">
 							<span class="afcn-payment-quick-spinner" aria-hidden="true"></span>
 							<span data-afcn-payment-quick-label><?php esc_html_e( 'CASH', 'airfiber-centralized' ); ?></span>
 							<span class="afcn-payment-cycle-pill" data-afcn-payment-cycle-pill>MTH</span>
 						</button>
 						<div class="afcn-payment-quick-secondary">
-							<button type="button" class="afcn-payment-quick-action is-gcash" data-afcn-payment-quick-method="gcash">
+							<button type="button" class="afcn-payment-quick-action is-gcash" data-afcn-module="payments" data-afcn-payment-quick-method="gcash">
 								<span class="afcn-payment-quick-spinner" aria-hidden="true"></span>
 								<span data-afcn-payment-quick-label><?php esc_html_e( 'GCash', 'airfiber-centralized' ); ?></span>
 								<span class="afcn-payment-cycle-pill" data-afcn-payment-cycle-pill>MTH</span>
@@ -769,7 +740,7 @@ class Payments_Module implements Module_Contract {
 						</div>
 						<div class="afcn-workspace-footer">
 							<button type="button" class="afcn-button afcn-button-secondary" data-afcn-workspace-back>Back</button>
-							<button type="button" class="afcn-button afcn-button-primary" data-afcn-workspace-save-ppp>Save PPP</button>
+							<button type="button" class="afcn-button afcn-button-primary" data-afcn-module="payments" data-afcn-workspace-save-ppp>Save PPP</button>
 						</div>
 					</section>
 					<section class="afcn-workspace-panel" data-afcn-workspace-panel="comment" hidden>
@@ -777,7 +748,7 @@ class Payments_Module implements Module_Contract {
 						<textarea class="afcn-input afcn-ppp-comment-input" rows="13" maxlength="8000" spellcheck="false" data-afcn-workspace-comment aria-label="Raw editable PPP comment"></textarea>
 						<div class="afcn-workspace-footer">
 							<button type="button" class="afcn-button afcn-button-secondary" data-afcn-workspace-back>Back</button>
-							<button type="button" class="afcn-button afcn-button-primary" data-afcn-workspace-save-comment>Save comment</button>
+							<button type="button" class="afcn-button afcn-button-primary" data-afcn-module="payments" data-afcn-workspace-save-comment>Save comment</button>
 						</div>
 					</section>
 				</div>
