@@ -405,7 +405,7 @@ class Payments_Module implements Module_Contract {
 		$parsed = self::parse_comment( $comment );
 		return array(
 			'fields' => $fields,
-			'customer_name' => isset( $parsed['name'] ) ? (string) $parsed['name'] : $selected['account'],
+			'customer_name' => ! empty( $parsed['name'] ) ? (string) $parsed['name'] : $selected['account'],
 			'version' => hash( 'sha256', wp_json_encode( $fields ) . '|' . $comment ),
 		);
 	}
@@ -437,11 +437,11 @@ class Payments_Module implements Module_Contract {
 		$customer = isset( $payload['customer_name'] ) ? sanitize_text_field( (string) $payload['customer_name'] ) : '';
 		if ( '' === trim( $customer ) || strlen( $customer ) > 150 ) return new \WP_Error( 'afcn_ppp_customer', 'Enter a valid customer name.', array( 'status' => 400 ) );
 		$parsed = self::parse_comment( $old_comment );
-		$old_customer = isset( $parsed['name'] ) ? (string) $parsed['name'] : $selected['account'];
+		$old_customer = ! empty( $parsed['name'] ) ? (string) $parsed['name'] : $selected['account'];
 		$new_comment = $old_comment;
 		if ( $customer !== $old_customer ) $new_comment = self::replace_comment_value( $new_comment, 'name', $customer );
 		// A changed RouterOS profile must agree with the structured billing plan.
-		if ( isset( $changes['profile'] ) ) {
+		if ( isset( $changes['profile'] ) && 0 !== strcasecmp( $changes['profile'], 'Expired' ) ) {
 			$new_comment = self::replace_comment_value( $new_comment, 'plan', $changes['profile'] );
 		}
 		if ( isset( $changes['name'] ) ) {
@@ -679,7 +679,7 @@ class Payments_Module implements Module_Contract {
 					</div>
 					<div class="afcn-workspace-tools" role="toolbar" aria-label="<?php esc_attr_e( 'PPP account actions', 'airfiber-centralized' ); ?>">
 						<button type="button" class="afcn-icon-button" data-afcn-module="payments" data-afcn-workspace-tab="ppp" title="Edit PPP" aria-label="Edit PPP"><?php echo \Airfiber\Next\Icon::svg( 'edit' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></button>
-						<button type="button" class="afcn-icon-button" data-afcn-module="payments" data-afcn-workspace-tab="comment" title="Edit original PPP comment" aria-label="Edit PPP comment"><?php echo \Airfiber\Next\Icon::svg( 'receipt' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></button>
+						<button type="button" class="afcn-icon-button" data-afcn-module="payments" data-afcn-workspace-tab="comment" title="Edit original PPP comment" aria-label="Edit PPP comment"><?php echo \Airfiber\Next\Icon::svg( 'comment' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></button>
 						<button type="button" class="afcn-icon-button afcn-workspace-trash-button" data-afcn-module="payments" data-afcn-workspace-trash title="Move PPP to Trash" aria-label="Move PPP to Trash"><?php echo \Airfiber\Next\Icon::svg( 'trash' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></button>
 						<button type="button" class="afcn-icon-button" data-afcn-dialog-close aria-label="<?php esc_attr_e( 'Close', 'airfiber-centralized' ); ?>"><?php echo \Airfiber\Next\Icon::svg( 'x' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></button>
 					</div>
