@@ -19,23 +19,32 @@
 		});
 	}
 
+	function visibleScopeButton(detail) {
+		const cardView = detail.dataset.afcnView === 'cards';
+		const host = detail.querySelector(cardView
+			? '[data-afcn-router-scope-card-view]'
+			: '[data-afcn-router-scope-tabs-view]');
+		if (!host) return null;
+		if (cardView) {
+			return host.querySelector('[data-afcn-router-scope-load][data-afcn-scope="interfaces"]') ||
+				host.querySelector('[data-afcn-router-scope-load]');
+		}
+		// Only the active tab is eligible for automatic loading. An earlier
+		// scheduled Interfaces request must not run after the user selects Routes.
+		const activePanel = host.querySelector('[data-afcn-tab-panel]:not([hidden])');
+		return activePanel ? activePanel.querySelector('[data-afcn-router-scope-load]') : null;
+	}
+
 	function scheduleDefaultScope(detail) {
-		if (!detail || detail.dataset.afcnDefaultScopeScheduled) {
-			return;
-		}
-		const view = detail.dataset.afcnView === 'cards' ? 'cards' : 'list';
-		const host = view === 'cards'
-			? detail.querySelector('[data-afcn-router-scope-card-view]')
-			: detail.querySelector('[data-afcn-router-scope-tabs-view]');
-		const button = host ? host.querySelector('[data-afcn-router-scope-load][data-afcn-scope="interfaces"]') : null;
-		if (!button || button.dataset.afcnScopeLoaded) {
-			return;
-		}
+		if (!detail || detail.hidden || detail.dataset.afcnDefaultScopeScheduled) return;
+		const button = visibleScopeButton(detail);
+		if (!button || button.dataset.afcnScopeLoaded || button.dataset.afcnScopeLoading) return;
 		detail.dataset.afcnDefaultScopeScheduled = '1';
 
 		const run = function () {
-			if (detail.hidden) {
-				delete detail.dataset.afcnDefaultScopeScheduled;
+			delete detail.dataset.afcnDefaultScopeScheduled;
+			if (!detail.isConnected || detail.hidden || visibleScopeButton(detail) !== button ||
+				button.dataset.afcnScopeLoaded || button.dataset.afcnScopeLoading) {
 				return;
 			}
 			loadScope(button, { page: 1, search: '', refresh: false, auto: true });
@@ -52,44 +61,76 @@
 		});
 	}
 
-	function selectRouter(connectionId, updateHistory) {
-		const root = routerRoot();
-		if (!root) {
+	async function ensureRouterDetail(root, container, connectionId) {
+		if (!container) return;
+		if (container.dataset.afcnRouterDetailReady === '1') {
+			const detail = container.querySelector('[data-afcn-router-detail]');
+			if (detail) {
+				detail.hidden = container.hidden;
+				if (!detail.hidden) scheduleDefaultScope(detail);
+			}
 			return;
 		}
+		if (container.dataset.afcnRouterDetailLoading === '1') return;
+		container.dataset.afcnRouterDetailLoading = '1';
+		container.innerHTML = '<div class="afcn-loading-state" aria-busy="true"><span class="afcn-spinner" aria-hidden="true"></span><span>Loading router details…</span></div>';
+		try {
+			await window.AirfiberNext.loadChunk('routers', 'detail', container, { connection_id: connectionId });
+			if (!root.isConnected) return; // Navigated away before the chunk arrived.
+			const detail = container.querySelector('[data-afcn-router-detail]');
+			if (!detail) throw new Error('The router details did not load.');
+			container.dataset.afcnRouterDetailReady = '1';
+			detail.hidden = container.hidden;
+			init(root); // Bind only the newly inserted tabs, forms and scope buttons.
+			if (!detail.hidden) scheduleDefaultScope(detail);
+		} catch (error) {
+			if (!root.isConnected) return;
+			container.replaceChildren();
+			const notice = document.createElement('div');
+			notice.className = 'afcn-notice afcn-notice-danger';
+			notice.textContent = error.message || 'Router details could not be loaded.';
+			const retry = document.createElement('button');
+			retry.type = 'button';
+			retry.className = 'afcn-button afcn-button-secondary';
+			retry.textContent = 'Try again';
+			retry.addEventListener('click', function () {
+				ensureRouterDetail(root, container, connectionId);
+			});
+			container.append(notice, retry);
+		} finally {
+			delete container.dataset.afcnRouterDetailLoading;
+		}
+	}
+
+	function selectRouter(connectionId, updateHistory) {
+		const root = routerRoot();
+		if (!root) return;
 
 		const browser = root.querySelector('[data-afcn-router-browser]');
 		const browserHead = root.querySelector('[data-afcn-router-browser-head]');
-		let selected = false;
-		let selectedDetail = null;
-		root.querySelectorAll('[data-afcn-router-detail]').forEach(function (detail) {
-			const active = Boolean(connectionId) && detail.dataset.afcnRouterDetail === connectionId;
-			detail.hidden = !active;
-			if (active) {
-				selectedDetail = detail;
-			}
-			selected = selected || active;
+		let selectedContainer = null;
+		root.querySelectorAll('[data-afcn-router-container]').forEach(function (container) {
+			const active = Boolean(connectionId) && container.dataset.afcnRouterContainer === connectionId;
+			container.hidden = !active;
+			const detail = container.querySelector('[data-afcn-router-detail]');
+			if (detail) detail.hidden = !active;
+			if (active) selectedContainer = container;
 		});
-		if (browser) {
-			browser.hidden = selected;
-		}
-		if (browserHead) {
-			browserHead.hidden = selected;
-		}
-		if (selected && window.AirfiberCardOrder && typeof window.AirfiberCardOrder.wire === 'function') {
-			window.AirfiberCardOrder.wire();
-		}
-		if (selectedDetail) {
-			scheduleDefaultScope(selectedDetail);
+
+		const selected = Boolean(selectedContainer);
+		if (browser) browser.hidden = selected;
+		if (browserHead) browserHead.hidden = selected;
+		if (selected) {
+			ensureRouterDetail(root, selectedContainer, connectionId);
+			if (window.AirfiberCardOrder && typeof window.AirfiberCardOrder.wire === 'function') {
+				window.AirfiberCardOrder.wire();
+			}
 		}
 
-		const context = selected ? connectionId : '';
-		setNavigationActive(context);
+		setNavigationActive(selected ? connectionId : '');
 		if (updateHistory) {
-			const hash = '#routers' + (context ? '/' + encodeURIComponent(context) : '');
-			if (window.location.hash !== hash) {
-				history.pushState(null, '', hash);
-			}
+			const hash = '#routers' + (selected ? '/' + encodeURIComponent(connectionId) : '');
+			if (window.location.hash !== hash) history.pushState(null, '', hash);
 		}
 	}
 
@@ -444,6 +485,54 @@
 		return node ? String(node.textContent || '').replace(/\s+/g, ' ').trim() : '';
 	}
 
+	async function openRouterSettings(root, connectionId, button) {
+		if (!root || !connectionId || !window.AirfiberNext) return;
+		// One slot per router prevents concurrent settings requests clobbering
+		// another router's dialog. Only accessed dialogs are ever rendered.
+		let slot = Array.from(root.querySelectorAll('[data-afcn-router-edit-slot]')).find(function (node) {
+			return node.dataset.afcnRouterEditSlot === connectionId;
+		});
+		if (!slot) {
+			slot = document.createElement('div');
+			slot.dataset.afcnRouterEditSlot = connectionId;
+			root.appendChild(slot);
+		}
+		const existing = slot.querySelector('dialog');
+		if (existing) {
+			window.AirfiberNext.openDialog(existing);
+			return;
+		}
+		if (slot.dataset.afcnRouterEditLoading === '1') return;
+		slot.dataset.afcnRouterEditLoading = '1';
+		if (button) button.disabled = true;
+		try {
+			await window.AirfiberNext.loadChunk('routers', 'edit-dialog', slot, { connection_id: connectionId });
+			if (!root.isConnected) return;
+			init(root);
+			const dialog = slot.querySelector('dialog');
+			if (!dialog) throw new Error('Router settings were not returned.');
+			window.AirfiberNext.openDialog(dialog);
+		} catch (error) {
+			if (window.AirfiberNext) {
+				window.AirfiberNext.toast(error.message || 'Could not open router settings.', true);
+			}
+			slot.replaceChildren();
+		} finally {
+			delete slot.dataset.afcnRouterEditLoading;
+			if (button && button.isConnected) button.disabled = false;
+		}
+	}
+
+	function wireRouterSettings(root) {
+		if (root.dataset.afcnRouterSettingsWired) return;
+		root.dataset.afcnRouterSettingsWired = '1';
+		root.addEventListener('click', function (event) {
+			const button = event.target.closest('[data-afcn-router-settings]');
+			if (!button || !root.contains(button)) return;
+			openRouterSettings(root, button.dataset.afcnRouterSettings || '', button);
+		});
+	}
+
 	function wireRouterSelectButtons(root) {
 		root.querySelectorAll('[data-afcn-router-select]').forEach(function (button) {
 			if (button.dataset.afcnRouterWired) {
@@ -659,6 +748,7 @@
 
 		current.querySelectorAll('[data-afcn-router-form]').forEach(wireRouterForm);
 		wireRouterSelectButtons(current);
+		wireRouterSettings(current);
 		wireRouterScopeViews(current);
 		wireRouterBrowser(current);
 		current.querySelectorAll('[data-afcn-router-scope-load]').forEach(function (button) {
