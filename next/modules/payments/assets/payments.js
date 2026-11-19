@@ -328,6 +328,7 @@
 		selected = item;
 		workspaceEpoch++;
 		const modal = dialog();
+		if (!modal) return;
 		workspaceMode = 'payment';
 		modal.querySelectorAll('[data-afcn-workspace-panel]').forEach(function (panel) {
 			panel.hidden = panel.dataset.afcnWorkspacePanel !== 'payment';
@@ -335,9 +336,8 @@
 		modal.querySelectorAll('[data-afcn-workspace-tab]').forEach(function (button) { button.classList.remove('is-active'); });
 		modal.querySelector('[data-afcn-workspace-subtitle]').textContent = item.account + ' · ' + (item.plan || item.actual_profile || 'PPP');
 		workspaceStatus('', '');
-		if (!modal) {
-			return;
-		}
+		const expire = modal.querySelector('[data-afcn-workspace-expire]');
+		if (expire) { expire.hidden = item.status === 'expired'; expire.textContent = 'Manual Expire'; expire.dataset.afcnExpireConfirmed = ''; }
 
 		modal.querySelector('[data-afcn-payment-dialog-name]').textContent = item.customer_name || item.account;
 		modal.querySelector('[data-afcn-payment-dialog-account]').textContent = item.account;
