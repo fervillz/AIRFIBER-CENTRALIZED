@@ -29,7 +29,6 @@ class Payments_Module implements Module_Contract {
 				<div class="afcn-payment-heading-actions">
 					<a class="afcn-button afcn-payment-add-ppp" href="<?php echo esc_url( \Airfiber\Next\Bootstrap::classic_url() ); ?>" title="<?php esc_attr_e( 'Open the existing Add PPP wizard in Classic Basic', 'airfiber-centralized' ); ?>">+ <?php esc_html_e( 'Add PPP', 'airfiber-centralized' ); ?></a>
 					<button type="button" class="afcn-button afcn-button-secondary" data-afcn-trash-open>Trash</button>
-					<button type="button" class="afcn-button afcn-button-secondary" data-afcn-payment-mode-toggle aria-pressed="false"><?php esc_html_e( 'Edit PPP', 'airfiber-centralized' ); ?></button>
 				</div>
 			</div>
 
@@ -69,7 +68,6 @@ class Payments_Module implements Module_Contract {
 			<div class="afcn-payment-results" data-afcn-payment-results role="listbox" aria-label="<?php esc_attr_e( 'Customer search results', 'airfiber-centralized' ); ?>" hidden></div>
 
 			<?php echo self::payment_dialog(); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
-			<?php echo self::ppp_edit_dialog(); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
 			<?php echo self::trash_dialog(); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
 		</div>
 		<?php
@@ -701,50 +699,87 @@ class Payments_Module implements Module_Contract {
 	private static function payment_dialog() {
 		ob_start();
 		?>
-		<dialog class="afcn-dialog afcn-payment-quick-dialog" id="afcn-payment-dialog">
+		<dialog class="afcn-dialog afcn-payment-quick-dialog afcn-payment-workspace" id="afcn-payment-dialog">
 			<div class="afcn-dialog-shell">
 				<div class="afcn-dialog-header">
 					<div>
 						<h2 data-afcn-payment-dialog-name><?php esc_html_e( 'Customer', 'airfiber-centralized' ); ?></h2>
+						<p class="afcn-page-description" data-afcn-workspace-subtitle></p>
 					</div>
-					<button type="button" class="afcn-icon-button" data-afcn-dialog-close aria-label="<?php esc_attr_e( 'Close', 'airfiber-centralized' ); ?>"><?php echo \Airfiber\Next\Icon::svg( 'x' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></button>
+					<div class="afcn-workspace-tools" role="toolbar" aria-label="<?php esc_attr_e( 'PPP account actions', 'airfiber-centralized' ); ?>">
+						<button type="button" class="afcn-icon-button" data-afcn-workspace-tab="ppp" title="Edit PPP" aria-label="Edit PPP"><?php echo \Airfiber\Next\Icon::svg( 'edit' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></button>
+						<button type="button" class="afcn-icon-button" data-afcn-workspace-tab="comment" title="Edit original PPP comment" aria-label="Edit PPP comment"><?php echo \Airfiber\Next\Icon::svg( 'message' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></button>
+						<button type="button" class="afcn-icon-button afcn-workspace-trash-button" data-afcn-workspace-trash title="Move PPP to Trash" aria-label="Move PPP to Trash"><?php echo \Airfiber\Next\Icon::svg( 'trash' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></button>
+						<button type="button" class="afcn-icon-button" data-afcn-dialog-close aria-label="<?php esc_attr_e( 'Close', 'airfiber-centralized' ); ?>"><?php echo \Airfiber\Next\Icon::svg( 'x' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></button>
+					</div>
 				</div>
 				<div class="afcn-dialog-body">
-					<div class="afcn-payment-quick-summary">
-						<div><span><?php esc_html_e( 'PPP account', 'airfiber-centralized' ); ?></span><strong data-afcn-payment-dialog-account></strong></div>
-						<div><span><?php esc_html_e( 'Plan', 'airfiber-centralized' ); ?></span><strong data-afcn-payment-dialog-plan></strong></div>
-						<div><span><?php esc_html_e( 'Status', 'airfiber-centralized' ); ?></span><strong data-afcn-payment-dialog-status></strong></div>
-					</div>
-					<div data-afcn-payment-dialog-message></div>
-					<button type="button" class="afcn-payment-quick-action is-cash" data-afcn-payment-quick-method="cash">
-						<span class="afcn-payment-quick-spinner" aria-hidden="true"></span>
-						<span data-afcn-payment-quick-label><?php esc_html_e( 'CASH', 'airfiber-centralized' ); ?></span>
-						<span class="afcn-payment-cycle-pill" data-afcn-payment-cycle-pill>MTH</span>
-					</button>
-					<div class="afcn-payment-quick-secondary">
-						<button type="button" class="afcn-payment-quick-action is-gcash" data-afcn-payment-quick-method="gcash">
+					<div data-afcn-workspace-status role="status" aria-live="polite"></div>
+					<section class="afcn-workspace-panel" data-afcn-workspace-panel="payment">
+						<div class="afcn-payment-quick-summary">
+							<div><span><?php esc_html_e( 'PPP account', 'airfiber-centralized' ); ?></span><strong data-afcn-payment-dialog-account></strong></div>
+							<div><span><?php esc_html_e( 'Plan', 'airfiber-centralized' ); ?></span><strong data-afcn-payment-dialog-plan></strong></div>
+							<div><span><?php esc_html_e( 'Status', 'airfiber-centralized' ); ?></span><strong data-afcn-payment-dialog-status></strong></div>
+						</div>
+						<div data-afcn-payment-dialog-message></div>
+						<button type="button" class="afcn-payment-quick-action is-cash" data-afcn-payment-quick-method="cash">
 							<span class="afcn-payment-quick-spinner" aria-hidden="true"></span>
-							<span data-afcn-payment-quick-label><?php esc_html_e( 'GCash', 'airfiber-centralized' ); ?></span>
+							<span data-afcn-payment-quick-label><?php esc_html_e( 'CASH', 'airfiber-centralized' ); ?></span>
 							<span class="afcn-payment-cycle-pill" data-afcn-payment-cycle-pill>MTH</span>
 						</button>
-					</div>
-					<button type="button" class="afcn-payment-edit-from-dialog" data-afcn-payment-edit-from-dialog><?php esc_html_e( 'Edit PPP comment instead', 'airfiber-centralized' ); ?></button>
-					<p class="afcn-page-description"><?php esc_html_e( 'For monthly advance payments, use Classic Basic until BETA supports the complete billing-date update.', 'airfiber-centralized' ); ?></p>
-					<div class="afcn-payment-quick-meta">
-						<span><?php esc_html_e( 'Payment date:', 'airfiber-centralized' ); ?> <strong><?php echo esc_html( current_time( 'Y-m-d' ) ); ?></strong></span>
-						<span><?php esc_html_e( 'GCash reference:', 'airfiber-centralized' ); ?> <strong>XXXX</strong></span>
-					</div>
-					<small class="afcn-payment-hold-hint"><?php esc_html_e( 'Hold CASH or GCash to change the payment amount.', 'airfiber-centralized' ); ?></small>
-					<div class="afcn-payment-amount-override" data-afcn-payment-amount-override hidden>
-						<label>
-							<span><?php esc_html_e( 'Payment amount', 'airfiber-centralized' ); ?></span>
-							<div><b>₱</b><input type="number" min="0" step="0.01" inputmode="decimal" data-afcn-payment-amount placeholder="<?php esc_attr_e( 'Enter amount', 'airfiber-centralized' ); ?>"></div>
-						</label>
-						<div class="afcn-payment-override-actions">
-							<button type="button" class="afcn-button afcn-button-primary" data-afcn-payment-amount-apply><?php esc_html_e( 'Use Amount', 'airfiber-centralized' ); ?></button>
-							<button type="button" class="afcn-button afcn-button-secondary" data-afcn-payment-amount-cancel><?php esc_html_e( 'Cancel', 'airfiber-centralized' ); ?></button>
+						<div class="afcn-payment-quick-secondary">
+							<button type="button" class="afcn-payment-quick-action is-gcash" data-afcn-payment-quick-method="gcash">
+								<span class="afcn-payment-quick-spinner" aria-hidden="true"></span>
+								<span data-afcn-payment-quick-label><?php esc_html_e( 'GCash', 'airfiber-centralized' ); ?></span>
+								<span class="afcn-payment-cycle-pill" data-afcn-payment-cycle-pill>MTH</span>
+							</button>
 						</div>
-					</div>
+						<p class="afcn-page-description"><?php esc_html_e( 'For monthly advance payments, use Classic Basic until BETA supports complete billing-date updates.', 'airfiber-centralized' ); ?></p>
+						<div class="afcn-payment-quick-meta">
+							<span><?php esc_html_e( 'Payment date:', 'airfiber-centralized' ); ?> <strong><?php echo esc_html( current_time( 'Y-m-d' ) ); ?></strong></span>
+							<span><?php esc_html_e( 'GCash reference:', 'airfiber-centralized' ); ?> <strong>XXXX</strong></span>
+						</div>
+						<small class="afcn-payment-hold-hint"><?php esc_html_e( 'Hold CASH or GCash to change the payment amount.', 'airfiber-centralized' ); ?></small>
+						<div class="afcn-payment-amount-override" data-afcn-payment-amount-override hidden>
+							<label><span><?php esc_html_e( 'Payment amount', 'airfiber-centralized' ); ?></span>
+								<div><b>₱</b><input type="number" min="0" step="0.01" inputmode="decimal" data-afcn-payment-amount placeholder="Enter amount"></div>
+							</label>
+							<div class="afcn-payment-override-actions">
+								<button type="button" class="afcn-button afcn-button-primary" data-afcn-payment-amount-apply>Use Amount</button>
+								<button type="button" class="afcn-button afcn-button-secondary" data-afcn-payment-amount-cancel>Cancel</button>
+							</div>
+						</div>
+					</section>
+					<section class="afcn-workspace-panel" data-afcn-workspace-panel="ppp" hidden>
+						<p class="afcn-page-description">Edit the MikroTik PPP secret. Password is displayed as plain text only for this authorized edit session.</p>
+						<div class="afcn-workspace-fields">
+							<label>Customer name<input class="afcn-input" data-afcn-ppp-customer autocomplete="off"></label>
+							<label>PPP username<input class="afcn-input" data-afcn-ppp-field="name" autocomplete="off"></label>
+							<label>Current PPP password<input class="afcn-input" type="text" data-afcn-ppp-field="password" autocomplete="off" spellcheck="false"></label>
+							<label>Profile / plan<input class="afcn-input" data-afcn-ppp-field="profile"></label>
+							<label>Service<input class="afcn-input" data-afcn-ppp-field="service"></label>
+							<label>Local address<input class="afcn-input" data-afcn-ppp-field="local-address"></label>
+							<label>Remote address<input class="afcn-input" data-afcn-ppp-field="remote-address"></label>
+							<label>Caller ID<input class="afcn-input" data-afcn-ppp-field="caller-id"></label>
+							<label>Routes<input class="afcn-input" data-afcn-ppp-field="routes"></label>
+							<label>Only one connection<select class="afcn-input" data-afcn-ppp-field="only-one"><option value="">Router default</option><option value="yes">Yes</option><option value="no">No</option><option value="default">Default</option></select></label>
+							<label>Limit bytes in<input class="afcn-input" data-afcn-ppp-field="limit-bytes-in" inputmode="numeric"></label>
+							<label>Limit bytes out<input class="afcn-input" data-afcn-ppp-field="limit-bytes-out" inputmode="numeric"></label>
+							<label>Account status<select class="afcn-input" data-afcn-ppp-field="disabled"><option value="false">Enabled</option><option value="true">Disabled</option></select></label>
+						</div>
+						<div class="afcn-workspace-footer">
+							<button type="button" class="afcn-button afcn-button-secondary" data-afcn-workspace-back>Back</button>
+							<button type="button" class="afcn-button afcn-button-primary" data-afcn-workspace-save-ppp>Save PPP</button>
+						</div>
+					</section>
+					<section class="afcn-workspace-panel" data-afcn-workspace-panel="comment" hidden>
+						<p class="afcn-page-description">All original PPP comment lines are editable. Changing billing or cutoff keys can affect scheduled service expiration.</p>
+						<textarea class="afcn-input afcn-ppp-comment-input" rows="13" maxlength="8000" spellcheck="false" data-afcn-workspace-comment aria-label="Raw editable PPP comment"></textarea>
+						<div class="afcn-workspace-footer">
+							<button type="button" class="afcn-button afcn-button-secondary" data-afcn-workspace-back>Back</button>
+							<button type="button" class="afcn-button afcn-button-primary" data-afcn-workspace-save-comment>Save comment</button>
+						</div>
+					</section>
 				</div>
 			</div>
 		</dialog>
