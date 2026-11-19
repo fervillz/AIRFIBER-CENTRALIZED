@@ -15,6 +15,7 @@ class Payments_Module implements Module_Contract {
 	const MIN_QUERY       = 3;
 	const MAX_RESULTS     = 10;
 	const INDEX_CACHE_TTL = 90;
+	const TRASH_OPTION = 'afcn_payments_trash_v1';
 
 	public static function render( $context = array() ) {
 		$routers = self::payment_routers();
@@ -27,6 +28,7 @@ class Payments_Module implements Module_Contract {
 				<h1 class="afcn-page-title"><?php esc_html_e( 'Record payment', 'airfiber-centralized' ); ?></h1>
 				<div class="afcn-payment-heading-actions">
 					<a class="afcn-button afcn-payment-add-ppp" href="<?php echo esc_url( \Airfiber\Next\Bootstrap::classic_url() ); ?>" title="<?php esc_attr_e( 'Open the existing Add PPP wizard in Classic Basic', 'airfiber-centralized' ); ?>">+ <?php esc_html_e( 'Add PPP', 'airfiber-centralized' ); ?></a>
+					<button type="button" class="afcn-button afcn-button-secondary" data-afcn-trash-open>Trash</button>
 					<button type="button" class="afcn-button afcn-button-secondary" data-afcn-payment-mode-toggle aria-pressed="false"><?php esc_html_e( 'Edit PPP', 'airfiber-centralized' ); ?></button>
 				</div>
 			</div>
@@ -68,6 +70,7 @@ class Payments_Module implements Module_Contract {
 
 			<?php echo self::payment_dialog(); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
 			<?php echo self::ppp_edit_dialog(); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+			<?php echo self::trash_dialog(); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
 		</div>
 		<?php
 		return ob_get_clean();
@@ -81,6 +84,7 @@ class Payments_Module implements Module_Contract {
 	}
 
 	public static function handle_query( $query, $payload = array() ) {
+		if ( 'trash-list' === $query ) return self::list_trash();
 		if ( 'read-ppp-comment' === $query ) {
 			return self::read_ppp_comment( $payload );
 		}
@@ -112,6 +116,7 @@ class Payments_Module implements Module_Contract {
 		$index_reads   = 0;
 		$index_limited = false;
 
+		$trash = self::trash_items();
 		foreach ( array_slice( $routers, 0, 12, true ) as $connection_id => $record ) {
 			$index_started = microtime( true );
 			$index         = self::router_search_index( $connection_id, $record );
@@ -132,6 +137,7 @@ class Payments_Module implements Module_Contract {
 			}
 
 			foreach ( (array) $index['items'] as $item ) {
+				if ( isset( $trash[ self::trash_key( $item['connection_id'], $item['secret_id'] ) ] ) ) continue;
 				if ( empty( $item['_search'] ) || false === strpos( $item['_search'], $needle ) ) {
 					continue;
 				}
@@ -182,6 +188,9 @@ class Payments_Module implements Module_Contract {
 	}
 
 	public static function handle_action( $action, $payload = array() ) {
+		if ( 'trash-ppp' === $action ) return self::trash_ppp( $payload );
+		if ( 'restore-ppp' === $action ) return self::restore_ppp( $payload );
+		if ( 'purge-ppp' === $action ) return self::purge_ppp( $payload );
 		if ( 'expire-ppp' === $action ) {
 			return self::expire_ppp( $payload );
 		}
@@ -208,6 +217,7 @@ class Payments_Module implements Module_Contract {
 			return new \WP_Error( 'afcn_payment_amount', __( 'Enter a valid payment amount.', 'airfiber-centralized' ), array( 'status' => 400 ) );
 		}
 
+		if ( isset( self::trash_items()[ self::trash_key( $connection_id, $secret_id ) ] ) ) return new \WP_Error( 'afcn_trashed', __( 'This PPP is in Trash. Restore it first.', 'airfiber-centralized' ), array( 'status' => 409 ) );
 		$record = Connection_Store::get( $connection_id );
 		if ( ! self::is_payment_router( $record ) ) {
 			return new \WP_Error( 'afcn_payment_router', __( 'That router is not available for payment lookup.', 'airfiber-centralized' ), array( 'status' => 404 ) );
@@ -423,6 +433,150 @@ class Payments_Module implements Module_Contract {
 		return array( 'message' => __( 'PPP comment saved to MikroTik.', 'airfiber-centralized' ) );
 	}
 
+
+	// Trash disables RouterOS resources; no PPP passwords or scheduler scripts
+	// are copied to WordPress. Permanent deletion requires separate approval.
+	private static function trash_items() {
+		$items = get_option( self::TRASH_OPTION, array() );
+		return is_array( $items ) ? $items : array();
+	}
+	private static function trash_key( $router, $id ) {
+		return hash( 'sha256', (string) $router . '|' . (string) $id );
+	}
+	private static function was_disabled( $v ) {
+		return in_array( strtolower( (string) $v ), array( 'true', 'yes', '1' ), true );
+	}
+	private static function command( $record, $words, $read = false ) {
+		return Payments_RouterOS_Client::command( $record, $words, $read );
+	}
+	private static function matching_schedule( $record, $account ) {
+		$read = self::command( $record, array( '/system/scheduler/print', '=.proplist=.id,name,disabled', '?name=' . $account ), true );
+		if ( is_wp_error( $read ) ) return $read;
+		$rows = array_values( array_filter( $read['rows'], function ( $row ) use ( $account ) {
+			return isset( $row['name'] ) && $row['name'] === $account;
+		} ) );
+		if ( count( $rows ) > 1 || ! empty( $read['truncated'] ) ) return new \WP_Error( 'afcn_trash_ambiguous', 'Multiple schedulers match this PPP; resolve manually before deleting.', array( 'status' => 409 ) );
+		return $rows ? $rows[0] : null;
+	}
+	private static function save_trash( $key, $row ) {
+		$all = self::trash_items();
+		$all[ $key ] = $row;
+		return update_option( self::TRASH_OPTION, $all, false );
+	}
+	private static function list_trash() {
+		if ( ! current_user_can( 'manage_options' ) ) return new \WP_Error( 'afcn_trash_access', 'You cannot manage PPP Trash.', array( 'status' => 403 ) );
+		$items = array();
+		foreach ( self::trash_items() as $key => $row ) {
+			$items[] = array( 'trash_id' => $key, 'account' => $row['account'], 'router' => $row['router_name'], 'date' => $row['date'], 'status' => $row['status'] );
+		}
+		return array( 'items' => $items );
+	}
+	private static function trash_selection( $payload ) {
+		if ( ! current_user_can( 'manage_options' ) ) return new \WP_Error( 'afcn_trash_access', 'You cannot manage PPP Trash.', array( 'status' => 403 ) );
+		$key = isset( $payload['trash_id'] ) ? sanitize_text_field( $payload['trash_id'] ) : '';
+		$all = self::trash_items();
+		if ( ! isset( $all[ $key ] ) ) return new \WP_Error( 'afcn_trash_missing', 'Trash item not found.', array( 'status' => 404 ) );
+		$row = $all[ $key ];
+		$router = Connection_Store::get( $row['connection_id'] );
+		if ( ! self::is_payment_router( $router ) ) return new \WP_Error( 'afcn_trash_router', 'The original router is unavailable.', array( 'status' => 409 ) );
+		$secret = Payments_RouterOS_Client::secret( $router, $row['account'] );
+		if ( is_wp_error( $secret ) ) return $secret;
+		if ( ! isset( $secret['.id'] ) || (string) $secret['.id'] !== $row['secret_id'] ) return new \WP_Error( 'afcn_trash_mismatch', 'PPP identity changed. Nothing was modified.', array( 'status' => 409 ) );
+		return compact( 'key', 'row', 'router', 'all', 'secret' );
+	}
+	private static function trash_ppp( $payload ) {
+		$selected = self::selected_ppp_secret( $payload );
+		if ( is_wp_error( $selected ) ) return $selected;
+		$key = self::trash_key( $selected['connection_id'], $selected['secret_id'] );
+		if ( isset( self::trash_items()[ $key ] ) ) return new \WP_Error( 'afcn_trash_duplicate', 'Already in Trash.', array( 'status' => 409 ) );
+		$router = $selected['record'];
+		$schedule = self::matching_schedule( $router, $selected['account'] );
+		if ( is_wp_error( $schedule ) ) return $schedule;
+		$entry = array(
+			'connection_id' => $selected['connection_id'], 'secret_id' => $selected['secret_id'],
+			'account' => $selected['account'], 'router_name' => isset( $router['name'] ) ? $router['name'] : 'Router',
+			'date' => current_time( 'mysql' ), 'status' => 'pending',
+			'secret_disabled' => self::was_disabled( isset( $selected['secret']['disabled'] ) ? $selected['secret']['disabled'] : '' ),
+			'schedule_id' => $schedule ? $schedule['.id'] : '',
+			'schedule_disabled' => $schedule ? self::was_disabled( isset( $schedule['disabled'] ) ? $schedule['disabled'] : '' ) : true,
+		);
+		if ( ! self::save_trash( $key, $entry ) ) return new \WP_Error( 'afcn_trash_backup', 'Could not create Trash record. No router changes were made.', array( 'status' => 500 ) );
+		if ( $entry['schedule_id'] ) {
+			$done = self::command( $router, array( '/system/scheduler/disable', '=.id=' . $entry['schedule_id'] ) );
+			if ( is_wp_error( $done ) ) return new \WP_Error( 'afcn_trash_partial', 'Trash record saved, but scheduler disable failed. Inspect Trash.', array( 'status' => 502 ) );
+		}
+		$done = self::command( $router, array( '/ppp/secret/disable', '=.id=' . $entry['secret_id'] ) );
+		if ( is_wp_error( $done ) ) return new \WP_Error( 'afcn_trash_partial', 'Scheduler may be disabled, but PPP disable failed. Inspect Trash.', array( 'status' => 502 ) );
+		$active = self::command( $router, array( '/ppp/active/print', '=.proplist=.id,name', '?name=' . $entry['account'] ), true );
+		if ( is_wp_error( $active ) ) return new \WP_Error( 'afcn_trash_partial', 'PPP disabled, but active sessions could not be checked.', array( 'status' => 502 ) );
+		foreach ( $active['rows'] as $session ) {
+			if ( ! isset( $session['.id'], $session['name'] ) || $session['name'] !== $entry['account'] ) continue;
+			$done = self::command( $router, array( '/ppp/active/remove', '=.id=' . $session['.id'] ) );
+			if ( is_wp_error( $done ) ) return new \WP_Error( 'afcn_trash_partial', 'PPP disabled but an active session may remain.', array( 'status' => 502 ) );
+		}
+		$entry['status'] = 'trashed';
+		self::save_trash( $key, $entry );
+		delete_transient( self::index_cache_key( $entry['connection_id'], $router ) );
+		Audit_Log::record( 'ppp_trashed', $entry['account'], array( 'connection_id' => $entry['connection_id'] ) );
+		return array( 'message' => 'PPP and matching cutoff scheduler moved to Trash (disabled).' );
+	}
+	private static function restore_ppp( $payload ) {
+		$data = self::trash_selection( $payload );
+		if ( is_wp_error( $data ) ) return $data;
+		$row = $data['row'];
+		if ( $row['schedule_id'] ) {
+			$schedule = self::matching_schedule( $data['router'], $row['account'] );
+			if ( is_wp_error( $schedule ) ) return $schedule;
+			if ( ! $schedule || $schedule['.id'] !== $row['schedule_id'] ) return new \WP_Error( 'afcn_restore_schedule', 'The original scheduler changed. Restore cancelled.', array( 'status' => 409 ) );
+		}
+		if ( ! $row['secret_disabled'] ) {
+			$done = self::command( $data['router'], array( '/ppp/secret/enable', '=.id=' . $row['secret_id'] ) );
+			if ( is_wp_error( $done ) ) return $done;
+		}
+		if ( $row['schedule_id'] && ! $row['schedule_disabled'] ) {
+			$done = self::command( $data['router'], array( '/system/scheduler/enable', '=.id=' . $row['schedule_id'] ) );
+			if ( is_wp_error( $done ) ) return new \WP_Error( 'afcn_restore_partial', 'PPP restored, but scheduler re-enable failed. Check MikroTik.', array( 'status' => 502 ) );
+		}
+		unset( $data['all'][ $data['key'] ] );
+		update_option( self::TRASH_OPTION, $data['all'], false );
+		delete_transient( self::index_cache_key( $row['connection_id'], $data['router'] ) );
+		Audit_Log::record( 'ppp_restored', $row['account'] );
+		return array( 'message' => 'PPP and matching scheduler restored.' );
+	}
+	private static function purge_ppp( $payload ) {
+		$data = self::trash_selection( $payload );
+		if ( is_wp_error( $data ) ) return $data;
+		$row = $data['row'];
+		if ( ! self::was_disabled( isset( $data['secret']['disabled'] ) ? $data['secret']['disabled'] : '' ) ) return new \WP_Error( 'afcn_purge_active', 'PPP is enabled. Permanent deletion cancelled.', array( 'status' => 409 ) );
+		if ( $row['schedule_id'] ) {
+			$schedule = self::matching_schedule( $data['router'], $row['account'] );
+			if ( is_wp_error( $schedule ) ) return $schedule;
+			if ( ! $schedule || $schedule['.id'] !== $row['schedule_id'] || ! self::was_disabled( isset( $schedule['disabled'] ) ? $schedule['disabled'] : '' ) ) return new \WP_Error( 'afcn_purge_schedule', 'Scheduler changed or enabled. Permanent deletion cancelled.', array( 'status' => 409 ) );
+			$done = self::command( $data['router'], array( '/system/scheduler/remove', '=.id=' . $row['schedule_id'] ) );
+			if ( is_wp_error( $done ) ) return $done;
+		}
+		$done = self::command( $data['router'], array( '/ppp/secret/remove', '=.id=' . $row['secret_id'] ) );
+		if ( is_wp_error( $done ) ) return new \WP_Error( 'afcn_purge_partial', 'Scheduler may have been removed but PPP removal failed. Trash record kept for recovery.', array( 'status' => 502 ) );
+		unset( $data['all'][ $data['key'] ] );
+		update_option( self::TRASH_OPTION, $data['all'], false );
+		delete_transient( self::index_cache_key( $row['connection_id'], $data['router'] ) );
+		Audit_Log::record( 'ppp_purged', $row['account'] );
+		return array( 'message' => 'PPP and matching scheduler permanently removed from MikroTik.' );
+	}
+	private static function trash_dialog() {
+		ob_start(); ?>
+		<dialog class="afcn-dialog" id="afcn-ppp-trash-dialog">
+			<div class="afcn-dialog-shell">
+				<div class="afcn-dialog-header">
+					<div><h2>PPP Trash</h2><p class="afcn-page-description">Restore or permanently remove deleted PPP accounts.</p></div>
+					<button type="button" class="afcn-icon-button" data-afcn-trash-close aria-label="Close Trash"><?php echo \Airfiber\Next\Icon::svg( 'x' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></button>
+				</div>
+				<div class="afcn-dialog-body"><div data-afcn-trash-status role="status"></div><div data-afcn-trash-list></div></div>
+			</div>
+		</dialog>
+		<?php return ob_get_clean();
+	}
+
 	private static function ppp_edit_dialog() {
 		ob_start();
 		?>
@@ -440,6 +594,7 @@ class Payments_Module implements Module_Contract {
 					<div data-afcn-ppp-edit-message role="status"></div>
 					<textarea class="afcn-input afcn-ppp-comment-input" rows="12" maxlength="8000" spellcheck="false" data-afcn-ppp-edit-text aria-label="<?php esc_attr_e( 'Raw PPP comment', 'airfiber-centralized' ); ?>"></textarea>
 					<div class="afcn-ppp-comment-actions">
+						<button type="button" class="afcn-button afcn-button-secondary afcn-ppp-delete-button" data-afcn-ppp-delete>Delete</button>
 						<button type="button" class="afcn-button afcn-button-secondary afcn-ppp-expire-button" data-afcn-ppp-edit-expire><?php esc_html_e( 'Manual Expire', 'airfiber-centralized' ); ?></button>
 						<button type="button" class="afcn-button afcn-button-secondary" data-afcn-ppp-edit-close><?php esc_html_e( 'Cancel', 'airfiber-centralized' ); ?></button>
 						<button type="button" class="afcn-button afcn-button-primary" data-afcn-ppp-edit-save><?php esc_html_e( 'Save comment', 'airfiber-centralized' ); ?></button>
