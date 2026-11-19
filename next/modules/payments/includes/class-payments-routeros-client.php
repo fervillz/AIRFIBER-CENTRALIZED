@@ -376,7 +376,10 @@ class Payments_RouterOS_Client {
 				continue;
 			}
 			if ( 'comment' === $key ) {
-				$output[ $key ] = substr( sanitize_textarea_field( (string) $row[ $key ] ), 0, 8000 );
+				$output[ $key ] = substr( wp_check_invalid_utf8( (string) $row[ $key ] ), 0, 8000 );
+			} elseif ( 'password' === $key ) {
+				// Preserve password bytes; sanitizing as prose can silently alter credentials.
+				$output[ $key ] = substr( wp_check_invalid_utf8( (string) $row[ $key ] ), 0, 500 );
 			} else {
 				$output[ $key ] = substr( sanitize_text_field( (string) $row[ $key ] ), 0, 500 );
 			}
