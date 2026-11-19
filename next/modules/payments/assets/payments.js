@@ -273,8 +273,6 @@
 			button.disabled = busy;
 			button.classList.toggle('is-loading', busy && button === activeButton);
 		});
-		const expireButton = modal.querySelector('[data-afcn-payment-expire]');
-		if (expireButton) expireButton.disabled = busy;
 		const close = modal.querySelector('[data-afcn-dialog-close]');
 		if (close) {
 			close.disabled = busy;
@@ -337,8 +335,6 @@
 		modal.querySelector('[data-afcn-payment-dialog-account]').textContent = item.account;
 		modal.querySelector('[data-afcn-payment-dialog-plan]').textContent = item.plan || item.actual_profile || 'Not set';
 
-		const expireButton = modal.querySelector('[data-afcn-payment-expire]');
-		if (expireButton) expireButton.hidden = item.status === 'expired';
 		const status = modal.querySelector('[data-afcn-payment-dialog-status]');
 		if (status) {
 			status.textContent = item.status === 'expired' ? 'Expired' : 'Active';
@@ -421,44 +417,12 @@
 		}
 	}
 
-	async function expirePaymentAccount() {
-		if (!selected || selected.status === 'expired') return;
-		const modal = dialog();
-		const button = modal && modal.querySelector('[data-afcn-payment-expire]');
-		if (!button || button.disabled) return;
-		const item = selected;
-		if (!window.confirm('Manually EXPIRE PPP account "' + item.account + '"? This changes its MikroTik profile to Expired and disconnects active sessions immediately. No payment or billing dates will be changed.')) return;
-		setQuickBusy(modal, button, true);
-		button.textContent = 'Expiring…';
-		showDialogMessage('Applying expiration on MikroTik…', 'warning');
-		try {
-			const response = await window.AirfiberNext.action('payments', 'expire-ppp', {
-				connection_id: item.connection_id,
-				secret_id: item.secret_id,
-				account: item.account
-			});
-			window.AirfiberNext.closeDialog(modal);
-			selected = null;
-			clearResults();
-			setFlash(response.message || 'Account manually expired.', 'success');
-			window.AirfiberNext.toast(response.message || 'Account manually expired.', false);
-			if (input.value.trim().length >= 3) search(input.value.trim());
-		} catch (error) {
-			showDialogMessage(error.message || 'Could not expire PPP account. Check MikroTik state before retrying.', 'danger');
-		} finally {
-			button.textContent = 'Manual Expire';
-			setQuickBusy(modal, button, false);
-		}
-	}
-
 	function bindQuickPaymentDialog() {
 		const modal = dialog();
 		if (!modal || modal.dataset.afcnPaymentQuickWired) {
 			return;
 		}
 		modal.dataset.afcnPaymentQuickWired = '1';
-		const expireButton = modal.querySelector('[data-afcn-payment-expire]');
-		if (expireButton) expireButton.addEventListener('click', expirePaymentAccount);
 
 		modal.querySelectorAll('[data-afcn-payment-quick-method]').forEach(function (button) {
 			button.addEventListener('pointerdown', function (event) {
@@ -530,6 +494,8 @@
 			save.disabled = busy;
 			save.textContent = busy ? 'Working…' : 'Save comment';
 		}
+		const expire = modal.querySelector('[data-afcn-ppp-edit-expire]');
+		if (expire) expire.disabled = busy || !editOriginalHash || !editSelected || editSelected.status === 'expired';
 	}
 
 	async function openEditor(item) {
@@ -537,6 +503,8 @@
 		if (!modal || !item) return;
 		editSelected = item;
 		editOriginalHash = '';
+		const expire = modal.querySelector('[data-afcn-ppp-edit-expire]');
+		if (expire) expire.hidden = item.status === 'expired';
 		const textarea = modal.querySelector('[data-afcn-ppp-edit-text]');
 		textarea.value = '';
 		modal.querySelector('[data-afcn-ppp-edit-account]').textContent = item.customer_name + ' · ' + item.account;
@@ -596,6 +564,38 @@
 		}
 	}
 
+	async function expireEditorAccount() {
+		const modal = editorDialog();
+		const button = modal && modal.querySelector('[data-afcn-ppp-edit-expire]');
+		if (!modal || !button || button.disabled || !editSelected || !editOriginalHash || editSelected.status === 'expired') return;
+		const item = editSelected;
+		if (!window.confirm('Manually EXPIRE PPP account "' + item.account + '"? This changes its MikroTik profile to Expired and disconnects active sessions immediately. No payment or billing dates will be changed.')) return;
+		editorBusy(true);
+		button.textContent = 'Expiring…';
+		editorMessage('Applying expiration on MikroTik…', 'info');
+		modal.querySelectorAll('[data-afcn-ppp-edit-close]').forEach(function (close) { close.disabled = true; });
+		try {
+			const response = await window.AirfiberNext.action('payments', 'expire-ppp', {
+				connection_id: item.connection_id,
+				secret_id: item.secret_id,
+				account: item.account
+			});
+			window.AirfiberNext.closeDialog(modal);
+			editSelected = null;
+			editOriginalHash = '';
+			clearResults();
+			setFlash(response.message || 'Account manually expired.', 'success');
+			window.AirfiberNext.toast(response.message || 'Account manually expired.', false);
+			if (input.value.trim().length >= 3) search(input.value.trim());
+		} catch (error) {
+			editorMessage(error.message || 'Could not expire PPP account. Check MikroTik state before retrying.', 'danger');
+		} finally {
+			button.textContent = 'Manual Expire';
+			modal.querySelectorAll('[data-afcn-ppp-edit-close]').forEach(function (close) { close.disabled = false; });
+			if (modal.open) editorBusy(false);
+		}
+	}
+
 	function bindEditor() {
 		const modal = editorDialog();
 		if (!modal || modal.dataset.afcnPppEditWired) return;
@@ -606,6 +606,7 @@
 			});
 		});
 		modal.querySelector('[data-afcn-ppp-edit-save]').addEventListener('click', saveEditor);
+		modal.querySelector('[data-afcn-ppp-edit-expire]').addEventListener('click', expireEditorAccount);
 		modal.addEventListener('close', function () {
 			editSelected = null;
 			editOriginalHash = '';
