@@ -342,6 +342,7 @@ class Payments_Module implements Module_Contract {
 		if ( ! $connection_id || ! $secret_id || ! $account ) {
 			return new \WP_Error( 'afcn_ppp_edit_selection', __( 'Search for the PPP account again.', 'airfiber-centralized' ), array( 'status' => 400 ) );
 		}
+		if ( isset( self::trash_items()[ self::trash_key( $connection_id, $secret_id ) ] ) ) return new \WP_Error( 'afcn_ppp_trashed', 'This PPP is in Trash. Restore it first.', array( 'status' => 409 ) );
 		$record = Connection_Store::get( $connection_id );
 		if ( ! self::is_payment_router( $record ) ) {
 			return new \WP_Error( 'afcn_ppp_edit_router', __( 'That PPP router is no longer available.', 'airfiber-centralized' ), array( 'status' => 404 ) );
@@ -551,9 +552,14 @@ class Payments_Module implements Module_Contract {
 		if ( $row['schedule_id'] ) {
 			$schedule = self::matching_schedule( $data['router'], $row['account'] );
 			if ( is_wp_error( $schedule ) ) return $schedule;
-			if ( ! $schedule || $schedule['.id'] !== $row['schedule_id'] || ! self::was_disabled( isset( $schedule['disabled'] ) ? $schedule['disabled'] : '' ) ) return new \WP_Error( 'afcn_purge_schedule', 'Scheduler changed or enabled. Permanent deletion cancelled.', array( 'status' => 409 ) );
-			$done = self::command( $data['router'], array( '/system/scheduler/remove', '=.id=' . $row['schedule_id'] ) );
-			if ( is_wp_error( $done ) ) return $done;
+			if ( $schedule && ( $schedule['.id'] !== $row['schedule_id'] || ! self::was_disabled( isset( $schedule['disabled'] ) ? $schedule['disabled'] : '' ) ) ) return new \WP_Error( 'afcn_purge_schedule', 'Scheduler changed or enabled. Permanent deletion cancelled.', array( 'status' => 409 ) );
+			if ( ! $schedule && 'purging' !== $row['status'] ) return new \WP_Error( 'afcn_purge_schedule_missing', 'Original scheduler is missing. Permanent deletion cancelled.', array( 'status' => 409 ) );
+			if ( $schedule ) {
+				$row['status'] = 'purging';
+				self::save_trash( $data['key'], $row );
+				$done = self::command( $data['router'], array( '/system/scheduler/remove', '=.id=' . $row['schedule_id'] ) );
+				if ( is_wp_error( $done ) ) return $done;
+			}
 		}
 		$done = self::command( $data['router'], array( '/ppp/secret/remove', '=.id=' . $row['secret_id'] ) );
 		if ( is_wp_error( $done ) ) return new \WP_Error( 'afcn_purge_partial', 'Scheduler may have been removed but PPP removal failed. Trash record kept for recovery.', array( 'status' => 502 ) );
