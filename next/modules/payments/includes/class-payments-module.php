@@ -182,6 +182,9 @@ class Payments_Module implements Module_Contract {
 	}
 
 	public static function handle_action( $action, $payload = array() ) {
+		if ( 'expire-ppp' === $action ) {
+			return self::expire_ppp( $payload );
+		}
 		if ( 'save-ppp-comment' === $action ) {
 			return self::save_ppp_comment( $payload );
 		}
@@ -343,6 +346,33 @@ class Payments_Module implements Module_Contract {
 		return array( 'record' => $record, 'secret' => $secret, 'connection_id' => $connection_id, 'secret_id' => $secret_id, 'account' => $account );
 	}
 
+	/**
+	 * Explicit admin-only service cutoff. Does not change billing or payment dates.
+	 * Revalidate the selected PPP id on MikroTik before changing its profile.
+	 */
+	private static function expire_ppp( $payload ) {
+		$selected = self::selected_ppp_secret( $payload );
+		if ( is_wp_error( $selected ) ) {
+			return $selected;
+		}
+		$profile = isset( $selected['secret']['profile'] ) ? (string) $selected['secret']['profile'] : '';
+		if ( 0 === strcasecmp( $profile, 'Expired' ) ) {
+			return new \\WP_Error( 'afcn_ppp_already_expired', __( 'This PPP account is already expired. Refresh the search.', 'airfiber-centralized' ), array( 'status' => 409 ) );
+		}
+		$updated = Payments_RouterOS_Client::expire_secret( $selected['record'], $selected['secret_id'], $selected['account'] );
+		if ( is_wp_error( $updated ) ) {
+			delete_transient( self::index_cache_key( $selected['connection_id'], $selected['record'] ) );
+			return $updated;
+		}
+		delete_transient( self::index_cache_key( $selected['connection_id'], $selected['record'] ) );
+		Audit_Log::record( 'ppp_manually_expired', $selected['account'], array(
+			'connection_id' => $selected['connection_id'],
+			'secret_id'     => $selected['secret_id'],
+			'old_profile'   => $profile,
+		) );
+		return array( 'message' => sprintf( __( 'PPP account %s was manually expired and active sessions were disconnected.', 'airfiber-centralized' ), $selected['account'] ), 'status' => 'expired' );
+	}
+
 	private static function read_ppp_comment( $payload ) {
 		$selected = self::selected_ppp_secret( $payload );
 		if ( is_wp_error( $selected ) ) {
@@ -450,6 +480,7 @@ class Payments_Module implements Module_Contract {
 							<span class="afcn-payment-cycle-pill" data-afcn-payment-cycle-pill>MTH</span>
 						</button>
 					</div>
+					<button type="button" class="afcn-button afcn-button-secondary" data-afcn-payment-expire><?php esc_html_e( 'Manual Expire', 'airfiber-centralized' ); ?></button>
 					<button type="button" class="afcn-payment-edit-from-dialog" data-afcn-payment-edit-from-dialog><?php esc_html_e( 'Edit PPP comment instead', 'airfiber-centralized' ); ?></button>
 					<p class="afcn-page-description"><?php esc_html_e( 'For monthly advance payments, use Classic Basic until BETA supports the complete billing-date update.', 'airfiber-centralized' ); ?></p>
 					<div class="afcn-payment-quick-meta">
