@@ -211,7 +211,7 @@ class Payments_RouterOS_Client {
 		}
 		if ( ! self::write_sentence( $socket, $words ) ) {
 			fclose( $socket );
-			return new \\WP_Error( 'afcn_payment_router_write', __( 'Router connection closed before the PPP action.', 'airfiber-centralized' ) );
+			return new \WP_Error( 'afcn_payment_router_write', __( 'Router connection closed before the PPP action.', 'airfiber-centralized' ) );
 		}
 		$result = $read_rows ? self::read_rows( $socket, 100 ) : self::read_done( $socket );
 		fclose( $socket );
