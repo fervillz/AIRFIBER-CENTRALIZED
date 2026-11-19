@@ -529,6 +529,10 @@
 					else uiStatus.warning(button, detail, { alert: false });
 				}
 				updateConnectionTestIndicators(form, connected ? 'online' : 'warning', label);
+				// Keep the current page stable, but force fresh cached health next time
+				// the user navigates to either Connections or Routers.
+				state.cache.delete('routers');
+				state.cache.delete('connections');
 				toast(detail, !connected);
 				// Never refresh the whole module for a connection test.
 				return;
@@ -560,6 +564,8 @@
 			if (isTest) {
 				testFeedback(form, button, 'Connection failed', 'error', message);
 				updateConnectionTestIndicators(form, 'warning', message);
+				state.cache.delete('routers');
+				state.cache.delete('connections');
 			}
 			if (button && uiStatus) {
 				uiStatus.error(button, message, isTest ? { alert: false } : undefined);
