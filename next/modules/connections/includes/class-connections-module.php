@@ -287,16 +287,23 @@ class Connections_Module implements Module_Contract {
 		}
 
 		$health = is_array( $result ) ? $result : array();
-		Connection_Health::set(
+		$saved = Connection_Health::set(
 			$id,
 			array(
 				'state'      => isset( $health['state'] ) ? $health['state'] : 'online',
 				'message'    => isset( $health['message'] ) ? $health['message'] : __( 'Connection test completed.', 'airfiber-centralized' ),
-				'latency_ms' => isset( $health['latency_ms'] ) ? $health['latency_ms'] : 0,
+				'latency_ms' => isset( $health['latency_ms'] ) ? $health['latency_ms'] : null,
 				'details'    => isset( $health['details'] ) && is_array( $health['details'] ) ? $health['details'] : array(),
 			)
 		);
-		return array( 'message' => isset( $health['message'] ) ? $health['message'] : __( 'Connection test completed.', 'airfiber-centralized' ) );
+		return array(
+			'message'       => $saved['message'],
+			'connection_id' => $id,
+			'connected'     => 'online' === $saved['state'],
+			'latency_ms'    => isset( $health['latency_ms'] ) && is_numeric( $health['latency_ms'] ) ? (float) $health['latency_ms'] : null,
+			'health'        => $saved,
+			'reload'        => false,
+		);
 	}
 
 	/** Test the values currently visible in a dialog without saving them. */
@@ -336,9 +343,10 @@ class Connections_Module implements Module_Contract {
 		}
 
 		return array(
-			'connected' => true,
-			'reload'    => false,
-			'message'   => is_array( $result ) && ! empty( $result['message'] ) ? $result['message'] : __( 'Connection succeeded.', 'airfiber-centralized' ),
+			'connected'  => true,
+			'reload'     => false,
+			'latency_ms' => is_array( $result ) && isset( $result['latency_ms'] ) && is_numeric( $result['latency_ms'] ) ? (float) $result['latency_ms'] : null,
+			'message'    => is_array( $result ) && ! empty( $result['message'] ) ? $result['message'] : __( 'Connection succeeded.', 'airfiber-centralized' ),
 		);
 	}
 
