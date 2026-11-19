@@ -440,6 +440,7 @@ class Payments_Module implements Module_Contract {
 					<div data-afcn-ppp-edit-message role="status"></div>
 					<textarea class="afcn-input afcn-ppp-comment-input" rows="12" maxlength="8000" spellcheck="false" data-afcn-ppp-edit-text aria-label="<?php esc_attr_e( 'Raw PPP comment', 'airfiber-centralized' ); ?>"></textarea>
 					<div class="afcn-ppp-comment-actions">
+						<button type="button" class="afcn-button afcn-button-secondary afcn-ppp-expire-button" data-afcn-ppp-edit-expire><?php esc_html_e( 'Manual Expire', 'airfiber-centralized' ); ?></button>
 						<button type="button" class="afcn-button afcn-button-secondary" data-afcn-ppp-edit-close><?php esc_html_e( 'Cancel', 'airfiber-centralized' ); ?></button>
 						<button type="button" class="afcn-button afcn-button-primary" data-afcn-ppp-edit-save><?php esc_html_e( 'Save comment', 'airfiber-centralized' ); ?></button>
 					</div>
@@ -480,7 +481,6 @@ class Payments_Module implements Module_Contract {
 							<span class="afcn-payment-cycle-pill" data-afcn-payment-cycle-pill>MTH</span>
 						</button>
 					</div>
-					<button type="button" class="afcn-button afcn-button-secondary" data-afcn-payment-expire><?php esc_html_e( 'Manual Expire', 'airfiber-centralized' ); ?></button>
 					<button type="button" class="afcn-payment-edit-from-dialog" data-afcn-payment-edit-from-dialog><?php esc_html_e( 'Edit PPP comment instead', 'airfiber-centralized' ); ?></button>
 					<p class="afcn-page-description"><?php esc_html_e( 'For monthly advance payments, use Classic Basic until BETA supports the complete billing-date update.', 'airfiber-centralized' ); ?></p>
 					<div class="afcn-payment-quick-meta">
