@@ -489,6 +489,8 @@
 	function editorBusy(busy) {
 		const modal = editorDialog();
 		if (!modal) return;
+		const remove = modal.querySelector('[data-afcn-ppp-delete]');
+		if (remove) remove.disabled = busy || !editOriginalHash || !editSelected;
 		const save = modal.querySelector('[data-afcn-ppp-edit-save]');
 		if (save) {
 			save.disabled = busy;
@@ -596,6 +598,110 @@
 		}
 	}
 
+
+	async function deleteEditorAccount() {
+		const modal = editorDialog();
+		const button = modal && modal.querySelector('[data-afcn-ppp-delete]');
+		if (!button || button.disabled || !editSelected) return;
+		const item = editSelected;
+		if (!window.confirm('Move PPP "' + item.account + '" and its matching cutoff scheduler to Trash? Service will disconnect immediately. You can restore both from Trash.')) return;
+		editorBusy(true);
+		button.textContent = 'Deleting…';
+		editorMessage('Disabling the PPP account and associated scheduler…', 'info');
+		try {
+			const response = await window.AirfiberNext.action('payments', 'trash-ppp', {
+				connection_id: item.connection_id,
+				secret_id: item.secret_id,
+				account: item.account
+			});
+			window.AirfiberNext.closeDialog(modal);
+			editSelected = null;
+			editOriginalHash = '';
+			clearResults();
+			setFlash(response.message || 'Moved to Trash.', 'success');
+			if (input.value.trim().length >= 3) search(input.value.trim());
+		} catch (error) {
+			editorMessage((error.message || 'Could not move PPP to Trash.') + ' Check the Trash view before trying again.', 'danger');
+		} finally {
+			button.textContent = 'Delete';
+			if (modal.open) editorBusy(false);
+		}
+	}
+
+	function trashDialog() {
+		return document.getElementById('afcn-ppp-trash-dialog');
+	}
+	function trashStatus(message) {
+		const target = trashDialog() && trashDialog().querySelector('[data-afcn-trash-status]');
+		if (target) target.textContent = message || '';
+	}
+	async function refreshTrash() {
+		const modal = trashDialog();
+		if (!modal) return;
+		trashStatus('Loading Trash…');
+		const list = modal.querySelector('[data-afcn-trash-list]');
+		list.replaceChildren();
+		try {
+			const response = await window.AirfiberNext.query('payments', 'trash-list', {});
+			const items = Array.isArray(response.items) ? response.items : [];
+			trashStatus(items.length ? items.length + ' deleted PPP account(s)' : 'Trash is empty.');
+			items.forEach(function (item) {
+				const row = document.createElement('div');
+				row.className = 'afcn-ppp-trash-row';
+				const info = document.createElement('div');
+				const name = document.createElement('strong');
+				name.textContent = item.account;
+				const small = document.createElement('small');
+				small.textContent = item.router + ' · ' + item.date + (item.status === 'pending' ? ' · Needs review' : '');
+				info.append(name, small);
+				const actions = document.createElement('div');
+				actions.className = 'afcn-ppp-trash-actions';
+				['Restore', 'Delete permanently'].forEach(function (label, i) {
+					const btn = document.createElement('button');
+					btn.type = 'button';
+					btn.className = 'afcn-button afcn-button-secondary';
+					btn.textContent = label;
+					btn.addEventListener('click', async function () {
+						const action = i ? 'purge-ppp' : 'restore-ppp';
+						const prompt = i
+							? 'PERMANENTLY delete PPP "' + item.account + '" and its associated scheduler from MikroTik? This CANNOT be undone.'
+							: 'Restore PPP "' + item.account + '" and its scheduler to their prior enabled/disabled states?';
+						if (!window.confirm(prompt)) return;
+						modal.querySelectorAll('button').forEach(function (b) { b.disabled = true; });
+						trashStatus(i ? 'Permanently deleting…' : 'Restoring…');
+						try {
+							const done = await window.AirfiberNext.action('payments', action, { trash_id: item.trash_id });
+							setFlash(done.message || label + ' successful.', 'success');
+							await refreshTrash();
+							if (input.value.trim().length >= 3) search(input.value.trim());
+						} catch (error) {
+							trashStatus(error.message || 'Router action failed. Check MikroTik before retrying.');
+						} finally {
+							modal.querySelectorAll('button').forEach(function (b) { b.disabled = false; });
+						}
+					});
+					actions.appendChild(btn);
+				});
+				row.append(info, actions);
+				list.appendChild(row);
+			});
+		} catch (error) {
+			trashStatus(error.message || 'Could not load Trash.');
+		}
+	}
+	function bindTrash() {
+		const open = root.querySelector('[data-afcn-trash-open]');
+		const modal = trashDialog();
+		if (!modal) return;
+		if (open) open.addEventListener('click', function () {
+			window.AirfiberNext.openDialog(modal);
+			refreshTrash();
+		});
+		modal.querySelector('[data-afcn-trash-close]').addEventListener('click', function () {
+			window.AirfiberNext.closeDialog(modal);
+		});
+	}
+
 	function bindEditor() {
 		const modal = editorDialog();
 		if (!modal || modal.dataset.afcnPppEditWired) return;
@@ -607,6 +713,7 @@
 		});
 		modal.querySelector('[data-afcn-ppp-edit-save]').addEventListener('click', saveEditor);
 		modal.querySelector('[data-afcn-ppp-edit-expire]').addEventListener('click', expireEditorAccount);
+		modal.querySelector('[data-afcn-ppp-delete]').addEventListener('click', deleteEditorAccount);
 		modal.addEventListener('close', function () {
 			editSelected = null;
 			editOriginalHash = '';
@@ -658,6 +765,7 @@
 
 		bindQuickPaymentDialog();
 		bindEditor();
+		bindTrash();
 		bindModeToggle();
 
 		input.addEventListener('input', queueSearch);
