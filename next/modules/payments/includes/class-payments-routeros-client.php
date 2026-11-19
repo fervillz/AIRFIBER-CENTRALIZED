@@ -148,7 +148,7 @@ class Payments_RouterOS_Client {
 		$secret_id = substr( sanitize_text_field( (string) $secret_id ), 0, 120 );
 		$account   = substr( sanitize_text_field( (string) $account ), 0, 120 );
 		if ( '' === $secret_id || '' === $account ) {
-			return new \\WP_Error( 'afcn_expire_selection', __( 'The PPP account selection is incomplete.', 'airfiber-centralized' ), array( 'status' => 400 ) );
+			return new \WP_Error( 'afcn_expire_selection', __( 'The PPP account selection is incomplete.', 'airfiber-centralized' ), array( 'status' => 400 ) );
 		}
 		$context = self::connection_context( $record );
 		if ( is_wp_error( $context ) ) return $context;
@@ -162,7 +162,7 @@ class Payments_RouterOS_Client {
 
 		if ( ! self::write_sentence( $socket, array( '/ppp/secret/set', '=.id=' . $secret_id, '=profile=Expired' ) ) ) {
 			fclose( $socket );
-			return new \\WP_Error( 'afcn_expire_write', __( 'Router connection closed before expiration could be applied.', 'airfiber-centralized' ) );
+			return new \WP_Error( 'afcn_expire_write', __( 'Router connection closed before expiration could be applied.', 'airfiber-centralized' ) );
 		}
 		$result = self::read_done( $socket );
 		if ( is_wp_error( $result ) ) {
@@ -172,23 +172,23 @@ class Payments_RouterOS_Client {
 
 		if ( ! self::write_sentence( $socket, array( '/ppp/active/print', '=.proplist=.id,name', '?name=' . $account ) ) ) {
 			fclose( $socket );
-			return new \\WP_Error( 'afcn_expire_partial', __( 'PPP profile changed to Expired, but active sessions could not be checked. Verify the router.', 'airfiber-centralized' ) );
+			return new \WP_Error( 'afcn_expire_partial', __( 'PPP profile changed to Expired, but active sessions could not be checked. Verify the router.', 'airfiber-centralized' ) );
 		}
 		$active = self::read_rows( $socket, 100 );
 		if ( is_wp_error( $active ) ) {
 			fclose( $socket );
-			return new \\WP_Error( 'afcn_expire_partial', __( 'PPP profile changed to Expired, but active sessions could not be checked. Verify the router.', 'airfiber-centralized' ) );
+			return new \WP_Error( 'afcn_expire_partial', __( 'PPP profile changed to Expired, but active sessions could not be checked. Verify the router.', 'airfiber-centralized' ) );
 		}
 		foreach ( (array) $active['rows'] as $session ) {
 			if ( ! isset( $session['name'], $session['.id'] ) || (string) $session['name'] !== $account ) continue;
 			if ( ! self::write_sentence( $socket, array( '/ppp/active/remove', '=.id=' . $session['.id'] ) ) ) {
 				fclose( $socket );
-				return new \\WP_Error( 'afcn_expire_partial', __( 'PPP profile changed to Expired, but disconnect failed. Check active PPP sessions on MikroTik.', 'airfiber-centralized' ) );
+				return new \WP_Error( 'afcn_expire_partial', __( 'PPP profile changed to Expired, but disconnect failed. Check active PPP sessions on MikroTik.', 'airfiber-centralized' ) );
 			}
 			$removed = self::read_done( $socket );
 			if ( is_wp_error( $removed ) ) {
 				fclose( $socket );
-				return new \\WP_Error( 'afcn_expire_partial', __( 'PPP profile changed to Expired, but disconnect failed. Check active PPP sessions on MikroTik.', 'airfiber-centralized' ) );
+				return new \WP_Error( 'afcn_expire_partial', __( 'PPP profile changed to Expired, but disconnect failed. Check active PPP sessions on MikroTik.', 'airfiber-centralized' ) );
 			}
 		}
 		fclose( $socket );
