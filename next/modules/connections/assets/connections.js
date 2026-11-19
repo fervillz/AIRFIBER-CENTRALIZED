@@ -87,7 +87,7 @@
 			return;
 		}
 		if (button.dataset.afcnConnected === '1') {
-			status.success(button, 'Connected.', { alert: false });
+			status.success(button, button.textContent || 'Connected.', { alert: false });
 		} else if (button.dataset.afcnStatus === 'disabled') {
 			status.clear(button, { alert: false });
 		}
@@ -111,14 +111,15 @@
 		button.disabled = true;
 		button.textContent = 'Connecting…';
 		if (status) {
-			status.loading(button, 'Connecting to the OLT…');
+			status.loading(button, 'Connecting to the selected device…');
 		}
 
 		try {
 			const result = await window.AirfiberNext.action('connections', 'probe-connection', payloadFrom(form));
 			const message = (result && result.message) || 'Connection succeeded.';
 			button.dataset.afcnConnected = '1';
-			button.textContent = 'Connected';
+			button.textContent = typeof window.AirfiberNext.testResultLabel === 'function'
+				? window.AirfiberNext.testResultLabel(result) : 'Connected';
 			if (status) {
 				status.success(button, message);
 			}
