@@ -406,6 +406,17 @@
 			return;
 		}
 
+		// A tab and its optional card represent the same RouterOS scope.
+		// Prevent duplicate simultaneous reads for the same router/scope.
+		const scope = button.dataset.afcnScope || '';
+		const controls = detail
+			? Array.from(detail.querySelectorAll('[data-afcn-router-scope-load]')).filter(function (item) {
+				return item.dataset.afcnScope === scope;
+			})
+			: [button];
+		if (controls.some(function (item) { return item.dataset.afcnScopeLoading === '1'; })) return;
+		controls.forEach(function (item) { item.dataset.afcnScopeLoading = '1'; });
+
 		const page = Math.max(1, Number(options.page || 1));
 		const search = String(options.search || '');
 		const refresh = Boolean(options.refresh);
@@ -471,6 +482,7 @@
 				window.AirfiberNext.toast(notice.textContent, true);
 			}
 		} finally {
+			controls.forEach(function (item) { delete item.dataset.afcnScopeLoading; });
 			if (results.dataset.afcnScopeRequestId === requestId) {
 				results.classList.remove('is-loading');
 				results.removeAttribute('aria-busy');
