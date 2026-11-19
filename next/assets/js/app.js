@@ -418,6 +418,72 @@
 		return form.querySelector('[type="submit"]');
 	}
 
+
+	// BETA connection tests are always REST actions, never page navigations.
+	// Do not confuse API/SNMP request duration with ICMP ping RTT.
+	function isConnectionTestAction(action) {
+		return /^(test|probe)(?:-|$)/.test(String(action || '').toLowerCase());
+	}
+
+	function testResultLabel(result) {
+		if (result && result.connected === false) return 'Needs attention';
+		const value = result && result.latency_ms;
+		const ms = value !== null && value !== undefined && value !== '' ? Number(value) : NaN;
+		if (!Number.isFinite(ms) || ms < 0) return 'Connected';
+		return 'Connected · ' + (ms < 10 ? ms.toFixed(1) : String(Math.round(ms))) + ' ms';
+	}
+
+	function testFeedback(form, button, label, level, fullMessage) {
+		const inline = button && button.querySelector('[data-afcn-test-label]');
+		if (inline) {
+			inline.textContent = label;
+		} else {
+			// Icon-only connection cards gain a small visible text result;
+			// do not replace their SVG icons or accessibility tooltip.
+			let feedback = form.querySelector('[data-afcn-test-feedback]');
+			if (!feedback) {
+				feedback = document.createElement('span');
+				feedback.dataset.afcnTestFeedback = '';
+				feedback.setAttribute('role', 'status');
+				form.appendChild(feedback);
+			}
+			feedback.className = 'afcn-test-feedback is-' + (level || 'info');
+			feedback.textContent = label;
+			feedback.title = fullMessage || label;
+		}
+		if (button) {
+			button.setAttribute('aria-label', label);
+			button.title = fullMessage || label;
+		}
+	}
+
+	function updateConnectionTestIndicators(form, stateName, summary) {
+		const cls = 'is-' + stateName;
+		const card = form.closest('[data-afcn-connection-card]');
+		const detail = form.closest('[data-afcn-router-detail]');
+		[card, detail].forEach(function (container) {
+			if (!container) return;
+			if (container === card) {
+				['is-online', 'is-offline', 'is-warning', 'is-unconfigured', 'is-unknown'].forEach(function (name) {
+					container.classList.remove(name);
+				});
+				container.classList.add(cls);
+				if (container.dataset.afcnState) container.dataset.afcnState = stateName;
+			}
+			container.querySelectorAll('.afcn-connection-status-dot').forEach(function (dot) {
+				['is-online', 'is-offline', 'is-warning', 'is-unconfigured', 'is-unknown'].forEach(function (name) {
+					dot.classList.remove(name);
+				});
+				dot.classList.add(cls);
+				const tooltip = dot.closest('.afcn-tooltip');
+				if (tooltip) {
+					const text = tooltip.querySelector('.afcn-tooltip-text');
+					if (text) text.textContent = summary;
+				}
+			});
+		});
+	}
+
 	async function submitAction(form) {
 		const module = form.dataset.afcnModule || state.current;
 		const action = form.dataset.afcnAction;
@@ -427,12 +493,17 @@
 		if (form.dataset.afcnConfirm && !window.confirm(form.dataset.afcnConfirm)) {
 			return;
 		}
+		// Suppress duplicate requests even when the form is submitted by keyboard.
+		if (form.dataset.afcnSubmitting === '1') return;
+		form.dataset.afcnSubmitting = '1';
 
+		const isTest = isConnectionTestAction(action);
 		const button = submitButton(form);
 		const dialog = form.closest('dialog.afcn-dialog');
 		if (button && uiStatus) {
 			uiStatus.loading(button, actionLoadingMessage(action));
 		}
+		if (isTest) testFeedback(form, button, 'Connecting…', 'loading');
 		if (button) {
 			button.disabled = true;
 		}
@@ -447,6 +518,20 @@
 			const message = (result && result.message) || cfg.labels.saved;
 			if (result && result.generated_password) {
 				window.prompt('Generated password — copy it now:', result.generated_password);
+			}
+			if (isTest) {
+				const label = testResultLabel(result);
+				const connected = !result || result.connected !== false;
+				const detail = result && result.message ? result.message : label;
+				testFeedback(form, button, label, connected ? 'success' : 'warning', detail);
+				if (button && uiStatus) {
+					if (connected) uiStatus.success(button, detail, { alert: false });
+					else uiStatus.warning(button, detail, { alert: false });
+				}
+				updateConnectionTestIndicators(form, connected ? 'online' : 'warning', label);
+				toast(detail, !connected);
+				// Never refresh the whole module for a connection test.
+				return;
 			}
 			if (button && uiStatus) {
 				uiStatus.success(button, message);
@@ -472,11 +557,16 @@
 			}
 		} catch (error) {
 			const message = error.message || cfg.labels.failed;
+			if (isTest) {
+				testFeedback(form, button, 'Connection failed', 'error', message);
+				updateConnectionTestIndicators(form, 'warning', message);
+			}
 			if (button && uiStatus) {
-				uiStatus.error(button, message);
+				uiStatus.error(button, message, isTest ? { alert: false } : undefined);
 			}
 			toast(message, true);
 		} finally {
+			delete form.dataset.afcnSubmitting;
 			if (button) {
 				button.disabled = false;
 			}
