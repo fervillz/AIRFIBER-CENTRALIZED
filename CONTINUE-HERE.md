@@ -2,6 +2,16 @@
 
 Updated: 2026-08-31
 
+## November 19, 2026 — BETA PPP Trash
+
+BETA Payments now provides a **Delete** action in Edit PPP and a **Trash** view beside its payment/edit toggle. This is intentionally reversible: Delete saves only a small WordPress restoration record, disables the selected MikroTik PPP secret, disables the uniquely matching scheduler named for the PPP username, and disconnects active PPP sessions. Router credentials, PPP passwords and scheduler scripts are not copied to WordPress.
+
+The BETA Payment search excludes trashed records even when an existing cached index still contains them; disabled PPP accounts are also omitted from new indexes. **Restore** re-enables the original PPP and matching scheduler only if they were enabled before Trash. **Delete permanently** explicitly removes both RouterOS resources after verifying IDs and disabled status, then discards the Trash record. No automatic trash purges; no Classic changes; historic WordPress payments are preserved.
+
+Implementation: `next/modules/payments/includes/class-payments-module.php`, `next/modules/payments/includes/class-payments-routeros-client.php`, `next/modules/payments/assets/payments.js`, and `next/modules/payments/assets/payments.css`.
+
+**Requires on-router validation with a dedicated test PPP**, including no scheduler, one scheduler, pre-disabled scheduler, active-session disconnect, restore, and permanent deletion. Partial failures deliberately keep Trash records for investigation.
+
 ## Current goal
 
 Build Airfiber Next/BETA as an isolated, very fast application platform inside the existing WordPress plugin while keeping Airfiber Classic working. Product principle: **Fast by design**.
