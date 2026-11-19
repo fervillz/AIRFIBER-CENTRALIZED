@@ -461,7 +461,14 @@
 		const cls = 'is-' + stateName;
 		const card = form.closest('[data-afcn-connection-card]');
 		const detail = form.closest('[data-afcn-router-detail]');
-		[card, detail].forEach(function (container) {
+		const row = form.closest('tr');
+		const idInput = form.querySelector('input[name="connection_id"]');
+		const connectionId = idInput ? idInput.value : '';
+		const matchingCards = connectionId ? Array.from(document.querySelectorAll('[data-afcn-connection-card]')).filter(function (item) {
+			const input = item.querySelector('form[data-afcn-action="test-connection"] input[name="connection_id"]');
+			return input && input.value === connectionId;
+		}) : [];
+		Array.from(new Set([card, detail, row].concat(matchingCards).filter(Boolean))).forEach(function (container) {
 			if (!container) return;
 			if (container === card) {
 				['is-online', 'is-offline', 'is-warning', 'is-unconfigured', 'is-unknown'].forEach(function (name) {
