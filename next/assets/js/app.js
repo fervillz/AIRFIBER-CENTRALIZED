@@ -832,6 +832,7 @@
 		loadModule: loadModule,
 		query: moduleQuery,
 		action: moduleAction,
+		testResultLabel: testResultLabel,
 		loadChunk: loadChunk,
 		toast: toast,
 		openDialog: openDialog,
