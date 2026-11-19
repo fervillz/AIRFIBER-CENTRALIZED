@@ -2,6 +2,18 @@
 
 Updated: 2026-08-31
 
+## November 19, 2026 — BETA Payment single-modal workspace
+
+The BETA Payments customer result now always opens one shared modal, with icon-only **Edit PPP**, **Comment**, and **Trash** actions in the fixed header. The old Edit PPP/comment search-mode toggle and secondary editor dialog are removed. The default panel keeps CASH/GCash and payment metadata. Edit PPP and raw Comment panels load explicitly via AJAX, slide into view, and return to Payment via vertical transitions (respecting reduced-motion settings).
+
+Edit PPP exposes the current RouterOS PPP password in **plaintext**, as explicitly requested, only on an admin-authorized detail query; the password is never included in general search indexes or transients and is cleared from the input on exit. Other editable standard PPP fields include username, RouterOS profile, service, local/remote address, caller ID, routes, single-session restriction, traffic limits, enabled state, and customer name (stored in the original comment). Save verifies a version hash of RouterOS fields/comment before applying edits. Username changes are blocked when a matching cutoff scheduler exists because its embedded script would otherwise become stale. The raw comment remains wholly editable through the existing conflict-checked save action; manually changing billing/cutoff keys can affect the scheduler.
+
+Trash is a reversible immediate AJAX action without an extra confirmation popup, uses shared Core button-status animation, disables the selected PPP and its cutoff scheduler, and hides the account from payment search. Trash management (Restore/Permanently Delete) remains a separate user-invoked view. No Classic modification.
+
+Files: `next/modules/payments/includes/class-payments-module.php`, `next/modules/payments/includes/class-payments-routeros-client.php`, `next/modules/payments/assets/payments.js`, `next/modules/payments/assets/payments.css`, plus shared BETA `next/core/class-icon.php`.
+
+**Validation pending:** PHP runtime and actual RouterOS live API behavior. Test with a non-production PPP on a staging router before relying on this workflow in production, especially plaintext password visibility, field saves, scheduler protection, and instant Trash.
+
 ## November 19, 2026 — BETA PPP Trash
 
 BETA Payments now provides a **Delete** action in Edit PPP and a **Trash** view beside its payment/edit toggle. This is intentionally reversible: Delete saves only a small WordPress restoration record, disables the selected MikroTik PPP secret, disables the uniquely matching scheduler named for the PPP username, and disconnects active PPP sessions. Router credentials, PPP passwords and scheduler scripts are not copied to WordPress.
