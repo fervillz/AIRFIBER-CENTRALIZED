@@ -22,6 +22,7 @@ class Icon {
 			'search'      => '<circle cx="11" cy="11" r="7"></circle><path d="M20 20l-4-4"></path>',
 			'update'      => '<path d="M12 3v12M7 10l5 5 5-5M5 21h14"></path>',
 			'plus'        => '<path d="M12 5v14M5 12h14"></path>',
+			'comment'     => '<path d="M20 11.5a7.5 7.5 0 0 1-7.5 7.5H6l-3 2v-9.5A7.5 7.5 0 0 1 10.5 4H12.5A7.5 7.5 0 0 1 20 11.5z"></path><path d="M8 10h8M8 14h5"></path>',
 			'edit'        => '<path d="M4 20h4l11-11-4-4L4 16v4zM13.5 6.5l4 4"></path>',
 			'link'        => '<path d="M10 13a5 5 0 0 0 7.1.1l2-2a5 5 0 0 0-7.1-7.1l-1.1 1.1M14 11a5 5 0 0 0-7.1-.1l-2 2A5 5 0 0 0 12 20l1.1-1.1"></path>',
 			'list'        => '<path d="M9 6h11M9 12h11M9 18h11M4 6h.01M4 12h.01M4 18h.01"></path>',
