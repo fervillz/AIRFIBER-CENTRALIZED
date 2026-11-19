@@ -326,7 +326,15 @@
 
 	function openPayment(item) {
 		selected = item;
+		workspaceEpoch++;
 		const modal = dialog();
+		workspaceMode = 'payment';
+		modal.querySelectorAll('[data-afcn-workspace-panel]').forEach(function (panel) {
+			panel.hidden = panel.dataset.afcnWorkspacePanel !== 'payment';
+		});
+		modal.querySelectorAll('[data-afcn-workspace-tab]').forEach(function (button) { button.classList.remove('is-active'); });
+		modal.querySelector('[data-afcn-workspace-subtitle]').textContent = item.account + ' · ' + (item.plan || item.actual_profile || 'PPP');
+		workspaceStatus('', '');
 		if (!modal) {
 			return;
 		}
@@ -474,158 +482,219 @@
 
 
 
-	function editorDialog() {
-		return document.getElementById('afcn-ppp-comment-dialog');
-	}
 
-	function editorMessage(message, variant) {
-		const modal = editorDialog();
-		const node = modal && modal.querySelector('[data-afcn-ppp-edit-message]');
+	// All payment and PPP editing happens in a single modal. PPP passwords
+	// are requested only on an explicit Edit action, never in search results.
+	let workspaceMode = 'payment';
+	let workspaceBusy = false;
+	let detailVersion = '';
+	let commentVersion = '';
+	let workspaceEpoch = 0;
+
+	function workspaceStatus(message, type) {
+		const modal = dialog();
+		const node = modal && modal.querySelector('[data-afcn-workspace-status]');
 		if (!node) return;
 		node.textContent = message || '';
-		node.className = message ? 'afcn-ppp-comment-message is-' + (variant || 'info') : 'afcn-ppp-comment-message';
+		node.className = 'afcn-workspace-message' + (message ? ' is-' + (type || 'info') : '');
 	}
-
-	function editorBusy(busy) {
-		const modal = editorDialog();
+	function workspaceButtonState(button, phase, message) {
+		const status = window.AirfiberUIStatus;
+		if (!button || !status) return;
+		if (phase === 'loading') status.loading(button, message, { alert: false });
+		else if (phase === 'success') status.success(button, message, { transient: true, alert: false });
+		else if (phase === 'error') status.error(button, message, { transient: true, alert: false });
+		else status.clear(button, { alert: false });
+	}
+	function workspaceSetBusy(busy) {
+		workspaceBusy = busy;
+		const modal = dialog();
 		if (!modal) return;
-		const remove = modal.querySelector('[data-afcn-ppp-delete]');
-		if (remove) remove.disabled = busy || !editOriginalHash || !editSelected;
-		const save = modal.querySelector('[data-afcn-ppp-edit-save]');
-		if (save) {
-			save.disabled = busy;
-			save.textContent = busy ? 'Working…' : 'Save comment';
-		}
-		const expire = modal.querySelector('[data-afcn-ppp-edit-expire]');
-		if (expire) expire.disabled = busy || !editOriginalHash || !editSelected || editSelected.status === 'expired';
+		modal.querySelectorAll('[data-afcn-workspace-tab],[data-afcn-workspace-trash],[data-afcn-workspace-save-ppp],[data-afcn-workspace-save-comment],[data-afcn-workspace-back],[data-afcn-dialog-close]').forEach(function (button) {
+			button.disabled = busy;
+		});
+		modal.querySelectorAll('[data-afcn-payment-quick-method]').forEach(function (button) { button.disabled = busy; });
 	}
-
-	async function openEditor(item) {
-		const modal = editorDialog();
-		if (!modal || !item) return;
-		editSelected = item;
-		editOriginalHash = '';
-		const expire = modal.querySelector('[data-afcn-ppp-edit-expire]');
-		if (expire) expire.hidden = item.status === 'expired';
-		const textarea = modal.querySelector('[data-afcn-ppp-edit-text]');
-		textarea.value = '';
-		modal.querySelector('[data-afcn-ppp-edit-account]').textContent = item.customer_name + ' · ' + item.account;
-		editorMessage('Loading the latest PPP comment from MikroTik…', 'info');
-		editorBusy(true);
-		window.AirfiberNext.openDialog(modal);
-		try {
-			const response = await window.AirfiberNext.query('payments', 'read-ppp-comment', {
-				connection_id: item.connection_id,
-				secret_id: item.secret_id,
-				account: item.account
-			});
-			if (editSelected !== item || !modal.open) return;
-			editOriginalHash = response.comment_hash || '';
-			textarea.value = response.comment || '';
-			editorMessage('Only the comment will be changed. Check billing and scheduler fields before saving.', 'info');
-			textarea.focus({ preventScroll: true });
-		} catch (error) {
-			editorMessage(error.message || 'Could not load this PPP comment.', 'danger');
-		} finally {
-			if (editSelected === item && modal.open) editorBusy(!editOriginalHash);
+	function workspacePanel(mode) {
+		const modal = dialog();
+		return modal && modal.querySelector('[data-afcn-workspace-panel="' + mode + '"]');
+	}
+	async function workspaceSwitch(next, instant) {
+		if (workspaceBusy || next === workspaceMode) return;
+		const modal = dialog();
+		const old = workspacePanel(workspaceMode);
+		const incoming = workspacePanel(next);
+		if (!modal || !old || !incoming) return;
+		const previous = workspaceMode;
+		workspaceMode = next;
+		modal.querySelectorAll('[data-afcn-workspace-tab]').forEach(function (button) {
+			button.classList.toggle('is-active', button.dataset.afcnWorkspaceTab === next);
+			button.setAttribute('aria-pressed', button.dataset.afcnWorkspaceTab === next ? 'true' : 'false');
+		});
+		workspaceStatus('', '');
+		const reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+		const shouldAnimate = !instant && !reduceMotion && old.animate && incoming.animate;
+		if (shouldAnimate) {
+			await old.animate(
+				[{ opacity: 1, transform: 'translateY(0)' }, { opacity: 0, transform: 'translateY(' + (next === 'payment' ? '16px' : '-16px') + ')' }],
+				{ duration: 155, easing: 'ease-in', fill: 'forwards' }
+			).finished.catch(function () {});
+		}
+		old.hidden = true;
+		old.style.opacity = '';
+		old.style.transform = '';
+		incoming.hidden = false;
+		if (shouldAnimate) {
+			await incoming.animate(
+				[{ opacity: 0, transform: 'translateY(' + (next === 'payment' ? '-16px' : '20px') + ')' }, { opacity: 1, transform: 'translateY(0)' }],
+				{ duration: 215, easing: 'cubic-bezier(.2,.8,.2,1)' }
+			).finished.catch(function () {});
+		}
+		if (previous === 'ppp' && next !== 'ppp') {
+			// Clear the credential from the DOM when leaving Edit PPP.
+			const pwd = modal.querySelector('[data-afcn-ppp-field="password"]');
+			if (pwd) pwd.value = '';
+			detailVersion = '';
 		}
 	}
-
-	async function saveEditor() {
-		const modal = editorDialog();
-		if (!modal || !editSelected || !editOriginalHash) return;
-		const textarea = modal.querySelector('[data-afcn-ppp-edit-text]');
-		const comment = textarea.value;
-		if (!comment.trim() || new TextEncoder().encode(comment).length > 8000) {
-			editorMessage('Enter a comment of 8000 bytes or fewer.', 'danger');
+	function selectedPayload(item) {
+		return { connection_id: item.connection_id, secret_id: item.secret_id, account: item.account };
+	}
+	async function workspaceOpen(mode, button) {
+		if (!selected || workspaceBusy) return;
+		if (mode === workspaceMode) {
+			await workspaceSwitch('payment');
 			return;
 		}
-		editorBusy(true);
-		editorMessage('Saving comment to MikroTik…', 'info');
+		const item = selected;
+		const epoch = ++workspaceEpoch;
+		workspaceSetBusy(true);
+		workspaceButtonState(button, 'loading', 'Loading live MikroTik details…');
+		workspaceStatus('Loading from MikroTik…', 'info');
 		try {
-			const response = await window.AirfiberNext.action('payments', 'save-ppp-comment', {
-				connection_id: editSelected.connection_id,
-				secret_id: editSelected.secret_id,
-				account: editSelected.account,
-				comment_hash: editOriginalHash,
-				comment: comment
-			});
-			window.AirfiberNext.closeDialog(modal);
-			editSelected = null;
-			editOriginalHash = '';
-			input.value = '';
-			clearButton.hidden = true;
-			clearResults();
-			setFlash(response.message || 'PPP comment saved.', 'success');
-			window.AirfiberNext.toast(response.message || 'PPP comment saved.', false);
-			input.focus({ preventScroll: true });
+			if (mode === 'ppp') {
+				const data = await window.AirfiberNext.query('payments', 'read-ppp-details', selectedPayload(item));
+				if (epoch !== workspaceEpoch || selected !== item || !dialog().open) return;
+				detailVersion = data.version || '';
+				dialog().querySelector('[data-afcn-ppp-customer]').value = data.customer_name || '';
+				dialog().querySelectorAll('[data-afcn-ppp-field]').forEach(function (control) {
+					const key = control.dataset.afcnPppField;
+					let value = data.fields && data.fields[key] !== undefined ? String(data.fields[key]) : '';
+					if (key === 'disabled') value = ['yes', 'true', '1'].includes(value.toLowerCase()) ? 'true' : 'false';
+					if (key === 'only-one' && !['', 'yes', 'no', 'default'].includes(value)) value = '';
+					control.value = value;
+				});
+			} else {
+				const data = await window.AirfiberNext.query('payments', 'read-ppp-comment', selectedPayload(item));
+				if (epoch !== workspaceEpoch || selected !== item || !dialog().open) return;
+				commentVersion = data.comment_hash || '';
+				dialog().querySelector('[data-afcn-workspace-comment]').value = data.comment || '';
+			}
 		} catch (error) {
-			editorMessage(error.message || 'PPP comment could not be saved.', 'danger');
+			workspaceButtonState(button, 'error', error.message || 'Could not load PPP details.');
+			workspaceStatus(error.message || 'Could not load PPP details.', 'danger');
+			return;
 		} finally {
-			if (modal.open) editorBusy(false);
+			workspaceSetBusy(false);
+		}
+		if (epoch === workspaceEpoch && selected === item && dialog().open) {
+			workspaceButtonState(button, 'success', 'Loaded');
+			await workspaceSwitch(mode);
 		}
 	}
-
-	async function expireEditorAccount() {
-		const modal = editorDialog();
-		const button = modal && modal.querySelector('[data-afcn-ppp-edit-expire]');
-		if (!modal || !button || button.disabled || !editSelected || !editOriginalHash || editSelected.status === 'expired') return;
-		const item = editSelected;
-		if (!window.confirm('Manually EXPIRE PPP account "' + item.account + '"? This changes its MikroTik profile to Expired and disconnects active sessions immediately. No payment or billing dates will be changed.')) return;
-		editorBusy(true);
-		button.textContent = 'Expiring…';
-		editorMessage('Applying expiration on MikroTik…', 'info');
-		modal.querySelectorAll('[data-afcn-ppp-edit-close]').forEach(function (close) { close.disabled = true; });
-		try {
-			const response = await window.AirfiberNext.action('payments', 'expire-ppp', {
-				connection_id: item.connection_id,
-				secret_id: item.secret_id,
-				account: item.account
+	async function workspaceSave(mode, button) {
+		if (!selected || workspaceBusy) return;
+		const modal = dialog();
+		let action;
+		let payload = selectedPayload(selected);
+		if (mode === 'ppp') {
+			if (!detailVersion) return;
+			action = 'save-ppp-details';
+			payload.version = detailVersion;
+			payload.customer_name = modal.querySelector('[data-afcn-ppp-customer]').value;
+			payload.fields = {};
+			modal.querySelectorAll('[data-afcn-ppp-field]').forEach(function (control) {
+				payload.fields[control.dataset.afcnPppField] = control.value;
 			});
-			window.AirfiberNext.closeDialog(modal);
-			editSelected = null;
-			editOriginalHash = '';
+		} else {
+			if (!commentVersion) return;
+			action = 'save-ppp-comment';
+			payload.comment_hash = commentVersion;
+			payload.comment = modal.querySelector('[data-afcn-workspace-comment]').value;
+			if (!payload.comment.trim() || new TextEncoder().encode(payload.comment).length > 8000) {
+				workspaceStatus('Enter a comment of no more than 8000 bytes.', 'danger');
+				return;
+			}
+		}
+		workspaceSetBusy(true);
+		workspaceButtonState(button, 'loading', 'Saving on MikroTik…');
+		workspaceStatus('Saving to MikroTik…', 'info');
+		try {
+			const response = await window.AirfiberNext.action('payments', action, payload);
+			workspaceButtonState(button, 'success', response.message || 'Saved');
+			const label = response.message || 'PPP saved.';
+			if (response.account && response.account !== selected.account) selected.account = response.account;
+			workspaceStatus(label, 'success');
+			setFlash(label, 'success');
+			// Prevent an old cached customer result from being trusted after updates.
 			clearResults();
-			setFlash(response.message || 'Account manually expired.', 'success');
-			window.AirfiberNext.toast(response.message || 'Account manually expired.', false);
 			if (input.value.trim().length >= 3) search(input.value.trim());
+			await workspaceSwitch('payment');
 		} catch (error) {
-			editorMessage(error.message || 'Could not expire PPP account. Check MikroTik state before retrying.', 'danger');
+			workspaceButtonState(button, 'error', error.message || 'Could not save.');
+			workspaceStatus(error.message || 'Could not save PPP details.', 'danger');
 		} finally {
-			button.textContent = 'Manual Expire';
-			modal.querySelectorAll('[data-afcn-ppp-edit-close]').forEach(function (close) { close.disabled = false; });
-			if (modal.open) editorBusy(false);
+			workspaceSetBusy(false);
 		}
 	}
-
-
-	async function deleteEditorAccount() {
-		const modal = editorDialog();
-		const button = modal && modal.querySelector('[data-afcn-ppp-delete]');
-		if (!button || button.disabled || !editSelected) return;
-		const item = editSelected;
-		if (!window.confirm('Move PPP "' + item.account + '" and its matching cutoff scheduler to Trash? Service will disconnect immediately. You can restore both from Trash.')) return;
-		editorBusy(true);
-		button.textContent = 'Deleting…';
-		editorMessage('Disabling the PPP account and associated scheduler…', 'info');
+	async function workspaceTrash(button) {
+		if (!selected || workspaceBusy) return;
+		// Reversible one-click action, no second popup.
+		const item = selected;
+		workspaceSetBusy(true);
+		workspaceButtonState(button, 'loading', 'Moving PPP and scheduler to Trash…');
+		workspaceStatus('Disabling PPP and cutoff scheduler…', 'info');
 		try {
-			const response = await window.AirfiberNext.action('payments', 'trash-ppp', {
-				connection_id: item.connection_id,
-				secret_id: item.secret_id,
-				account: item.account
-			});
-			window.AirfiberNext.closeDialog(modal);
-			editSelected = null;
-			editOriginalHash = '';
+			const result = await window.AirfiberNext.action('payments', 'trash-ppp', selectedPayload(item));
+			workspaceButtonState(button, 'success', result.message || 'Moved to Trash');
+			window.AirfiberNext.closeDialog(dialog());
 			clearResults();
-			setFlash(response.message || 'Moved to Trash.', 'success');
+			setFlash(result.message || 'PPP moved to Trash.', 'success');
 			if (input.value.trim().length >= 3) search(input.value.trim());
 		} catch (error) {
-			editorMessage((error.message || 'Could not move PPP to Trash.') + ' Check the Trash view before trying again.', 'danger');
+			workspaceButtonState(button, 'error', error.message || 'Could not trash PPP.');
+			workspaceStatus((error.message || 'Could not move PPP to Trash.') + ' Check Trash before retrying.', 'danger');
 		} finally {
-			button.textContent = 'Delete';
-			if (modal.open) editorBusy(false);
+			workspaceSetBusy(false);
 		}
+	}
+	function bindWorkspace() {
+		const modal = dialog();
+		if (!modal || modal.dataset.afcnWorkspaceWired) return;
+		modal.dataset.afcnWorkspaceWired = '1';
+		modal.querySelectorAll('[data-afcn-workspace-tab]').forEach(function (button) {
+			button.addEventListener('click', function () { workspaceOpen(button.dataset.afcnWorkspaceTab, button); });
+		});
+		modal.querySelector('[data-afcn-workspace-trash]').addEventListener('click', function () {
+			workspaceTrash(this);
+		});
+		modal.querySelector('[data-afcn-workspace-save-ppp]').addEventListener('click', function () { workspaceSave('ppp', this); });
+		modal.querySelector('[data-afcn-workspace-save-comment]').addEventListener('click', function () { workspaceSave('comment', this); });
+		modal.querySelectorAll('[data-afcn-workspace-back]').forEach(function (button) {
+			button.addEventListener('click', function () { workspaceSwitch('payment'); });
+		});
+		modal.addEventListener('close', function () {
+			workspaceEpoch++;
+			const pwd = modal.querySelector('[data-afcn-ppp-field="password"]');
+			if (pwd) pwd.value = '';
+			detailVersion = '';
+			commentVersion = '';
+			workspaceMode = 'payment';
+			modal.querySelectorAll('[data-afcn-workspace-panel]').forEach(function (panel) {
+				panel.hidden = panel.dataset.afcnWorkspacePanel !== 'payment';
+			});
+			workspaceSetBusy(false);
+		});
 	}
 
 	function trashDialog() {
@@ -702,52 +771,6 @@
 		});
 	}
 
-	function bindEditor() {
-		const modal = editorDialog();
-		if (!modal || modal.dataset.afcnPppEditWired) return;
-		modal.dataset.afcnPppEditWired = '1';
-		modal.querySelectorAll('[data-afcn-ppp-edit-close]').forEach(function (button) {
-			button.addEventListener('click', function () {
-				window.AirfiberNext.closeDialog(modal);
-			});
-		});
-		modal.querySelector('[data-afcn-ppp-edit-save]').addEventListener('click', saveEditor);
-		modal.querySelector('[data-afcn-ppp-edit-expire]').addEventListener('click', expireEditorAccount);
-		modal.querySelector('[data-afcn-ppp-delete]').addEventListener('click', deleteEditorAccount);
-		modal.addEventListener('close', function () {
-			editSelected = null;
-			editOriginalHash = '';
-		});
-	}
-
-	function bindModeToggle() {
-		const toggle = root && root.querySelector('[data-afcn-payment-mode-toggle]');
-		if (toggle) {
-			toggle.addEventListener('click', function () {
-				editMode = !editMode;
-				root.classList.toggle('is-editing-ppp', editMode);
-				toggle.setAttribute('aria-pressed', editMode ? 'true' : 'false');
-				toggle.textContent = editMode ? 'Record payment' : 'Edit PPP';
-				const title = root.querySelector('.afcn-payments-head .afcn-page-title');
-				if (title) title.textContent = editMode ? 'Edit PPP comment' : 'Record payment';
-				input.value = '';
-				clearButton.hidden = true;
-				clearResults();
-				input.placeholder = editMode ? 'Search PPP account to edit its comment…' : 'Type customer name, PPP account, phone or address…';
-				input.focus({ preventScroll: true });
-			});
-		}
-		const fromPayment = root && root.querySelector('[data-afcn-payment-edit-from-dialog]');
-		if (fromPayment) {
-			fromPayment.addEventListener('click', function () {
-				const item = selected;
-				const paymentModal = dialog();
-				if (paymentModal && paymentModal.open) window.AirfiberNext.closeDialog(paymentModal);
-				openEditor(item);
-			});
-		}
-	}
-
 	function init() {
 		root = document.querySelector('[data-afcn-payments-root]');
 		if (!root || root.dataset.afcnPaymentsWired) {
@@ -764,9 +787,8 @@
 		}
 
 		bindQuickPaymentDialog();
-		bindEditor();
+		bindWorkspace();
 		bindTrash();
-		bindModeToggle();
 
 		input.addEventListener('input', queueSearch);
 		input.addEventListener('keydown', function (event) {
@@ -800,11 +822,7 @@
 			}
 			const item = items.get(button.dataset.afcnPaymentResult || '');
 			if (item) {
-				if (editMode) {
-					openEditor(item);
-				} else {
-					openPayment(item);
-				}
+				openPayment(item);
 			}
 		});
 
