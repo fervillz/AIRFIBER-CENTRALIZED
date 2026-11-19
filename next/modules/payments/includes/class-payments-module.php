@@ -739,6 +739,7 @@ class Payments_Module implements Module_Contract {
 							<label>Account status<select class="afcn-input" data-afcn-ppp-field="disabled"><option value="false">Enabled</option><option value="true">Disabled</option></select></label>
 						</div>
 						<div class="afcn-workspace-footer">
+							<button type="button" class="afcn-button afcn-button-secondary afcn-workspace-expire" data-afcn-module="payments" data-afcn-workspace-expire>Manual Expire</button>
 							<button type="button" class="afcn-button afcn-button-secondary" data-afcn-workspace-back>Back</button>
 							<button type="button" class="afcn-button afcn-button-primary" data-afcn-module="payments" data-afcn-workspace-save-ppp>Save PPP</button>
 						</div>
