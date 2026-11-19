@@ -52,7 +52,7 @@ class Payments_RouterOS_Client {
 		return $result;
 	}
 
-	public static function secret( $record, $account ) {
+	public static function secret( $record, $account, $include_private = false ) {
 		$account = substr( sanitize_text_field( (string) $account ), 0, 120 );
 		if ( '' === $account ) {
 			return new \WP_Error( 'afcn_payment_account', __( 'The PPP account is missing.', 'airfiber-centralized' ), array( 'status' => 400 ) );
@@ -77,7 +77,7 @@ class Payments_RouterOS_Client {
 			$socket,
 			array(
 				'/ppp/secret/print',
-				'=.proplist=.id,name,profile,comment,disabled,remote-address',
+				'=.proplist=' . ( $include_private ? '.id,name,password,profile,service,local-address,remote-address,caller-id,routes,limit-bytes-in,limit-bytes-out,only-one,comment,disabled' : '.id,name,profile,comment,disabled,remote-address' ),
 				'?name=' . $account,
 			)
 		);
@@ -218,6 +218,24 @@ class Payments_RouterOS_Client {
 		return $result;
 	}
 
+
+	/**
+	 * Update only explicitly approved PPP fields. Called after a fresh ID and
+	 * snapshot verification in Payments_Module; never log the plaintext password.
+	 */
+	public static function update_secret_fields( $record, $secret_id, $changes ) {
+		$allowed = array( 'name', 'password', 'profile', 'service', 'local-address', 'remote-address', 'caller-id', 'routes', 'limit-bytes-in', 'limit-bytes-out', 'only-one', 'disabled' );
+		$words = array( '/ppp/secret/set', '=.id=' . $secret_id );
+		foreach ( $changes as $key => $value ) {
+			if ( ! in_array( $key, $allowed, true ) || ! is_scalar( $value ) || false !== strpos( (string) $value, "\0" ) ) {
+				return new \WP_Error( 'afcn_ppp_edit_field', __( 'Unsupported PPP field.', 'airfiber-centralized' ), array( 'status' => 400 ) );
+			}
+			$words[] = '=' . $key . '=' . (string) $value;
+		}
+		if ( count( $words ) < 3 ) return true;
+		return self::command( $record, $words );
+	}
+
 	private static function connection_context( $record ) {
 		$record   = is_array( $record ) ? $record : array();
 		$config   = isset( $record['config'] ) && is_array( $record['config'] ) ? $record['config'] : array();
@@ -351,7 +369,7 @@ class Payments_RouterOS_Client {
 	}
 
 	private static function sanitize_payment_row( $row ) {
-		$allowed = array( '.id', 'name', 'profile', 'comment', 'disabled', 'remote-address' );
+		$allowed = array( '.id', 'name', 'password', 'profile', 'service', 'local-address', 'remote-address', 'caller-id', 'routes', 'limit-bytes-in', 'limit-bytes-out', 'only-one', 'comment', 'disabled' );
 		$output  = array();
 		foreach ( $allowed as $key ) {
 			if ( ! isset( $row[ $key ] ) || is_array( $row[ $key ] ) || is_object( $row[ $key ] ) ) {
