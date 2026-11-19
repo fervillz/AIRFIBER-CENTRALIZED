@@ -91,20 +91,45 @@ class Routers_Module implements Module_Contract {
 				</div>
 			</div>
 
+			<?php // Lightweight targets only. Router detail panels and edit forms are rendered by explicit lazy chunks. ?>
 			<?php foreach ( $connections as $id => $record ) : ?>
-				<?php self::render_router_detail( $id, $record, isset( $health[ $id ] ) ? $health[ $id ] : array() ); ?>
+				<div data-afcn-router-container="<?php echo esc_attr( $id ); ?>" hidden></div>
 			<?php endforeach; ?>
 
 			<?php self::render_interface_detail_dialog(); ?>
 
 			<?php if ( $can_manage ) : ?>
 				<?php self::render_add_dialog(); ?>
-				<?php foreach ( $connections as $id => $record ) : ?>
-					<?php self::render_edit_dialog( $id, $record ); ?>
-				<?php endforeach; ?>
 			<?php endif; ?>
 		</div>
 		<?php
+		return ob_get_clean();
+	}
+
+	/**
+	 * Render only the selected router's UI. Never contact RouterOS from a
+	 * chunk: the selected data scope remains a separate, explicit query.
+	 */
+	public static function render_chunk( $chunk, $payload = array() ) {
+		if ( ! self::can_manage_connections() ) {
+			return new \WP_Error( 'afcn_routers_chunk_forbidden', __( 'You cannot view router details.', 'airfiber-centralized' ), array( 'status' => 403 ) );
+		}
+		if ( ! in_array( $chunk, array( 'detail', 'edit-dialog' ), true ) ) {
+			return new \WP_Error( 'afcn_routers_chunk_unknown', __( 'Unknown router view.', 'airfiber-centralized' ), array( 'status' => 404 ) );
+		}
+
+		$id     = isset( $payload['connection_id'] ) ? sanitize_text_field( (string) $payload['connection_id'] ) : '';
+		$record = self::connection( $id );
+		if ( is_wp_error( $record ) ) {
+			return $record;
+		}
+
+		ob_start();
+		if ( 'detail' === $chunk ) {
+			self::render_router_detail( $id, $record, Connection_Health::get( $id ) );
+		} else {
+			self::render_edit_dialog( $id, $record );
+		}
 		return ob_get_clean();
 	}
 
