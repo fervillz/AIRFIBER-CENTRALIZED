@@ -837,6 +837,13 @@
 	function createDatePreview() {
 		const d = createDialog(), node = d && d.querySelector('[data-afcn-create-dates]');
 		const date = createField('installed') && createField('installed').value;
+		const name = createField('customer_name') && createField('customer_name').value || '';
+		const profile = createField('profile') && createField('profile').value || '';
+		const username = createField('username') && createField('username').value || '';
+		const generatedName = name.normalize('NFD').replace(/[\u0300-\u036f]/g, '').split(/[^A-Za-z0-9]+/).filter(Boolean).map(function (part) {
+			return part.charAt(0).toUpperCase() + part.slice(1).toLowerCase();
+		}).join('') || 'Customer';
+		const planToken = (profile.match(/\d{3,6}/) || [])[0] || profile.replace(/[^A-Za-z0-9]+/g, '') || 'Plan';
 		if (!node) return;
 		if (!/^\d{4}-\d{2}-\d{2}$/.test(date || '')) {
 			node.textContent = 'Choose a valid installation date.';
@@ -853,7 +860,10 @@
 			result.setUTCDate(result.getUTCDate() + n);
 			return result.toISOString().slice(0, 10);
 		};
-		node.textContent = 'Installed: ' + date + '  ·  Next due: ' + datePlus(30) + '  ·  Cutoff: ' + datePlus(31) + '  ·  Grace: 3 days';
+		const generated = (generatedName + '_' + date.slice(-2) + '_' + planToken).slice(0, 63);
+		const cutoff = datePlus(31);
+		node.textContent = 'PPP: ' + (username || generated) + '  ·  Next due: ' + datePlus(30) + '  ·  Cutoff: ' + cutoff + '  ·  Grace: 3 days' +
+			(cutoff < (createDialog().dataset.today || date) ? '  ·  Warning: cutoff is in the past and may run immediately on MikroTik.' : '');
 	}
 	async function loadCreateProfiles() {
 		const router = createField('connection_id');
@@ -872,6 +882,12 @@
 				select.add(option);
 			});
 			select.disabled = false;
+			if (response.today) {
+				const previousToday = createDialog().dataset.today || '';
+				createDialog().dataset.today = response.today;
+				if (createField('installed').value === previousToday) createField('installed').value = response.today;
+			}
+			createDatePreview();
 			createNotice(response.profiles && response.profiles.length ? '' : 'No eligible PPP profiles exist on this router.', response.profiles && response.profiles.length ? 'info' : 'danger');
 		} catch (error) {
 			createNotice(error.message || 'Could not load MikroTik profiles.', 'danger');
@@ -949,7 +965,13 @@
 			loadCreateProfiles();
 		});
 		createField('connection_id').addEventListener('change', loadCreateProfiles);
-		createField('installed').addEventListener('change', createDatePreview);
+		['installed', 'customer_name', 'profile', 'username'].forEach(function (key) {
+			const field = createField(key);
+			if (field) {
+				field.addEventListener('input', createDatePreview);
+				field.addEventListener('change', createDatePreview);
+			}
+		});
 		d.addEventListener('close', function () {
 			// Clear WiFi password and the just-created PPP password from the DOM.
 			createField('wifi_password').value = '';
