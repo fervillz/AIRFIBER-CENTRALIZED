@@ -824,6 +824,139 @@
 		});
 	}
 
+
+	// Native BETA Add PPP: lazy profile fetch only when the dialog opens.
+	function createDialog() { return document.getElementById('afcn-payment-create-dialog'); }
+	function createField(key) { const d = createDialog(); return d && d.querySelector('[data-afcn-create-field="' + key + '"]'); }
+	function createNotice(message, variant) {
+		const d = createDialog(), target = d && d.querySelector('[data-afcn-create-message]');
+		if (!target) return;
+		target.textContent = message || '';
+		target.className = 'afcn-create-message' + (message ? ' is-' + (variant || 'info') : '');
+	}
+	function createDatePreview() {
+		const d = createDialog(), node = d && d.querySelector('[data-afcn-create-dates]');
+		const date = createField('installed') && createField('installed').value;
+		if (!node) return;
+		if (!/^\d{4}-\d{2}-\d{2}$/.test(date || '')) {
+			node.textContent = 'Choose a valid installation date.';
+			return;
+		}
+		// Calendar arithmetic in UTC avoids browser-local daylight-saving shifts.
+		const day = new Date(date + 'T12:00:00Z');
+		if (Number.isNaN(day.getTime()) || day.toISOString().slice(0, 10) !== date) {
+			node.textContent = 'Choose a valid installation date.';
+			return;
+		}
+		const datePlus = function (n) {
+			const result = new Date(day.getTime());
+			result.setUTCDate(result.getUTCDate() + n);
+			return result.toISOString().slice(0, 10);
+		};
+		node.textContent = 'Installed: ' + date + '  ·  Next due: ' + datePlus(30) + '  ·  Cutoff: ' + datePlus(31) + '  ·  Grace: 3 days';
+	}
+	async function loadCreateProfiles() {
+		const router = createField('connection_id');
+		const select = createField('profile');
+		if (!router || !select) return;
+		select.replaceChildren(new Option('Loading profiles…', ''));
+		select.disabled = true;
+		createNotice('Loading MikroTik plans…', 'info');
+		try {
+			const requested = router.value;
+			const response = await window.AirfiberNext.query('payments', 'create-options', { connection_id: requested });
+			if (router.value !== requested || !createDialog().open) return;
+			select.replaceChildren(new Option('Choose a profile', ''));
+			(response.profiles || []).forEach(function (profile) {
+				const option = new Option(profile.name + (profile.rate_limit ? ' · ' + profile.rate_limit : ''), profile.name);
+				select.add(option);
+			});
+			select.disabled = false;
+			createNotice(response.profiles && response.profiles.length ? '' : 'No eligible PPP profiles exist on this router.', response.profiles && response.profiles.length ? 'info' : 'danger');
+		} catch (error) {
+			createNotice(error.message || 'Could not load MikroTik profiles.', 'danger');
+		}
+	}
+	function resetCreate() {
+		const d = createDialog();
+		if (!d) return;
+		d.querySelector('[data-afcn-create-form]').hidden = false;
+		d.querySelector('[data-afcn-create-success]').hidden = true;
+		d.querySelectorAll('[data-afcn-create-field]').forEach(function (control) {
+			if (control.tagName !== 'SELECT') control.value = '';
+		});
+		createField('installed').value = d.dataset.today || '';
+		createNotice('', '');
+		createDatePreview();
+	}
+	async function openCreate() {
+		const d = createDialog();
+		if (!d) return;
+		d.dataset.today = d.dataset.today || createField('installed').value;
+		resetCreate();
+		window.AirfiberNext.openDialog(d);
+		await loadCreateProfiles();
+	}
+	async function submitCreate(button) {
+		const d = createDialog();
+		if (!d || button.disabled) return;
+		const payload = {};
+		d.querySelectorAll('[data-afcn-create-field]').forEach(function (control) {
+			payload[control.dataset.afcnCreateField] = control.value.trim();
+		});
+		if (!payload.connection_id || !payload.customer_name || !payload.phone || !payload.address || !payload.profile || !payload.installed || !payload.wifi || payload.wifi_password.length < 8) {
+			createNotice('Complete the customer name, CP number, address, plan, installation date, WiFi name and WiFi password (8+ characters).', 'danger');
+			return;
+		}
+		const status = window.AirfiberUIStatus;
+		button.disabled = true;
+		d.querySelectorAll('[data-afcn-create-close]').forEach(function (close) { close.disabled = true; });
+		if (status) status.loading(button, 'Creating PPP and cutoff scheduler…', { alert: false });
+		createNotice('Creating PPP, cutoff scheduler, and customer record…', 'info');
+		try {
+			const result = await window.AirfiberNext.action('payments', 'create-ppp', payload);
+			if (status) status.success(button, 'PPP created', { transient: true, alert: false });
+			d.querySelector('[data-afcn-create-form]').hidden = true;
+			d.querySelector('[data-afcn-create-success]').hidden = false;
+			d.querySelector('[data-afcn-created-username]').textContent = result.username || '';
+			d.querySelector('[data-afcn-created-password]').textContent = result.password || '';
+			d.querySelector('[data-afcn-created-installed]').textContent = result.installed || '';
+			d.querySelector('[data-afcn-created-due]').textContent = result.dates && result.dates.nextDue || '';
+			d.querySelector('[data-afcn-created-cutoff]').textContent = result.dates && result.dates.cutoffDate || '';
+			createNotice(result.message || 'PPP created successfully.', 'success');
+			setFlash(result.message || 'PPP created successfully.', 'success');
+			clearResults();
+		} catch (error) {
+			if (status) status.error(button, error.message || 'Could not create PPP.', { transient: true, alert: false });
+			createNotice(error.message || 'PPP creation failed. Check the router before retrying.', 'danger');
+		} finally {
+			button.disabled = false;
+			d.querySelectorAll('[data-afcn-create-close]').forEach(function (close) { close.disabled = false; });
+		}
+	}
+	function bindCreate() {
+		const d = createDialog();
+		const open = root && root.querySelector('[data-afcn-create-open]');
+		if (!d || !open || d.dataset.afcnCreateWired) return;
+		d.dataset.afcnCreateWired = '1';
+		open.addEventListener('click', openCreate);
+		d.querySelectorAll('[data-afcn-create-close]').forEach(function (button) {
+			button.addEventListener('click', function () { window.AirfiberNext.closeDialog(d); });
+		});
+		d.querySelector('[data-afcn-create-submit]').addEventListener('click', function () { submitCreate(this); });
+		d.querySelector('[data-afcn-create-another]').addEventListener('click', function () {
+			resetCreate();
+			loadCreateProfiles();
+		});
+		createField('connection_id').addEventListener('change', loadCreateProfiles);
+		createField('installed').addEventListener('change', createDatePreview);
+		d.addEventListener('close', function () {
+			// Clear WiFi password and the just-created PPP password from the DOM.
+			createField('wifi_password').value = '';
+			d.querySelector('[data-afcn-created-password]').textContent = '';
+		});
+	}
+
 	function init() {
 		root = document.querySelector('[data-afcn-payments-root]');
 		if (!root || root.dataset.afcnPaymentsWired) {
@@ -839,6 +972,7 @@
 			return;
 		}
 
+		bindCreate();
 		bindQuickPaymentDialog();
 		bindWorkspace();
 		bindTrash();
