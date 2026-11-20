@@ -236,25 +236,6 @@ class Payments_RouterOS_Client {
 		return self::command( $record, $words );
 	}
 
-
-	/**
-	 * Bounded profile options. Keep this explicit; no credentials or PPP
-	 * comments are included in the Add PPP form's initial query.
-	 */
-	public static function profiles( $record ) {
-		$rows = self::command( $record, array( '/ppp/profile/print', '=.proplist=.id,name,rate-limit' ), true );
-		if ( is_wp_error( $rows ) ) return $rows;
-		if ( ! empty( $rows['truncated'] ) ) return new \WP_Error( 'afcn_profiles_truncated', 'Too many MikroTik profiles to safely list.', array( 'status' => 409 ) );
-		$out = array();
-		foreach ( $rows['rows'] as $row ) {
-			$name = isset( $row['name'] ) ? (string) $row['name'] : '';
-			if ( '' === $name || in_array( strtolower( $name ), array( 'default', 'default-encryption', 'expired' ), true ) ) continue;
-			$out[] = array( 'name' => $name, 'rate_limit' => isset( $row['rate-limit'] ) ? $row['rate-limit'] : '' );
-		}
-		usort( $out, function ( $a, $b ) { return strnatcasecmp( $a['name'], $b['name'] ); } );
-		return $out;
-	}
-
 	private static function connection_context( $record ) {
 		$record   = is_array( $record ) ? $record : array();
 		$config   = isset( $record['config'] ) && is_array( $record['config'] ) ? $record['config'] : array();
@@ -388,7 +369,7 @@ class Payments_RouterOS_Client {
 	}
 
 	private static function sanitize_payment_row( $row ) {
-		$allowed = array( '.id', 'name', 'password', 'profile', 'service', 'local-address', 'remote-address', 'caller-id', 'routes', 'limit-bytes-in', 'limit-bytes-out', 'only-one', 'rate-limit', 'comment', 'disabled' );
+		$allowed = array( '.id', 'name', 'password', 'profile', 'service', 'local-address', 'remote-address', 'caller-id', 'routes', 'limit-bytes-in', 'limit-bytes-out', 'only-one', 'comment', 'disabled' );
 		$output  = array();
 		foreach ( $allowed as $key ) {
 			if ( ! isset( $row[ $key ] ) || is_array( $row[ $key ] ) || is_object( $row[ $key ] ) ) {
