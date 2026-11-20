@@ -27,7 +27,7 @@ class Payments_Module implements Module_Contract {
 			<div class="afcn-payments-head">
 				<h1 class="afcn-page-title"><?php esc_html_e( 'Record payment', 'airfiber-centralized' ); ?></h1>
 				<div class="afcn-payment-heading-actions">
-					<a class="afcn-button afcn-payment-add-ppp" href="<?php echo esc_url( \Airfiber\Next\Bootstrap::classic_url() ); ?>" title="<?php esc_attr_e( 'Open the existing Add PPP wizard in Classic Basic', 'airfiber-centralized' ); ?>">+ <?php esc_html_e( 'Add PPP', 'airfiber-centralized' ); ?></a>
+					<button type="button" class="afcn-button afcn-payment-add-ppp" data-afcn-create-open data-afcn-module="payments">+ <?php esc_html_e( 'Add PPP', 'airfiber-centralized' ); ?></button>
 					<button type="button" class="afcn-button afcn-button-secondary" data-afcn-trash-open>Trash</button>
 				</div>
 			</div>
@@ -67,6 +67,7 @@ class Payments_Module implements Module_Contract {
 			<div class="afcn-payment-flash" data-afcn-payment-flash aria-live="polite"></div>
 			<div class="afcn-payment-results" data-afcn-payment-results role="listbox" aria-label="<?php esc_attr_e( 'Customer search results', 'airfiber-centralized' ); ?>" hidden></div>
 
+			<?php echo self::create_dialog(); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
 			<?php echo self::payment_dialog(); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
 			<?php echo self::trash_dialog(); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
 		</div>
@@ -82,6 +83,7 @@ class Payments_Module implements Module_Contract {
 	}
 
 	public static function handle_query( $query, $payload = array() ) {
+		if ( 'create-options' === $query ) return self::create_options( $payload );
 		if ( 'trash-list' === $query ) return self::list_trash();
 		if ( 'read-ppp-details' === $query ) return self::read_ppp_details( $payload );
 		if ( 'read-ppp-comment' === $query ) {
@@ -187,6 +189,7 @@ class Payments_Module implements Module_Contract {
 	}
 
 	public static function handle_action( $action, $payload = array() ) {
+		if ( 'create-ppp' === $action ) return self::create_ppp( $payload );
 		if ( 'trash-ppp' === $action ) return self::trash_ppp( $payload );
 		if ( 'restore-ppp' === $action ) return self::restore_ppp( $payload );
 		if ( 'purge-ppp' === $action ) return self::purge_ppp( $payload );
@@ -662,6 +665,263 @@ class Payments_Module implements Module_Contract {
 					<button type="button" class="afcn-icon-button" data-afcn-trash-close aria-label="Close Trash"><?php echo \Airfiber\Next\Icon::svg( 'x' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></button>
 				</div>
 				<div class="afcn-dialog-body"><div data-afcn-trash-status role="status"></div><div data-afcn-trash-list></div></div>
+			</div>
+		</dialog>
+		<?php return ob_get_clean();
+	}
+
+
+	// BETA Add PPP retains Classic's generated credentials, username format,
+	// installation-derived dates, 30-day cycle, 3-day grace, and cutoff script.
+	private static function create_options( $payload ) {
+		if ( ! current_user_can( 'manage_options' ) ) return new \WP_Error( 'afcn_create_denied', 'Only administrators can add PPP accounts.', array( 'status' => 403 ) );
+		$connection = isset( $payload['connection_id'] ) ? sanitize_text_field( (string) $payload['connection_id'] ) : '';
+		$routers = self::payment_routers();
+		if ( ! isset( $routers[ $connection ] ) ) return new \WP_Error( 'afcn_create_router', 'Select an available MikroTik router.', array( 'status' => 400 ) );
+		$profiles = Payments_RouterOS_Client::profiles( $routers[ $connection ] );
+		if ( is_wp_error( $profiles ) ) return $profiles;
+		return array( 'profiles' => $profiles, 'today' => current_time( 'Y-m-d' ) );
+	}
+
+	private static function install_date( $raw ) {
+		$raw = (string) $raw;
+		if ( ! preg_match( '/^\d{4}-\d{2}-\d{2}$/', $raw ) ) return null;
+		$date = \DateTimeImmutable::createFromFormat( '!Y-m-d', $raw, wp_timezone() );
+		return $date && $date->format( 'Y-m-d' ) === $raw ? $date : null;
+	}
+	private static function classic_install_dates( $installed ) {
+		// Same rolling-cycle override as AFC_PPP_Manager::dates_from_installation.
+		$next_due = $installed->modify( '+30 days' );
+		$cutoff = $next_due->modify( '+1 day' );
+		return array(
+			'installed' => $installed->format( 'Y-m-d' ),
+			'paymentDate' => $installed->format( 'Y-m-d' ),
+			'billingDay' => (int) $installed->format( 'j' ),
+			'billingCycleDays' => 30,
+			'paidThrough' => $installed->format( 'Y-m-d' ),
+			'nextDue' => $next_due->format( 'Y-m-d' ),
+			'cutoffDate' => $cutoff->format( 'Y-m-d' ),
+			'dueReminderDate' => $next_due->modify( '-1 day' )->format( 'Y-m-d' ),
+		);
+	}
+	private static function classic_username( $name, $date, $profile ) {
+		$clean = remove_accents( trim( preg_replace( '/\s+/', ' ', $name ) ) );
+		$parts = preg_split( '/[^A-Za-z0-9]+/', $clean, -1, PREG_SPLIT_NO_EMPTY );
+		$token = '';
+		foreach ( $parts as $part ) $token .= ucfirst( strtolower( $part ) );
+		if ( ! $token ) $token = 'Customer';
+		if ( preg_match( '/\d{3,6}/', $profile, $match ) ) $plan = $match[0];
+		else $plan = preg_replace( '/[^A-Za-z0-9]+/', '', remove_accents( $profile ) );
+		return substr( $token . '_' . $date->format( 'd' ) . '_' . ( $plan ?: 'Plan' ), 0, 63 );
+	}
+	private static function classic_scheduler_script( $username, $due, $cutoff, $expired ) {
+		// Matches Classic's AFC-MANAGED-SCHEDULER v1 safety checks.
+		$escape = function ( $s ) { return str_replace( array( '\\', '"' ), array( '\\\\', '\\"' ), (string) $s ); };
+		$user = $escape( $username ); $due = $escape( $due ); $cutoff = $escape( $cutoff ); $expired = $escape( $expired );
+		return '# AFC-MANAGED-SCHEDULER v1' . "\r\n"
+			. ':local user "' . $user . '"' . "\r\n"
+			. ':local expectedDue "' . $due . '"' . "\r\n"
+			. ':local expectedCutoff "' . $cutoff . '"' . "\r\n"
+			. ':local expiredProfile "' . $expired . '"' . "\r\n"
+			. ':local job [/system scheduler find where name=$user]' . "\r\n"
+			. ':local s [/ppp secret find where name=$user]' . "\r\n"
+			. ':if ([:len $s] = 0) do={' . "\r\n"
+			. '    :log warning ("AFC cutoff skipped; PPP missing: " . $user)' . "\r\n"
+			. '    :if ([:len $job] > 0) do={ /system scheduler disable $job }' . "\r\n"
+			. '    :return' . "\r\n"
+			. '}' . "\r\n"
+			. ':local comment [/ppp secret get $s comment]' . "\r\n"
+			. ':if ([:find $comment ("nextDue:" . $expectedDue)] = nil) do={' . "\r\n"
+			. '    :log info ("AFC stale cutoff skipped; nextDue changed for " . $user)' . "\r\n"
+			. '    :if ([:len $job] > 0) do={ /system scheduler disable $job }' . "\r\n"
+			. '    :return' . "\r\n"
+			. '}' . "\r\n"
+			. ':if ([:find $comment ("cutoffDate:" . $expectedCutoff)] = nil) do={' . "\r\n"
+			. '    :log info ("AFC stale cutoff skipped; cutoffDate changed for " . $user)' . "\r\n"
+			. '    :if ([:len $job] > 0) do={ /system scheduler disable $job }' . "\r\n"
+			. '    :return' . "\r\n"
+			. '}' . "\r\n"
+			. '/ppp secret set $s profile=$expiredProfile' . "\r\n"
+			. ':local active [/ppp active find where name=$user]' . "\r\n"
+			. ':if ([:len $active] > 0) do={ /ppp active remove $active }' . "\r\n"
+			. ':log warning ("AFC expired unpaid PPP account: " . $user)' . "\r\n"
+			. ':if ([:len $job] > 0) do={ /system scheduler disable $job }';
+	}
+	private static function classic_scheduler_datetime( $date, $username ) {
+		$settings = class_exists( '\AFC_Schedulers' ) ? \AFC_Schedulers::get_settings() : array();
+		$base = isset( $settings['base_time'] ) ? $settings['base_time'] : '00:05:00';
+		$parts = array_map( 'intval', explode( ':', $base ) );
+		$date = $date->setTime( $parts[0], $parts[1], $parts[2] );
+		$stagger = isset( $settings['stagger_seconds'] ) ? absint( $settings['stagger_seconds'] ) : 10;
+		if ( $stagger ) {
+			$slots = max( 1, (int) floor( 3600 / $stagger ) );
+			$hash = (int) sprintf( '%u', crc32( strtolower( $username ) ) );
+			$date = $date->modify( '+' . ( ( $hash % $slots ) * $stagger ) . ' seconds' );
+		}
+		return $date;
+	}
+	private static function classic_comment( $fields ) {
+		$comment = '';
+		foreach ( $fields as $key => $value ) {
+			$value = str_replace( array( "\r", "\n" ), '', (string) $value );
+			$comment .= ( '' === $comment ? '' : "\r\n" ) . $key . ':' . $value;
+		}
+		return $comment;
+	}
+	private static function create_ppp( $payload ) {
+		if ( ! current_user_can( 'manage_options' ) ) return new \WP_Error( 'afcn_create_denied', 'Only administrators can create PPP accounts.', array( 'status' => 403 ) );
+		$id = isset( $payload['connection_id'] ) ? sanitize_text_field( (string) $payload['connection_id'] ) : '';
+		$routers = self::payment_routers();
+		if ( ! isset( $routers[ $id ] ) ) return new \WP_Error( 'afcn_create_router', 'Select an available MikroTik router.', array( 'status' => 400 ) );
+		$record = $routers[ $id ];
+		$name = isset( $payload['customer_name'] ) ? trim( preg_replace( '/\s+/', ' ', sanitize_text_field( (string) $payload['customer_name'] ) ) ) : '';
+		$phone = isset( $payload['phone'] ) ? substr( sanitize_text_field( (string) $payload['phone'] ), 0, 40 ) : '';
+		$address = isset( $payload['address'] ) ? sanitize_textarea_field( (string) $payload['address'] ) : '';
+		$profile = isset( $payload['profile'] ) ? sanitize_text_field( (string) $payload['profile'] ) : '';
+		$wifi = isset( $payload['wifi'] ) ? substr( sanitize_text_field( (string) $payload['wifi'] ), 0, 120 ) : '';
+		$wifi_password = isset( $payload['wifi_password'] ) ? substr( trim( preg_replace( '/[\x00-\x1F\x7F]/', '', (string) $payload['wifi_password'] ) ), 0, 120 ) : '';
+		$installed = self::install_date( isset( $payload['installed'] ) ? $payload['installed'] : '' );
+		if ( '' === $name || strlen( $name ) > 120 || '' === $phone || '' === $address || '' === $profile || ! $installed ) {
+			return new \WP_Error( 'afcn_create_fields', 'Name, CP number, address, plan and a valid installation date are required.', array( 'status' => 400 ) );
+		}
+		if ( ! $wifi || strlen( $wifi_password ) < 8 ) return new \WP_Error( 'afcn_create_wifi', 'WiFi name and a WiFi password of at least 8 characters are required.', array( 'status' => 400 ) );
+		$profiles = Payments_RouterOS_Client::profiles( $record );
+		if ( is_wp_error( $profiles ) ) return $profiles;
+		$exists = false;
+		foreach ( $profiles as $p ) if ( $p['name'] === $profile ) { $exists = true; break; }
+		if ( ! $exists ) return new \WP_Error( 'afcn_create_plan', 'Select an existing MikroTik PPP profile.', array( 'status' => 400 ) );
+		$username = isset( $payload['username'] ) && trim( (string) $payload['username'] ) !== '' ? substr( sanitize_text_field( (string) $payload['username'] ), 0, 63 ) : self::classic_username( $name, $installed, $profile );
+		if ( preg_match( '/[\s\r\n]/', $username ) || '' === $username ) return new \WP_Error( 'afcn_create_user', 'Enter a valid PPP username without spaces.', array( 'status' => 400 ) );
+		$duplicate = Payments_RouterOS_Client::secret( $record, $username );
+		if ( ! is_wp_error( $duplicate ) ) return new \WP_Error( 'afcn_create_exists', 'This PPP username already exists on MikroTik.', array( 'status' => 409 ) );
+		if ( 'afcn_payment_account_missing' !== $duplicate->get_error_code() ) return $duplicate;
+		$scheduler = self::matching_schedule( $record, $username );
+		if ( is_wp_error( $scheduler ) ) return $scheduler;
+		if ( $scheduler ) return new \WP_Error( 'afcn_create_schedule_exists', 'A scheduler already uses this username. Choose a different username.', array( 'status' => 409 ) );
+		$password = apply_filters( 'afc_ppp_new_password', wp_generate_password( 12, false, false ), $username, $profile );
+		$password = is_scalar( $password ) ? substr( (string) $password, 0, 64 ) : '';
+		if ( strlen( $password ) < 8 ) return new \WP_Error( 'afcn_create_password', 'The configured PPP password must have at least 8 characters.', array( 'status' => 400 ) );
+		$dates = self::classic_install_dates( $installed );
+		$amount = preg_match( '/\d{3,6}/', $profile, $m ) ? $m[0] : '';
+		$comment = self::classic_comment( array(
+			'installed' => $dates['installed'], 'grace' => 3, 'paymentMethod' => 'cash',
+			'paymentAmount' => $amount, 'paymentDate' => $dates['paymentDate'],
+			'name' => $name, 'plan' => $profile, 'cp' => $phone,
+			'wifi' => $wifi, 'password' => $wifi_password, 'Address' => $address,
+			'billingDay' => $dates['billingDay'], 'billingCycleDays' => 30,
+			'paidThrough' => $dates['paidThrough'], 'nextDue' => $dates['nextDue'],
+			'cutoffDate' => $dates['cutoffDate'], 'dueReminderDate' => $dates['dueReminderDate'],
+		) );
+		$created = self::command( $record, array(
+			'/ppp/secret/add', '=name=' . $username, '=password=' . $password,
+			'=service=pppoe', '=profile=' . $profile, '=comment=' . $comment, '=disabled=no',
+		) );
+		if ( is_wp_error( $created ) ) return $created;
+		$secret = Payments_RouterOS_Client::secret( $record, $username );
+		if ( is_wp_error( $secret ) ) return new \WP_Error( 'afcn_create_readback', 'PPP was created, but readback failed. Check MikroTik before retrying.', array( 'status' => 502 ) );
+		$scheduler_settings = class_exists( '\AFC_Schedulers' ) ? \AFC_Schedulers::get_settings() : array();
+		$expired = isset( $scheduler_settings['expired_profile'] ) ? (string) $scheduler_settings['expired_profile'] : 'Expired';
+		$start = self::classic_scheduler_datetime( self::install_date( $dates['cutoffDate'] ), $username );
+		$script = self::classic_scheduler_script( $username, $dates['nextDue'], $dates['cutoffDate'], $expired );
+		$added = self::command( $record, array(
+			'/system/scheduler/add', '=name=' . $username, '=start-date=' . $start->format( 'Y-m-d' ),
+			'=start-time=' . $start->format( 'H:i:s' ), '=interval=0s',
+			'=on-event=' . $script, '=policy=read,write,policy,test', '=disabled=no',
+		) );
+		if ( is_wp_error( $added ) ) {
+			// Same as Classic: roll back a newly created secret if its scheduler failed.
+			$rollback = self::command( $record, array( '/ppp/secret/remove', '=.id=' . $secret['.id'] ) );
+			if ( is_wp_error( $rollback ) ) return new \WP_Error( 'afcn_create_rollback', 'Scheduler failed and automatic PPP rollback failed. Inspect MikroTik before retrying.', array( 'status' => 502 ) );
+			return new \WP_Error( 'afcn_create_schedule', 'Scheduler creation failed; the new PPP account was rolled back. ' . $added->get_error_message(), array( 'status' => 502 ) );
+		}
+		$customer_id = self::sync_created_customer( $record, $id, $secret, $name, $phone, $address, $wifi, $profile, $dates, $comment, $amount );
+		if ( is_wp_error( $customer_id ) ) {
+			delete_transient( self::index_cache_key( $id, $record ) );
+			return new \WP_Error( 'afcn_create_partial_customer', 'PPP and scheduler were created, but WordPress customer synchronization failed. Do not retry without checking MikroTik.', array( 'status' => 502 ) );
+		}
+		delete_transient( self::index_cache_key( $id, $record ) );
+		$data = array( 'username' => $username, 'id' => $secret['.id'], 'profile' => $profile, 'customer_name' => $name, 'phone' => $phone, 'address' => $address, 'wifi' => $wifi, 'installed' => $dates['installed'], 'comment' => $comment );
+		do_action( 'afc_ppp_created', $username, $customer_id, $data );
+		Audit_Log::record( 'ppp_created', $username, array( 'connection_id' => $id, 'customer_id' => $customer_id, 'installed' => $dates['installed'] ) );
+		return array( 'message' => sprintf( 'PPP %s created successfully.', $username ), 'username' => $username, 'password' => $password, 'installed' => $dates['installed'], 'dates' => $dates );
+	}
+	private static function sync_created_customer( $record, $connection_id, $secret, $name, $phone, $address, $wifi, $profile, $dates, $comment, $amount ) {
+		$username = (string) $secret['name'];
+		$ids = get_posts( array( 'post_type' => 'afc_customer', 'post_status' => 'any', 'posts_per_page' => 1, 'fields' => 'ids', 'meta_key' => '_afc_ppp_username', 'meta_value' => $username ) );
+		$customer_id = $ids ? (int) $ids[0] : 0;
+		if ( ! $customer_id ) {
+			$customer_id = wp_insert_post( array( 'post_type' => 'afc_customer', 'post_status' => 'publish', 'post_title' => $name ), true );
+			if ( is_wp_error( $customer_id ) ) return $customer_id;
+			update_post_meta( $customer_id, '_afc_account_number', 'AIR-' . str_pad( (string) $customer_id, 6, '0', STR_PAD_LEFT ) );
+		} else {
+			wp_update_post( array( 'ID' => $customer_id, 'post_title' => $name ) );
+		}
+		$meta = array(
+			'_afc_ppp_username' => $username, '_afc_mikrotik_id' => $secret['.id'],
+			'_afc_plan' => $profile, '_afc_mikrotik_comment' => $comment,
+			'_afc_customer_name' => $name, '_afc_phone' => $phone,
+			'_afc_installation_date' => $dates['installed'], '_afc_grace_days' => 3,
+			'_afc_payment_method' => 'cash', '_afc_payment_amount' => $amount,
+			'_afc_payment_date' => $dates['paymentDate'], '_afc_wifi_name' => $wifi,
+			'_afc_address' => $address, '_afc_comment_field_billingday' => $dates['billingDay'],
+			'_afc_comment_field_paidthrough' => $dates['paidThrough'],
+			'_afc_comment_field_nextdue' => $dates['nextDue'],
+			'_afc_comment_field_cutoffdate' => $dates['cutoffDate'],
+			'_afc_comment_field_duereminderdate' => $dates['dueReminderDate'],
+			'_afc_sms_due_reminder_days_before' => 1,
+			'_afc_customer_status' => 'active', '_afcn_router_connection_id' => $connection_id,
+		);
+		foreach ( $meta as $key => $value ) update_post_meta( $customer_id, $key, $value );
+		if ( '' === (string) get_post_meta( $customer_id, '_afc_sms_rating_mode', true ) ) {
+			update_post_meta( $customer_id, '_afc_sms_rating_mode', 'auto' );
+			update_post_meta( $customer_id, '_afc_sms_payer_rating', 3 );
+		}
+		return (int) $customer_id;
+	}
+	private static function create_dialog() {
+		$routers = self::payment_routers();
+		ob_start(); ?>
+		<dialog class="afcn-dialog afcn-payment-create-dialog" id="afcn-payment-create-dialog">
+			<div class="afcn-dialog-shell">
+				<div class="afcn-dialog-header">
+					<div><h2>Add PPP Account</h2><p class="afcn-page-description">Create a MikroTik account and its billing scheduler.</p></div>
+					<button type="button" class="afcn-icon-button" data-afcn-create-close aria-label="Close Add PPP"><?php echo \Airfiber\Next\Icon::svg( 'x' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></button>
+				</div>
+				<div class="afcn-dialog-body">
+					<div data-afcn-create-message role="status"></div>
+					<div data-afcn-create-form>
+						<div class="afcn-create-fields">
+							<label>Router<select class="afcn-input" data-afcn-create-field="connection_id">
+								<?php foreach ( $routers as $id => $record ) : ?>
+								<option value="<?php echo esc_attr( $id ); ?>"><?php echo esc_html( isset( $record['name'] ) ? $record['name'] : $id ); ?></option>
+								<?php endforeach; ?>
+							</select></label>
+							<label>Customer full name<input class="afcn-input" data-afcn-create-field="customer_name" autocomplete="name" required></label>
+							<label>CP number<input class="afcn-input" type="tel" data-afcn-create-field="phone" autocomplete="tel" required></label>
+							<label class="afcn-create-span">Address<textarea class="afcn-input" rows="2" data-afcn-create-field="address" required></textarea></label>
+							<label>PPP profile / plan<select class="afcn-input" data-afcn-create-field="profile" required><option value="">Loading profiles…</option></select></label>
+							<label>Installation date<input class="afcn-input" type="date" data-afcn-create-field="installed" value="<?php echo esc_attr( current_time( 'Y-m-d' ) ); ?>" required></label>
+							<label>WiFi name<input class="afcn-input" data-afcn-create-field="wifi" required></label>
+							<label>WiFi password<input class="afcn-input" type="text" data-afcn-create-field="wifi_password" autocomplete="off" required minlength="8"></label>
+							<label class="afcn-create-span">PPP username <small>Optional. Leave blank to generate Name_Day_Plan.</small><input class="afcn-input" data-afcn-create-field="username" autocomplete="off" placeholder="Generated automatically"></label>
+						</div>
+						<p class="afcn-page-description" data-afcn-create-dates>Grace: 3 days. Billing: rolling 30 days. Dates will follow the installation date.</p>
+						<div class="afcn-create-actions">
+							<button type="button" class="afcn-button afcn-button-secondary" data-afcn-create-close>Cancel</button>
+							<button type="button" class="afcn-button afcn-button-primary" data-afcn-module="payments" data-afcn-create-submit>Create PPP Account</button>
+						</div>
+					</div>
+					<div class="afcn-create-success" data-afcn-create-success hidden>
+						<h3>PPP account created</h3>
+						<p>Save these details for your customer.</p>
+						<div><span>PPP username</span><code data-afcn-created-username></code></div>
+						<div><span>PPP password</span><code data-afcn-created-password></code></div>
+						<div><span>Installed</span><strong data-afcn-created-installed></strong></div>
+						<div><span>Next due</span><strong data-afcn-created-due></strong></div>
+						<div><span>Cutoff</span><strong data-afcn-created-cutoff></strong></div>
+						<button type="button" class="afcn-button afcn-button-primary" data-afcn-create-another>Create another PPP</button>
+					</div>
+				</div>
 			</div>
 		</dialog>
 		<?php return ob_get_clean();
