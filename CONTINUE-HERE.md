@@ -2,6 +2,20 @@
 
 Updated: 2026-08-31
 
+## November 20, 2026 — Native BETA Add PPP (Payments module 0.1.7)
+
+The **+ Add PPP** action now opens a native BETA dialog instead of redirecting to Classic. It reads the selected BETA MikroTik router's eligible PPP profiles on demand and creates the PPP secret, managed cutoff scheduler, and WordPress customer via BETA AJAX.
+
+The new **Installation date** input defaults to the WordPress/site-local current day (`current_time('Y-m-d')`) and is editable before submission. Like Classic's advanced creation route, the selected installation date controls the generated Name_Day_Plan username, paymentDate, paidThrough, billingDay, rolling 30-day nextDue, next-day cutoffDate, and dueReminderDate. It is displayed with the derived schedule before creation. Backdated installs with cutoff in the past receive a visible warning because MikroTik may run the cutoff immediately.
+
+The service intentionally ports Classic's basic-create requirements (name, CP, address, profile, WiFi SSID and WiFi password of at least 8 characters), generated PPP password through `afc_ppp_new_password` filter, structured comment, 3-day grace metadata, scheduler marker and stale-date checks, scheduler base-time/stagger from AFC_Schedulers, customer post/meta synchronization and `afc_ppp_created` event. Optional PPP username override follows Classic's advanced create behavior. Router-specific BETA credentials remain in Connection_Store / Secret_Store and no Classic runtime files were changed.
+
+Password is displayed **once** in the creation-success panel and cleared on closing. On scheduler creation failure, the newly created PPP secret is rolled back; partial failures report explicitly for manual inspection. The standard search index is invalidated after success.
+
+Changed: `next/modules/payments/includes/class-payments-module.php`, `next/modules/payments/includes/class-payments-routeros-client.php`, `next/modules/payments/assets/payments.js`, `next/modules/payments/assets/payments.css`, and `next/modules/payments/module.json`. Classic files remain unchanged.
+
+**Must test against a dedicated non-production MikroTik PPP/router** before production use: auto-generated username, custom username, today/previous-date installation, profile selection, WiFi details, PPP readback, scheduler date/script, automatic cutoff, duplicate usernames, failure/rollback, and WordPress customer metadata. Static JS parsing passed; PHP runtime and live MikroTik integration not yet validated.
+
 ## November 19, 2026 — BETA Payment single-modal workspace
 
 The BETA Payments customer result now always opens one shared modal, with icon-only **Edit PPP**, **Comment**, and **Trash** actions in the fixed header. The old Edit PPP/comment search-mode toggle and secondary editor dialog are removed. The default panel keeps CASH/GCash and payment metadata. Edit PPP and raw Comment panels load explicitly via AJAX, slide into view, and return to Payment via vertical transitions (respecting reduced-motion settings).
